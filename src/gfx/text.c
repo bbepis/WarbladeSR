@@ -5,6 +5,8 @@
 // g_smallFont glyph cell width (DrawMenuText) and g_tinyFont glyph cell width
 // (DrawTinyText/DrawTinyText2/DrawTinyTextAlt/DrawNumberRow): also the fixed per-glyph
 // advance, so a space just advances by the same amount without drawing.
+// Uppercase-only bitmap rows display lowercase with the matching capital glyph.
+// Map at draw time so case-sensitive credentials and names remain unchanged.
 enum { MENU_GLYPH_W = 12, TINY_GLYPH_W = 8 };
 
 
@@ -105,6 +107,8 @@ void DrawMenuText(const char *text, int x, int y, int row)
                     glyph = *p - '0';
                 if (*p >= 'A' && *p <= 'Z')
                     glyph = *p - '7';
+                if (*p >= 'a' && *p <= 'z')
+                    glyph = *p - 'a' + 10;
                 if (*p == '.') {
                     glyph = 36;
                     advance = MENU_GLYPH_W;
@@ -327,6 +331,8 @@ void DrawTinyText(const char *text, int x, int y, int row)
                     glyph = *p - 22;
                 if (*p >= 'A' && *p <= 'Z')
                     glyph = *p - 'A';
+                if (*p >= 'a' && *p <= 'z')
+                    glyph = *p - 'a';
                 advance = TINY_GLYPH_W;
                 if (*p == '.') {
                     glyph = 36;
@@ -506,6 +512,8 @@ void DrawTinyText2(const char *text, int x, int y, int row)
                     glyph = *p - 22;
                 if (*p >= 'A' && *p <= 'Z')
                     glyph = *p - 'A';
+                if (*p >= 'a' && *p <= 'z')
+                    glyph = *p - 'a';
                 advance = TINY_GLYPH_W;
                 if (*p == '.') {
                     glyph = 36;
@@ -825,6 +833,9 @@ void DrawNewsText(char *text, int x, int y, int font)
                 }
                 if (*p >= 'A' && *p <= 'Z') {
                     idx = *p - 65;
+                }
+                if (*p >= 'a' && *p <= 'z') {
+                    idx = *p - 'a';
                 }
                 width = 8;
                 if (*p == '.') {
@@ -1304,6 +1315,8 @@ void DrawTinyTextAlt(const char *text, int x, int y, int row)
                     glyph = *p - 22;
                 if (*p >= 'A' && *p <= 'Z')
                     glyph = *p - 'A';
+                if (*p >= 'a' && *p <= 'z')
+                    glyph = *p - 'a';
                 advance = 8;
                 if (*p == '.') {
                     glyph = 36;

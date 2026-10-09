@@ -1,0 +1,61 @@
+# Runs the tests (tests/README.md): the game-logic tests on the fake engine, the engine tests on
+# a headless SDL (tests/build-deps.sh, cached), and the red-green check (tests/mutate.py).
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: sudo apt-get update && sudo apt-get install -y ninja-build zlib1g-dev
+
+      - uses: actions/cache@v4
+        with:
+          path: build/deps-test
+          key: deps-test-${{ runner.os }}-${{ hashFiles('tests/build-deps.sh') }}
+
+      - name: Headless SDL for the engine tests
+        run: tests/build-deps.sh
+
+      - name: Build
+        run: |
+          cmake -S tests -B build/tests -G Ninja -DCMAKE_PREFIX_PATH=$PWD/build/deps-test/prefix
+          cmake --build build/tests
+
+      - name: Runner infrastructure checks
+        run: |
+          python3 tests/test_runner.py
+          python3 tests/test_mutate.py
+
+      - name: Game-logic tests
+        run: build/tests/wbtests -j 4
+
+      - name: Engine tests
+        run: build/tests/wbengine -j 4
+
+  red-green:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: sudo apt-get update && sudo apt-get install -y ninja-build zlib1g-dev
+
+      - uses: actions/cache@v4
+        with:
+          path: build/deps-test
+          key: deps-test-${{ runner.os }}-${{ hashFiles('tests/build-deps.sh') }}
+
+      - run: tests/build-deps.sh
+
+      - name: Every mutation is caught
+        run: python3 tests/mutate.py -j 4

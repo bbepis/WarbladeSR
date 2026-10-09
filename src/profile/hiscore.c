@@ -9,6 +9,9 @@
 #include "globals.h"
 #include "game.h"
 #include <zlib.h>
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
 
 // warblade_132.his, zlib-packed: the six tables and each table's #1 run's level records, as the
 // original kept them in memory (0xa1558 bytes from 0xc39380). The game keeps them in
@@ -77,6 +80,15 @@ void UpdateBestScore()
 void ShowHiscoreTable()
 {
     int idx;
+
+#ifdef __EMSCRIPTEN__
+    // The browser build saves at every shop (AutoSaveProfile). This table ends a run (game over,
+    // retiring, a time trial's time up), and an ended single-player run must not be continued
+    // from its last shop, which the original, deleting a save when loading it, never allowed.
+    // Quitting a game (back to the title, no table) keeps the save.
+    if (g_profileIndex != -1 && g_gameMode == MODE_SINGLE)
+        DeleteProfile(g_profileIndex);
+#endif
 
     SysSetMaxFps(60);
     g_introInit = 1;
@@ -803,11 +815,15 @@ void WriteHiscoreFile()
         if (res == -1)
         {
             g_fileWriteErrorFlag = 1;
-            SysMessageBox("WarBlade v1.34 SR1, Copyright 1999-2009 Edgar M Vigdal",
+            SysMessageBox("Warblade SR 2.0, Copyright 1999-2009 Edgar M Vigdal",
                           "Could not open/create WarBlade Hiscore file");
             g_fileWriteErrorFlag = 0;
         }
         _close(fd);
+#ifdef __EMSCRIPTEN__
+        // Hand the new candidate to the page immediately; it is merged by the server.
+        EM_ASM({ if (Module.onGameScoreWritten) Module.onGameScoreWritten(); });
+#endif
     }
 }
 

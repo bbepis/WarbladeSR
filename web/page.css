@@ -1,0 +1,57 @@
+/* The browser build's page style (web/index.html). */
+:root { --bg: #05060a; --panel: #10131c; --line: #2a3142; --text: #d8dde8; --dim: #8a93a6; --accent: #e8b43a; }
+* { box-sizing: border-box; }
+/* Layout classes must never reveal signed-out or unavailable controls. */
+[hidden] { display: none !important; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+             font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+#stage { position: fixed; inset: 0; bottom: auto; height: var(--game-height, 100vh); display: flex; align-items: center; justify-content: center; }
+/* SDL presents the 800x600 game at display density. Keep browser resampling
+   smooth so a fractional CSS size does not discard the filtered text strokes. */
+#canvas { display: block; width: min(100vw, calc(var(--game-height, 100vh) * 4 / 3)) !important;
+          height: min(var(--game-height, 100vh), calc(100vw * 3 / 4)) !important; image-rendering: auto;
+          background: #000; outline: none; }
+#loading { position: absolute; width: min(100vw, calc(var(--game-height, 100vh) * 4 / 3));
+           height: min(var(--game-height, 100vh), calc(100vw * 3 / 4)); background: #000;
+           display: flex; align-items: flex-end; justify-content: center; }
+#loading-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+#loading-state { position: relative; width: 100%; padding: 22px 8%; text-align: center;
+                 background: linear-gradient(transparent, rgba(0, 0, 0, 0.88)); }
+#status { margin: 0 0 10px; color: var(--text); text-shadow: 0 1px 3px #000; }
+#progress { display: block; width: 100%; height: 5px; margin: 0 auto; accent-color: var(--accent); }
+button, label.button { display: inline-block; appearance: none; border: 1px solid var(--line);
+        background: #1a2030; color: var(--text); padding: 10px 16px; border-radius: 6px;
+        font: inherit; cursor: pointer; margin-top: 12px; }
+input[type=file] { display: none; }
+#save-alert { position: fixed; z-index: 5; left: 16px; right: 16px; bottom: 16px; padding: 12px; border: 1px solid #e8b43a; border-radius: 6px; color: var(--text); background: #452519; }
+.small { font-size: 13px; }
+a { color: var(--accent); }
+/* The same on-screen controls as the native browser build. */
+#canvas, #touch * { touch-action: none; -webkit-user-select: none; user-select: none; }
+#touch { position: fixed; inset: 0; pointer-events: none; }
+#touch[hidden] { display: none; }
+#touch > * { position: absolute; pointer-events: auto; border: 2px solid rgba(232, 180, 58, 0.55);
+             background: rgba(16, 19, 28, 0.35); color: rgba(232, 180, 58, 0.9);
+             font: 600 13px/1 system-ui, sans-serif; letter-spacing: 0.06em;
+             display: flex; align-items: center; justify-content: center; border-radius: 50%; }
+#stick { left: 24px; bottom: 24px; width: 150px; height: 150px; }
+#knob { width: 60px; height: 60px; border-radius: 50%; background: rgba(232, 180, 58, 0.45); pointer-events: none; }
+#fire { right: 24px; bottom: 40px; width: 96px; height: 96px; }
+#rocket { right: 136px; bottom: 24px; width: 68px; height: 68px; }
+#pause { right: 16px; top: 16px; width: 52px; height: 52px; font-size: 11px; }
+#touch > .down { background: rgba(232, 180, 58, 0.45); color: #1a1405; }
+
+input:focus-visible, button:focus-visible, label.button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+/* Native art draws text and masking; these actual inputs provide mobile editing.
+   Keep them focusable and rendered, with 16px text to avoid iOS focus zoom. */
+.game-login-input { position: fixed; z-index: 4; padding: 0; margin: 0;
+  border: 0; border-radius: 0; background: transparent; color: transparent;
+  caret-color: transparent; font: 16px sans-serif; touch-action: manipulation;
+  -webkit-text-fill-color: transparent; outline: none !important; }
+
+/* A small readout inside the game picture; it never captures game input. */
+#performance { position: fixed; z-index: 3; pointer-events: none;
+  transform: translate(-100%, -100%);
+  padding: 2px 5px; border-radius: 3px; background: rgba(0, 0, 0, 0.65);
+  color: #d8dde8; font: 12px/1.4 monospace; font-variant-numeric: tabular-nums; }

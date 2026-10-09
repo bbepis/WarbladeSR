@@ -1,2 +1,4 @@
 # build output
 build/
+# Python bytecode (tests)
+__pycache__/

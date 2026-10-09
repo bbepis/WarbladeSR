@@ -1,0 +1,2832 @@
+# Levels and game flow: src/game/level.c, levelstart.c, levelobj.c, mapobj.c, enemies.c,
+# gameflow.c, warp.c, hurryup.c, gameover.c (tests/test_flow_*.c)
+
+# ---- level.c: counting files ----
+
+== flow: CountClassicLevels starts at 000
+file: src/game/level.c
+- sprintf(levelname, "classic_level_%03d.lvd", i + 1);
++ sprintf(levelname, "classic_level_%03d.lvd", i);
+expect: Flow_CountClassicLevels_counts_files_001_to_500
+
+== flow: CountTimeTrialLevels stops at 49
+file: src/game/level.c
+- for (i = 0; i < MAX_TIME_TRIAL_LEVELS; i++) {
++ for (i = 0; i < MAX_TIME_TRIAL_LEVELS - 1; i++) {
+expect: Flow_CountTimeTrialLevels_counts_files_01_to_50
+
+== flow: CountMalfunctionLevels stops at 48
+file: src/game/level.c
+- for (int i = 0; i < 50; i++) {
++ for (int i = 0; i < 49; i++) {
+expect: Flow_CountMalfunctionLevels_counts_files_00_to_49
+
+== flow: time trial lock lasts 1s
+file: src/game/level.c
+- g_timeTrialDeadline = g_time + 10000;
++ g_timeTrialDeadline = g_time + 1000;
+expect: Flow_CheckTimeTrialAvailable_locks_the_mode_for_10s_without_levels
+
+== flow: time trial never unlocks
+file: src/game/level.c
+-         g_timeTrialLocked = 0;
+-         return 1;
++         return 1;
+expect: Flow_CheckTimeTrialAvailable_unlocks_with_levels
+
+# ---- level.c: patterns ----
+
+== flow: LoadPatterns stops at att049
+file: src/game/level.c
+- if (n > 50)
++ if (n > 49)
+expect: Flow_LoadPatterns_loads_att001_to_att050_that_exist
+
+== flow: LoadPatterns keeps one entry too many
+file: src/game/level.c
+- if (i >= count) {
++ if (i > count) {
+expect: Flow_LoadPatterns_zero_fills_entries_past_count
+
+== flow: LoadPatterns doesn't clear tParam
+file: src/game/level.c
+- g_pattern.entries[i].tParam = 0;
++
+expect: Flow_LoadPatterns_zero_fills_entries_past_count
+
+# ---- level.c: level files ----
+
+== flow: LoadClassicLevel reads the next level
+file: src/game/level.c
+- sprintf(levelname, "classic_level_%03d.lvd", n);
++ sprintf(levelname, "classic_level_%03d.lvd", n + 1);
+expect: Flow_LoadClassicLevel_reads_classic_level_NNN
+
+== flow: LoadTimeTrialLevel three digits
+file: src/game/level.c
+- sprintf(levelname, "timetrial_%02d.lvd", n);
++ sprintf(levelname, "timetrial_%03d.lvd", n);
+expect: Flow_LoadTimeTrialLevel_reads_timetrial_NN
+
+== flow: LoadMalfunctionLevel reads the previous level
+file: src/game/level.c
+- sprintf(levelname, "malfunction_%02d.lvd", n);
++ sprintf(levelname, "malfunction_%02d.lvd", n - 1);
+expect: Flow_LoadMalfunctionLevel_reads_malfunction_NN
+
+# ---- level.c: unpacking (shared by PackLevelData and LoadLevelData) ----
+
+== flow: group velocity scaled by 128
+file: src/game/level.c
+- g_curLevelData.grp[grpIdx].velX = g_levelRaw.grp[grpIdx].velX / 256.0; \
++ g_curLevelData.grp[grpIdx].velX = g_levelRaw.grp[grpIdx].velX / 128.0; \
+expect: Flow_PackLevelData_unpacks_the_level_into_g_curLevelData
+expect: Flow_LoadLevelData_unpacks_the_slot_of_the_current_level
+
+== flow: header hp from count
+file: src/game/level.c
+- g_curLevelData.hdr[hdrIdx].hp = g_levelRaw.hdr[hdrIdx].hp;  \
++ g_curLevelData.hdr[hdrIdx].hp = g_levelRaw.hdr[hdrIdx].count;  \
+expect: Flow_PackLevelData_unpacks_the_level_into_g_curLevelData
+expect: Flow_LoadLevelData_unpacks_the_slot_of_the_current_level
+
+== flow: sub fireDelay from pathId
+file: src/game/level.c
+-     g_curLevelData.grp[grpIdx].sub[subIdx].fireDelay =                                             \
+-         g_levelRaw.grp[grpIdx].sub[subIdx].fireDelay;                        \
++     g_curLevelData.grp[grpIdx].sub[subIdx].fireDelay =                                             \
++         g_levelRaw.grp[grpIdx].sub[subIdx].pathId;                        \
+expect: Flow_PackLevelData_unpacks_the_level_into_g_curLevelData
+expect: Flow_LoadLevelData_unpacks_the_slot_of_the_current_level
+
+== flow: path y from x
+file: src/game/level.c
+-         g_levelRaw.obj[objGrpIdx][objIdx].pathY / 256.0;               \
++         g_levelRaw.obj[objGrpIdx][objIdx].pathX / 256.0;               \
+expect: Flow_PackLevelData_unpacks_the_level_into_g_curLevelData
+expect: Flow_LoadLevelData_unpacks_the_slot_of_the_current_level
+
+== flow: aux y1 from x1
+file: src/game/level.c
+- g_curLevelData.aux[auxIdx].y1 = g_levelRaw.aux[auxIdx].y1; \
++ g_curLevelData.aux[auxIdx].y1 = g_levelRaw.aux[auxIdx].x1; \
+expect: Flow_PackLevelData_unpacks_the_level_into_g_curLevelData
+expect: Flow_LoadLevelData_unpacks_the_slot_of_the_current_level
+
+== flow: level name loses its last character
+file: src/game/level.c
+- for (k = 0; k < len + 1; k++)                                       \
++ for (k = 0; k < len; k++)                                           \
+expect: Flow_PackLevelData_unpacks_the_level_into_g_curLevelData
+expect: Flow_LoadLevelData_unpacks_the_slot_of_the_current_level
+
+== flow: group count not unpacked
+file: src/game/level.c
+- g_curLevelData.grp[grpIdx].count = g_levelRaw.grp[grpIdx].count;     \
++ g_curLevelData.grp[grpIdx].count = 1;     \
+expect: Flow_PackLevelData_unpacks_the_level_into_g_curLevelData
+expect: Flow_LoadLevelData_unpacks_the_slot_of_the_current_level
+
+== flow: slot clearing skips sub hp
+file: src/game/level.c
+- g_curLevelData.grp[grpClrIdx].sub[subClrIdx].hp = 0;       \
++ \
+expect: Flow_PackLevelData_clears_subs_and_paths_left_from_the_previous_level
+expect: Flow_LoadLevelData_clears_subs_left_from_the_previous_level
+
+== flow: PackLevelData doesn't clear the slots
+file: src/game/level.c
+-     // ---- unpack ----
+-     CLEAR_LEVEL_SLOTS()
++     // ---- unpack ----
+expect: Flow_PackLevelData_clears_subs_and_paths_left_from_the_previous_level
+
+== flow: LoadLevelData doesn't clear the slots
+file: src/game/level.c
+-             CLEAR_LEVEL_SLOTS()
+-
+-             // ---- unpack header
++             // ---- unpack header
+expect: Flow_LoadLevelData_clears_subs_left_from_the_previous_level
+
+# ---- level.c: PackLevelData ----
+
+== flow: PackLevelData stores the wrong size
+file: src/game/level.c
+- g_alienGfxSlots[slot].srcLen = csize;
++ g_alienGfxSlots[slot].srcLen = csize - 1;
+expect: Flow_PackLevelData_stores_the_compressed_level_in_the_slot
+
+== flow: PackLevelData owner off by one
+file: src/game/level.c
+- g_alienGfxSlots[slot].owner = level;
++ g_alienGfxSlots[slot].owner = level + 1;
+expect: Flow_PackLevelData_stores_the_compressed_level_in_the_slot
+expect: Flow_BufferAllLevels_packs_100_classic_then_time_trial_then_malfunction_levels
+
+== flow: PackLevelData forgets the mode
+file: src/game/level.c
+- g_alienGfxSlots[slot].id = mode;
++ g_alienGfxSlots[slot].id = 0;
+expect: Flow_PackLevelData_records_the_mode_of_time_trial_and_malfunction_levels
+expect: Flow_LoadLevelData_uses_the_time_trial_slot_in_time_trial_mode
+
+== flow: PackLevelData time trial reads classic levels
+file: src/game/level.c
+-     else if (mode == LEVEL_MODE_TIME_TRIAL)
+-         LoadTimeTrialLevel(level);
++     else if (mode == LEVEL_MODE_TIME_TRIAL)
++         LoadClassicLevel(level);
+expect: Flow_PackLevelData_records_the_mode_of_time_trial_and_malfunction_levels
+
+== flow: mask name misses the k
+file: src/game/level.c
+-                     g_curLevelData.mask[j][n2] = 'k';
+-                     n2++;
++                     n2++;
+expect: Flow_PackLevelData_derives_the_tga_mask_and_hma_names
+
+== flow: gfx name keeps the backslash
+file: src/game/level.c
+- start = i + 1;
++ start = i;
+expect: Flow_PackLevelData_derives_the_tga_mask_and_hma_names
+
+== flow: name scan starts at 0
+file: src/game/level.c
+-         start = 1;
+-         stop = 1;
++         start = 0;
++         stop = 1;
+expect: Flow_PackLevelData_drops_the_first_character_of_a_path_without_folder
+
+== flow: graphics key from the mask name
+file: src/game/level.c
+- g_alienGfxSlots[slot].key[j] = StrHash(g_curLevelData.gfx[j]);
++ g_alienGfxSlots[slot].key[j] = StrHash(g_curLevelData.mask[j]);
+expect: Flow_PackLevelData_derives_the_tga_mask_and_hma_names
+
+== flow: hma name truncated
+file: src/game/level.c
+- CopyBytesAt(g_alienGfxSlots[slot].name3[j], filename, 0, StrLen(filename));
++ CopyBytesAt(g_alienGfxSlots[slot].name3[j], filename, 0, StrLen(filename) - 1);
+expect: Flow_PackLevelData_derives_the_tga_mask_and_hma_names
+
+== flow: frameCount not counted
+file: src/game/level.c
+-             nGfx++;
++
+expect: Flow_PackLevelData_derives_the_tga_mask_and_hma_names
+expect: Flow_BufferAllLevels_buffers_each_distinct_alien_graphic_once
+expect: Flow_LoadLevelData_hooks_up_the_preloaded_graphics
+
+== flow: frame height from width
+file: src/game/level.c
+- g_alienGfxSlots[slot].frameH[j] = g_curLevelData.h[j];
++ g_alienGfxSlots[slot].frameH[j] = g_curLevelData.w[j];
+expect: Flow_PackLevelData_copies_the_frame_sizes_into_the_slot
+
+== flow: preload cap off by one
+file: src/game/level.c
+- if (g_alienGfxBufferedCount < g_maxBuffered && g_alienGfxSlots[slot].name1[s][0] != 0) {
++ if (g_alienGfxBufferedCount <= g_maxBuffered && g_alienGfxSlots[slot].name1[s][0] != 0) {
+expect: Flow_PackLevelData_stops_preloading_at_the_buffer_cap
+
+== flow: preload loads the mask as the picture
+file: src/game/level.c
+- g_alienGfxSlots[slot].gfx[s] = LoadGraphic2(g_alienGfxSlots[slot].name1[s], 1, 1);
++ g_alienGfxSlots[slot].gfx[s] = LoadGraphic2(g_alienGfxSlots[slot].name2[s], 1, 1);
+expect: Flow_PackLevelData_preloads_the_graphics
+
+== flow: preload not marked loaded
+file: src/game/level.c
+-                 g_alienGfxSlots[slot].loaded[s] = 1;
++                 g_alienGfxSlots[slot].loaded[s] = 0;
+expect: Flow_PackLevelData_preloads_the_graphics
+
+== flow: last buffered level not recorded
+file: src/game/level.c
+- g_lastLevelBuffered = level;
++
+expect: Flow_PackLevelData_preloads_the_graphics
+expect: Flow_BufferAllLevels_buffers_each_distinct_alien_graphic_once
+
+== flow: shared graphics loaded again
+file: src/game/level.c
+- g_alienGfxSlots[slot].gfx[s] = g_alienGfxSlots[g_foundSlot].gfx[g_foundChan];
++ g_alienGfxSlots[slot].gfx[s] = LoadGraphic2(g_alienGfxSlots[slot].name1[s], 1, 1);
+expect: Flow_PackLevelData_shares_graphics_already_loaded_by_another_slot
+
+== flow: sharing doesn't bump the owner
+file: src/game/level.c
+-                 g_alienGfxSlots[g_foundSlot].count[g_foundChan]++;
+-
+-             } else {
++
++             } else {
+expect: Flow_PackLevelData_shares_graphics_already_loaded_by_another_slot
+
+== flow: preload frame A width from height
+file: src/game/level.c
+- g_alienGfxSlots[slot].blk[s].aWidth = g_frameAX2;
++ g_alienGfxSlots[slot].blk[s].aWidth = g_frameAY2;
+expect: Flow_PackLevelData_scans_the_hit_mask_for_frame_rects
+
+== flow: LoadHma uses the wrong base name
+file: src/gfx/resources.c
+- StrToLowerN(name, levelname, (int)sizeof(levelname));
++ StrToLowerN(".hma", levelname, (int)sizeof(levelname));
+expect: Flow_PackLevelData_finds_a_hit_mask_under_its_real_name
+expect: ui_LoadHma_reads_a_lowercase_mask_with_the_requested_size
+
+# ---- level.c: frame rects ----
+
+== flow: ScanLeft off by one
+file: src/game/level.c
+-         if (avg > 0.0)
+-             return x;
+-     }
+-     return 0;
++         if (avg > 0.0)
++             return x - 1;
++     }
++     return 0;
+expect: Flow_ScanFrameRects_finds_the_bounding_boxes
+expect: Flow_PackLevelData_scans_the_hit_mask_for_frame_rects
+
+== flow: ScanTop of empty is 1
+file: src/game/level.c
+-     return 0;
+- }
+-
+- // Scan columns from the right.
++     return 1;
++ }
++
++ // Scan columns from the right.
+expect: Flow_ScanFrameRects_of_an_empty_mask_is_the_whole_frame
+
+== flow: ScanRight of empty one less
+file: src/game/level.c
+- return width;
++ return width - 1;
+expect: Flow_ScanFrameRects_of_an_empty_mask_is_the_whole_frame
+
+== flow: ScanBottom starts inside the frame
+file: src/game/level.c
+- for (y = height; y > 0; y--) {
++ for (y = height - 1; y > 0; y--) {
+expect: Flow_ScanFrameRects_reads_one_column_and_row_past_the_frame
+
+== flow: ScanRight starts inside the frame
+file: src/game/level.c
+- for (x = width; x > 0; x--) {
++ for (x = width - 1; x > 0; x--) {
+expect: Flow_ScanFrameRects_reads_one_column_and_row_past_the_frame
+
+== flow: frame B scanned 31 wide
+file: src/game/level.c
+- g_frameBX2 = ScanRight((unsigned char *)img, 0x1c0, 0, 0x1e, 0x1e, w, h);
++ g_frameBX2 = ScanRight((unsigned char *)img, 0x1c0, 0, 0x1f, 0x1f, w, h);
+expect: Flow_ScanFrameRects_of_an_empty_mask_is_the_whole_frame
+
+== flow: frame A scanned at frame B
+file: src/game/level.c
+- g_frameAY2 = ScanBottom((unsigned char *)img, 0x1e0, 0, 0x1f, 0x1f, w, h);
++ g_frameAY2 = ScanBottom((unsigned char *)img, 0x1c0, 0, 0x1f, 0x1f, w, h);
+expect: Flow_ScanFrameRects_finds_the_bounding_boxes
+
+== flow: CacheFrameRect slot 2 not scanned
+file: src/game/level.c
+- if (i == 2 && g_alienGfxCache[2].gfx1)
++ if (i == 3 && g_alienGfxCache[2].gfx1)
+expect: Flow_CacheFrameRect_copies_the_scanned_rects_of_a_loaded_slot
+
+== flow: CacheFrameRect swaps A top
+file: src/game/level.c
+- g_frames[i].raw[5] = g_frameAY1;
++ g_frames[i].raw[5] = g_frameAX1;
+expect: Flow_CacheFrameRect_copies_the_scanned_rects_of_a_loaded_slot
+
+== flow: frame B default 32 wide
+file: src/game/level.c
+- g_rectsB[i].x2 = 0x40;
++ g_rectsB[i].x2 = 0x20;
+expect: Flow_InitFrameRectDefaults_sets_32_and_64_pixel_boxes
+
+# ---- level.c: LoadLevelData ----
+
+== flow: LoadLevelData ignores the mode
+file: src/game/level.c
+- if (g_alienGfxSlots[i].owner == level && g_alienGfxSlots[i].id == mode) {
++ if (g_alienGfxSlots[i].owner == level) {
+expect: Flow_LoadLevelData_uses_the_time_trial_slot_in_time_trial_mode
+expect: Flow_LoadLevelData_uses_the_malfunction_slot_during_a_malfunction
+
+== flow: malfunction loads time trial levels
+file: src/game/level.c
+-         mode = LEVEL_MODE_MALFUNCTION;
++         mode = LEVEL_MODE_TIME_TRIAL;
+expect: Flow_LoadLevelData_uses_the_malfunction_slot_during_a_malfunction
+
+== flow: time trial mode loads classic levels
+file: src/game/level.c
+-         mode = LEVEL_MODE_TIME_TRIAL;
+-         level = g_curLevelNum - 1 % g_numLevels2 + 1;
++         mode = LEVEL_MODE_CLASSIC;
++         level = g_curLevelNum - 1 % g_numLevels2 + 1;
+expect: Flow_LoadLevelData_uses_the_time_trial_slot_in_time_trial_mode
+
+== flow: classic levels wrap every 100 (precedence fixed)
+file: src/game/level.c
+- level = g_curLevelNum - 1 % 100 + 1;
++ level = (g_curLevelNum - 1) % 100 + 1;
+expect: Flow_LoadLevelData_does_not_wrap_levels_past_100
+
+== flow: LoadLevelData doesn't count the use
+file: src/game/level.c
+-                         g_alienGfxSlots[i].count[j]++;
+-                     } else if
++                     } else if
+expect: Flow_LoadLevelData_hooks_up_the_preloaded_graphics
+
+== flow: LoadLevelData doesn't bump the sharing owner
+file: src/game/level.c
+-                         g_alienGfxSlots[g_foundSlot].count[g_foundChan]++;
+-                     }
+-                 } else {
++                     }
++                 } else {
+expect: Flow_LoadLevelData_bumps_the_owner_of_shared_graphics
+
+== flow: hazard cache gfx2 from gfx
+file: src/game/level.c
+- g_alienGfxCache[n].gfx2 = g_alienGfxSlots[i].gfx2[j];        \
++ g_alienGfxCache[n].gfx2 = g_alienGfxSlots[i].gfx[j];         \
+expect: Flow_LoadLevelData_hooks_up_the_preloaded_graphics
+
+== flow: loaded level frames not exposed
+file: src/game/level.c
+-                     }
+-
+-                     g_frames[j] = g_alienGfxSlots[i].blk[j];
++                     }
++
+expect: Flow_LoadLevelData_hooks_up_the_preloaded_graphics
+
+== flow: animFrameCount not set
+file: src/game/level.c
+- g_animFrameCount = g_alienGfxSlots[i].frameCount;
++ g_animFrameCount = 0;
+expect: Flow_LoadLevelData_hooks_up_the_preloaded_graphics
+
+== flow: steal cooldown not armed
+file: src/game/level.c
+- g_soundStealCooldown = g_time + ALIEN_GFX_STEAL_COOLDOWN_MS;
++ g_soundStealCooldown = g_time;
+expect: Flow_LoadLevelData_loads_graphics_that_were_not_preloaded
+
+== flow: fresh graphics not marked loaded
+file: src/game/level.c
+-                                     g_alienGfxSlots[i].loaded[j] = 1;
++                                     g_alienGfxSlots[i].loaded[j] = 0;
+expect: Flow_LoadLevelData_loads_graphics_that_were_not_preloaded
+
+== flow: fresh graphics loaded without a hit mask
+file: src/game/level.c
+-                                 if (g_alienGfxSlots[i].hma[j] != 0) {
+-                                     g_hmaLoaded++;
+-                                     ScanFrameRects(g_alienGfxSlots[i].hma[j],
++                                 if (1) {
++                                     g_hmaLoaded++;
++                                     if (g_alienGfxSlots[i].hma[j]) ScanFrameRects(g_alienGfxSlots[i].hma[j],
+expect: Flow_LoadLevelData_without_a_hit_mask_leaves_the_graphics_unloaded
+
+== flow: fresh frame A height from width
+file: src/game/level.c
+- g_alienGfxSlots[i].blk[j].aHeight = g_frameAY2;
++ g_alienGfxSlots[i].blk[j].aHeight = g_frameAX2;
+expect: Flow_LoadLevelData_loads_graphics_that_were_not_preloaded
+
+# ---- level.c: BufferAllLevels / FreeLevelBufs ----
+
+== flow: BufferAllLevels packs 99 classic levels
+file: src/game/level.c
+- int count = pass == 0 ? 100 : pass == 1 ? g_numLevels2 : g_numMalfunction;
++ int count = pass == 0 ? 99 : pass == 1 ? g_numLevels2 : g_numMalfunction;
+expect: Flow_BufferAllLevels_packs_100_classic_then_time_trial_then_malfunction_levels
+
+== flow: BufferAllLevels packs from level 0
+file: src/game/level.c
+- total = PackLevelData(slot, n + 1, pass) + total;
++ total = PackLevelData(slot, n, pass) + total;
+expect: Flow_BufferAllLevels_packs_100_classic_then_time_trial_then_malfunction_levels
+
+== flow: BufferAllLevels skips malfunction levels
+file: src/game/level.c
+- for (pass = 0; pass < 3; pass++) {
++ for (pass = 0; pass < 2; pass++) {
+expect: Flow_BufferAllLevels_packs_100_classic_then_time_trial_then_malfunction_levels
+
+== flow: BufferAllLevels ignores the close box
+file: src/game/level.c
+- for (n = 0; n < count && slot < MAX_ALIEN_GFX_SLOTS && !SysQuitRequested(); n++) {
++ for (n = 0; n < count && slot < MAX_ALIEN_GFX_SLOTS; n++) {
+expect: Flow_BufferAllLevels_stops_when_the_window_is_closed
+
+== flow: BufferAllLevels keeps the old buffered count
+file: src/game/level.c
+-     g_alienGfxBufferedCount = 0;
+-     g_lastLevelBuffered = 0;
++     g_lastLevelBuffered = 0;
+expect: Flow_BufferAllLevels_stops_when_the_window_is_closed
+
+== flow: loading screen drawn for every level
+file: src/game/level.c
+- if (SysMillis() - lastDraw >= 16) {
++ if (SysMillis() - lastDraw >= 0) {
+expect: Flow_BufferAllLevels_draws_the_loading_screen_once_at_the_end
+
+== flow: no final loading screen
+file: src/game/level.c
+-     }
+-     LoadingScreen(slot);
+- }
++     }
++ }
+expect: Flow_BufferAllLevels_draws_the_loading_screen_once_at_the_end
+
+== flow: FreeLevelBufs keeps the src pointer
+file: src/game/level.c
+-             free(g_alienGfxSlots[i].src);
+-             g_alienGfxSlots[i].src = 0;
++             free(g_alienGfxSlots[i].src);
+expect: Flow_FreeLevelBufs_frees_packed_levels_and_loaded_graphics
+
+== flow: FreeLevelBufs frees shared graphics too
+file: src/game/level.c
+-             if (g_alienGfxSlots[i].loaded[j]) {
+-                 if (g_alienGfxSlots[i].gfx[j] != 0) {
++             if (1) {
++                 if (g_alienGfxSlots[i].gfx[j] != 0) {
+expect: Flow_FreeLevelBufs_frees_packed_levels_and_loaded_graphics
+
+== flow: FreeLevelBufs leaves the cache pointing at freed graphics
+file: src/game/level.c
+- if (g_alienGfxCache[0].gfx1 == g_alienGfxSlots[i].gfx[j]) g_alienGfxCache[0].gfx1 = 0;
++
+expect: Flow_FreeLevelBufs_frees_packed_levels_and_loaded_graphics
+
+== flow: FreeLevelBufs doesn't free masks
+file: src/game/level.c
+-                     ImgFree(g_alienGfxSlots[i].gfx2[j]);
+-                     g_alienGfxSlots[i].gfx2[j] = 0;
+-                     g_freedB++;
++                     g_alienGfxSlots[i].gfx2[j] = 0;
+expect: Flow_FreeLevelBufs_frees_packed_levels_and_loaded_graphics
+
+# ---- level.c: graphics cache ----
+
+== flow: StealOldestAlienGfx steals its own level
+file: src/game/level.c
+-                 && (g_alienGfxSlots[i].owner != owner || g_alienGfxSlots[i].id != id)
++                 && 1
+expect: Flow_StealOldestAlienGfx_frees_the_least_used_other_slot
+
+== flow: StealOldestAlienGfx steals the last candidate
+file: src/game/level.c
+- && g_alienGfxSlots[i].count[j] <= best) {
++ && g_alienGfxSlots[i].count[j] >= 0) {
+expect: Flow_StealOldestAlienGfx_frees_the_least_used_other_slot
+
+== flow: StealOldestAlienGfx ignores the left shield
+file: src/game/level.c
+- if (g_save.players[0].shieldL) {
++ if (g_save.players[0].shieldL && 0) {
+expect: Flow_StealOldestAlienGfx_spares_a_shield_graphic
+
+== flow: StealOldestAlienGfx ignores player 2 in dual mode
+file: src/game/level.c
+- if (g_gameMode == MODE_TWO_PLAYER || g_gameMode == MODE_DUAL || g_gameMode == MODE_TEAM) {
++ if (g_gameMode == MODE_TWO_PLAYER || g_gameMode == MODE_TEAM) {
+expect: Flow_StealOldestAlienGfx_spares_player_2_shields_only_in_two_player_modes
+
+== flow: StealOldestAlienGfx leaves sharers' counts
+file: src/game/level.c
+- g_alienGfxSlots[i2].count[j2] = 0;
++
+expect: Flow_StealOldestAlienGfx_frees_the_least_used_other_slot
+
+== flow: StealOldestAlienGfx leaves cache slot 1
+file: src/game/level.c
+- if (g_alienGfxCache[1].gfx1 == g_alienGfxSlots[bestI].gfx[bestJ]) g_alienGfxCache[1].gfx1 = 0;
++
+expect: Flow_StealOldestAlienGfx_frees_the_least_used_other_slot
+
+== flow: StealOldestAlienGfx leaves hit mask 4
+file: src/game/level.c
+- if (g_alienGfxMem[4] == g_alienGfxSlots[bestI].hma[bestJ]) g_alienGfxMem[4] = 0;
++
+expect: Flow_StealOldestAlienGfx_frees_the_least_used_other_slot
+
+== flow: StealOldestAlienGfx keeps the slot loaded
+file: src/game/level.c
+-         g_alienGfxSlots[bestI].loaded[bestJ] = 0;
++         g_alienGfxSlots[bestI].loaded[bestJ] = 1;
+expect: Flow_StealOldestAlienGfx_frees_the_least_used_other_slot
+
+== flow: FindOtherSlotWithKey finds itself
+file: src/game/level.c
+-                 && (i != slot || j != chan)) {
++                 ) {
+expect: Flow_FindOtherSlotWithKey_skips_the_asking_slot
+
+== flow: FindOtherSlotWithKey counts unloaded slots
+file: src/game/level.c
+- if (g_alienGfxSlots[i].loaded[j] && g_alienGfxSlots[i].key[j] == key
++ if (g_alienGfxSlots[i].key[j] == key
+expect: Flow_FindOtherSlotWithKey_skips_the_asking_slot
+
+== flow: BumpAlienGfxAge adds 100
+file: src/game/level.c
+- g_alienGfxSlots[i].count[j] += 200;
++ g_alienGfxSlots[i].count[j] += 100;
+expect: Flow_BumpAlienGfxAge_adds_200_to_the_loaded_owner
+
+== flow: BumpAlienGfxAge bumps unloaded sharers
+file: src/game/level.c
+- if (g_alienGfxSlots[i].loaded[j] && g_alienGfxSlots[i].gfx[j] == snd) {
++ if (g_alienGfxSlots[i].gfx[j] == snd) {
+expect: Flow_BumpAlienGfxAge_adds_200_to_the_loaded_owner
+
+== flow: DropAlienGfxAge subtracts 100
+file: src/game/level.c
+- g_alienGfxSlots[i].count[j] -= 0x62;
++ g_alienGfxSlots[i].count[j] -= 0x64;
+expect: Flow_DropAlienGfxAge_subtracts_98_with_a_floor_of_5
+
+== flow: DropAlienGfxAge floors zero too
+file: src/game/level.c
+- if (g_alienGfxSlots[i].count[j] < 0)
++ if (g_alienGfxSlots[i].count[j] <= 0)
+expect: Flow_DropAlienGfxAge_subtracts_98_with_a_floor_of_5
+
+== flow: ReleaseAlienGfxCache skips slot 5
+file: src/game/level.c
+-     RELEASE_CACHE(5)
++
+expect: Flow_ReleaseAlienGfxCache_frees_the_six_cache_slots
+
+== flow: ReleaseAlienGfxCache keeps the quad count
+file: src/game/level.c
+- g_quadCount = 0;
++
+expect: Flow_ReleaseAlienGfxCache_frees_the_six_cache_slots
+
+== flow: missing classic level is cleared instead of reusing the previous one
+file: src/game/level.c
+-     else
+-         LoadClassicLevel(level);
++     else if (!LoadClassicLevel(level))
++         memset(&g_levelRaw, 0, sizeof g_levelRaw);
+expect: Flow_BufferAllLevels_fills_missing_classic_levels_with_the_previous_one
+
+# ---- gameflow.c ----
+
+== flow: new game doesn't count the game played
+file: src/game/gameflow.c
+-     if (g_playerUpdateFn != StateDemo)
+-         g_cfg.gamesPlayed++;
++     if (g_playerUpdateFn == StateDemo)
++         g_cfg.gamesPlayed++;
+expect: Flow_F1_on_the_title_starts_a_single_player_game
+
+== flow: single player gets the two-player hud
+file: src/game/gameflow.c
+-         g_drawHudFn = DrawHud1P;
+-         break;
+-
+-     case MODE_TWO_PLAYER:
++         g_drawHudFn = DrawHud2P;
++         break;
++
++     case MODE_TWO_PLAYER:
+expect: Flow_F1_on_the_title_starts_a_single_player_game
+expect: Flow_SetStateByMode_picks_the_hud_of_each_mode
+
+== flow: dual gets the two-player hud
+file: src/game/gameflow.c
+- g_drawHudFn = DrawHud2PCoop;
++ g_drawHudFn = DrawHud2P;
+expect: Flow_SetStateByMode_picks_the_hud_of_each_mode
+
+== flow: two-player game doesn't start player 2's level
+file: src/game/gameflow.c
+-         g_curPlayer = 1;
+-         InitPlayer(g_curPlayer);
+-         StartLevel();
++         g_curPlayer = 1;
++         InitPlayer(g_curPlayer);
+expect: Flow_NewGame_two_players_both_start_their_level
+
+== flow: level done doesn't start the next level
+file: src/game/gameflow.c
+-                 } else if (g_save.players[i].levelFinished == 0 &&
+-                            g_save.players[i].levelTransitioning == 0) {
+-                     StartNextLevel();
++                 } else if (g_save.players[i].levelFinished == 0 &&
++                            g_save.players[i].levelTransitioning == 0) {
+expect: Flow_clearing_a_wave_level_starts_the_next_level_after_3_seconds
+
+== flow: CreditKill waits 2s
+file: src/game/gameflow.c
+-             g_save.players[p].doneTime = g_time + 3000;
+-     }
+- }
+-
+- // Credits player p with an enemy escaping
++             g_save.players[p].doneTime = g_time + 2000;
++     }
++ }
++
++ // Credits player p with an enemy escaping
+expect: Flow_clearing_a_wave_level_starts_the_next_level_after_3_seconds
+expect: Flow_CreditKill_finishes_the_level_when_every_enemy_is_accounted_for
+
+== flow: CreditKill overwrites doneTime
+file: src/game/gameflow.c
+-         if (g_save.players[p].doneTime == 0)
+-             g_save.players[p].doneTime = g_time + 3000;
+-     }
+- }
+-
+- // Credits player p with an enemy escaping
++         g_save.players[p].doneTime = g_time + 3000;
++     }
++ }
++
++ // Credits player p with an enemy escaping
+expect: Flow_CreditKill_finishes_the_level_when_every_enemy_is_accounted_for
+
+== flow: CreditKill ignores escapes
+file: src/game/gameflow.c
+-     if (g_save.players[p].killed + g_save.players[p].escaped >= g_save.players[p].totalEnemies) {
+-         TimerStop1();
+-         g_save.players[p].done = 1;
+-
+-         if (!g_isBossLevel && g_isWaveLevel) {
++     if (g_save.players[p].killed >= g_save.players[p].totalEnemies) {
++         TimerStop1();
++         g_save.players[p].done = 1;
++
++         if (!g_isBossLevel && g_isWaveLevel) {
+expect: Flow_CreditKill_finishes_the_level_when_every_enemy_is_accounted_for
+
+== flow: perfect clear bonus on any level
+file: src/game/gameflow.c
+- if (!g_isBossLevel && g_isWaveLevel) {
++ if (1) {
+expect: Flow_CreditKill_no_perfect_bonus_on_boss_levels
+
+== flow: rocket cap 55
+file: src/game/gameflow.c
+- MAX_ROCKETS         = 50,
++ MAX_ROCKETS         = 55,
+expect: Flow_CreditKill_perfect_wave_clear_adds_10_rockets_up_to_50
+expect: Flow_CreditKill_perfect_clear_with_full_rockets_scores_50000
+
+== flow: rocket message shown briefly
+file: src/game/gameflow.c
+-                     g_msgTimer = g_time + 1500;
+-                 }
+-             }
+-         }
+-
+-         if (g_save.players[p].doneTime
++                     g_msgTimer = g_time + 150;
++                 }
++             }
++         }
++
++         if (g_save.players[p].doneTime
+expect: Flow_CreditKill_perfect_wave_clear_adds_10_rockets_up_to_50
+
+== flow: perfect clear score 5000
+file: src/game/gameflow.c
+- PERFECT_CLEAR_SCORE = 50000,
++ PERFECT_CLEAR_SCORE = 5000,
+expect: Flow_CreditKill_perfect_clear_with_full_rockets_scores_50000
+
+== flow: dual kill credits the killer's escape
+file: src/game/gameflow.c
+-         if (p == 0)
+-             g_save.players[1].escaped++;
++         if (p == 0)
++             g_save.players[0].escaped++;
+expect: Flow_CreditKill_in_dual_mode_counts_an_escape_for_the_other_player
+
+== flow: dual escape only for player 1
+file: src/game/gameflow.c
+-         g_save.players[0].escaped++;
+-         g_save.players[1].escaped++;
+-     } else {
++         g_save.players[0].escaped++;
++     } else {
+expect: Flow_CreditEscape_counts_for_both_players_in_dual_mode
+
+== flow: CreditEscape never finishes the level
+file: src/game/gameflow.c
+-         TimerStop1();
+-         g_save.players[p].done = 1;
+-         if (g_save.players[p].doneTime == 0)
++         TimerStop1();
++         if (g_save.players[p].doneTime == 0)
+expect: Flow_CreditEscape_counts_for_both_players_in_dual_mode
+
+== flow: stall watchdog at 600 frames
+file: src/game/gameflow.c
+- if (g_levelIdleCounter > 600) {
++ if (g_levelIdleCounter >= 600) {
+expect: Flow_LevelStallWatchdog_recounts_kills_after_600_idle_frames
+
+== flow: stall watchdog forgets the escapes
+file: src/game/gameflow.c
+- g_save.players[p].killed = g_save.players[p].totalEnemies - g_save.players[p].escaped;
++ g_save.players[p].killed = g_save.players[p].totalEnemies;
+expect: Flow_LevelStallWatchdog_recounts_kills_after_600_idle_frames
+
+== flow: stall watchdog at 45s exactly
+file: src/game/gameflow.c
+- if (g_time - g_playerStallTime > 45000) {
++ if (g_time - g_playerStallTime >= 45000) {
+expect: Flow_LevelStallWatchdog_finishes_a_level_stalled_for_45_seconds
+
+== flow: stall watchdog keeps the stall time
+file: src/game/gameflow.c
+-             g_save.players[p].doneTime = g_time + 3000;
+-         g_playerStallTime = g_time;
++             g_save.players[p].doneTime = g_time + 3000;
+expect: Flow_LevelStallWatchdog_finishes_a_level_stalled_for_45_seconds
+
+== flow: PauseGame pauses twice
+file: src/game/gameflow.c
+-     if (g_state != STATE_PAUSED) {
+-         g_pauseCount++;
++     if (1) {
++         g_pauseCount++;
+expect: Flow_PauseGame_saves_the_state_once
+expect: Flow_P_pauses_and_resumes_the_game
+
+== flow: PAUSED layers fade by 20
+file: src/game/gameflow.c
+- c = c - 25;
++ c = c - 20;
+expect: Flow_PauseGame_saves_the_state_once
+
+== flow: P doesn't pause
+file: src/game/gameflow.c
+-         if (g_keyLatch[K_VK_P] != 0) {
+-             if (g_playerUpdateFn != StateDemo) {
+-                 PauseGame();
++         if (g_keyLatch[K_VK_P] != 0) {
++             if (g_playerUpdateFn == StateDemo) {
++                 PauseGame();
+expect: Flow_P_pauses_and_resumes_the_game
+
+== flow: P and the pause input don't resume
+file: src/game/gameflow.c
+-                 g_keyLatch[K_VK_P] = 0;
+-                 ResumeGame();
+-             }
+-         } else {
+-             g_keyLatch[K_VK_P] = 1;
+-         }
+-         if (InputPause(g_curPlayer) && !AnyWindowHasEdit() && !g_profileWinOpen && !g_quitGameWinOpen &&
+-             !g_quitToWindowsWinOpen) {
+-             if (g_save.players[g_curPlayer].keyLatchPause != 0) {
+-                 g_save.players[g_curPlayer].keyLatchPause = 0;
+-                 ResumeGame();
++                 g_keyLatch[K_VK_P] = 0;
++             }
++         } else {
++             g_keyLatch[K_VK_P] = 1;
++         }
++         if (InputPause(g_curPlayer) && !AnyWindowHasEdit() && !g_profileWinOpen && !g_quitGameWinOpen &&
++             !g_quitToWindowsWinOpen) {
++             if (g_save.players[g_curPlayer].keyLatchPause != 0) {
++                 g_save.players[g_curPlayer].keyLatchPause = 0;
+expect: Flow_P_pauses_and_resumes_the_game
+
+== flow: aliens move while paused
+file: src/game/gameflow.c
+-         UpdateStarItems();
++         UpdateStarItems();
++         UpdateEnemies();
+expect: Flow_aliens_stand_still_while_paused
+
+== flow: escape doesn't pause
+file: src/game/gameflow.c
+-                 g_quitGameWinOpen = 1;
+-                 g_buttonsOn = 1;
+-                 PauseGame();
++                 g_quitGameWinOpen = 1;
++                 g_buttonsOn = 1;
+expect: Flow_escape_in_game_opens_the_quit_dialog_paused
+
+== flow: escape doesn't close the quit dialog
+file: src/game/gameflow.c
+-                     ResumeGame();
+-                     PlaySample();
+-                     WinCloseAll();
+-                     g_quitGameWinOpen = false;
++                     PlaySample();
++                     WinCloseAll();
++                     g_quitGameWinOpen = false;
+expect: Flow_escape_in_game_opens_the_quit_dialog_paused
+
+== flow: ResumeGame always resumes play
+file: src/game/gameflow.c
+-     g_state = g_savedState;
+-     for (int i = 0; i < MAX_ITEMS; i++) {
++     g_state = STATE_PLAYING;
++     for (int i = 0; i < MAX_ITEMS; i++) {
+expect: Flow_ResumeGame_restores_the_state_and_counts_the_paused_time
+
+== flow: ResumeGame overwrites the paused duration
+file: src/game/gameflow.c
+- g_pausedDuration += g_pauseEndStamp - g_pauseStartStamp;
++ g_pausedDuration = g_pauseEndStamp - g_pauseStartStamp;
+expect: Flow_ResumeGame_restores_the_state_and_counts_the_paused_time
+
+== flow: ResumeGame removes every item
+file: src/game/gameflow.c
+- if (g_items[i].alive != 0 && g_items[i].type == ITEM_STAR)
++ if (g_items[i].alive != 0)
+expect: Flow_ResumeGame_removes_star_items_and_laser_shots
+
+== flow: ResumeGame removes every shot
+file: src/game/gameflow.c
+- if (g_mapObjs[j].active != 0 && g_mapObjs[j].laser != 0)
++ if (g_mapObjs[j].active != 0)
+expect: Flow_ResumeGame_removes_star_items_and_laser_shots
+
+== flow: pause doesn't shift the freeze timer
+file: src/game/gameflow.c
+-             if (g_save.players[i].freezeTimer > 0) g_save.players[i].freezeTimer += g_time - g_pauseLastTick;
++
+expect: Flow_pausing_moves_running_timers_forward
+
+== flow: pause shifts from the pause start every frame
+file: src/game/gameflow.c
+-         g_pauseLastTick = g_time;
+-         UpdateStarItems();
++         UpdateStarItems();
+expect: Flow_pausing_moves_running_timers_forward
+
+== flow: pause doesn't shift the message timer
+file: src/game/gameflow.c
+- if (g_msgTimer > 0) g_msgTimer = g_time - g_pauseLastTick + g_msgTimer;
++
+expect: Flow_pausing_moves_running_timers_forward
+
+== flow: game over not checked on respawn
+file: src/game/gameflow.c
+-     case STATE_RESPAWN:  // respawning after death; checks for game over before the new "get ready"
+-         if (IsGameOver()) ShowHiscoreTable();
++     case STATE_RESPAWN:  // respawning after death; checks for game over before the new "get ready"
+expect: Flow_running_out_of_lives_ends_the_game_and_returns_to_the_title
+
+== flow: single player out one ship early
+file: src/game/gameflow.c
+-     case MODE_SINGLE:
+-         if (g_save.players[g_curPlayer].lives <= g_shipDefs[g_save.players[g_curPlayer].ship]->minEnergy)
++     case MODE_SINGLE:
++         if (g_save.players[g_curPlayer].lives <= g_shipDefs[g_save.players[g_curPlayer].ship]->minEnergy + 1)
+expect: Flow_respawn_with_lives_left_is_not_game_over
+expect: Flow_IsGameOver_single_player_at_the_ships_minimum_energy
+
+== flow: single player out below the minimum
+file: src/game/gameflow.c
+-     case MODE_SINGLE:
+-         if (g_save.players[g_curPlayer].lives <= g_shipDefs[g_save.players[g_curPlayer].ship]->minEnergy)
++     case MODE_SINGLE:
++         if (g_save.players[g_curPlayer].lives < g_shipDefs[g_save.players[g_curPlayer].ship]->minEnergy)
+expect: Flow_IsGameOver_single_player_at_the_ships_minimum_energy
+expect: Flow_running_out_of_lives_ends_the_game_and_returns_to_the_title
+
+== flow: time trial never over
+file: src/game/gameflow.c
+-     case MODE_TIME_TRIAL:
+-         if (g_save.players[g_curPlayer].lives <= g_shipDefs[g_save.players[g_curPlayer].ship]->minEnergy)
++     case MODE_TIME_TRIAL:
++         if (0)
+expect: Flow_IsGameOver_single_player_at_the_ships_minimum_energy
+
+== flow: two players don't switch on death
+file: src/game/gameflow.c
+-             if (g_save.players[g_curPlayer].lives <= g_shipDefs[g_save.players[g_curPlayer].ship]->minEnergy)
+-                 SwitchPlayer();
++             if (g_save.players[g_curPlayer].lives <= g_shipDefs[g_save.players[g_curPlayer].ship]->minEnergy)
++                 ;
+expect: Flow_IsGameOver_two_players_switches_to_the_one_still_alive
+
+== flow: dual over when one player is out
+file: src/game/gameflow.c
+-     case MODE_DUAL:
+-         if (g_save.players[0].lives <= g_shipDefs[g_save.players[0].ship]->minEnergy &&
++     case MODE_DUAL:
++         if (g_save.players[0].lives <= g_shipDefs[g_save.players[0].ship]->minEnergy ||
+expect: Flow_IsGameOver_dual_needs_both_players_out
+
+== flow: team game can end
+file: src/game/gameflow.c
+-     case MODE_TEAM:
+-         return 0;
++     case MODE_TEAM:
++         return 1;
+expect: Flow_IsGameOver_dual_needs_both_players_out
+
+== flow: NewGame keeps the level records
+file: src/game/gameflow.c
+- memset(g_levelRecs, 0, 0x20);
++
+expect: Flow_NewGame_resets_the_run_and_drops_into_respawn
+
+== flow: NewGame get ready 1s
+file: src/game/gameflow.c
+-     g_timerA = g_time + 2000;
+-     g_transitionLockUntil = g_time + TRANSITION_LOCK_MS;
++     g_timerA = g_time + 1000;
++     g_transitionLockUntil = g_time + TRANSITION_LOCK_MS;
+expect: Flow_NewGame_resets_the_run_and_drops_into_respawn
+
+== flow: NewGame drops into get ready
+file: src/game/gameflow.c
+-     g_state = STATE_RESPAWN;
+-     g_playerStallTime = g_time;
+-     EmptyViewChangeHook();
++     g_state = STATE_GET_READY;
++     g_playerStallTime = g_time;
++     EmptyViewChangeHook();
+expect: Flow_NewGame_resets_the_run_and_drops_into_respawn
+expect: Flow_F1_on_the_title_starts_a_single_player_game
+
+== flow: NewGame keeps the perfect count
+file: src/game/gameflow.c
+-     g_perfectCount = 0;
+-     g_killCount = 0;
++     g_killCount = 0;
+expect: Flow_NewGame_resets_the_run_and_drops_into_respawn
+
+== flow: NewGame shop items
+file: src/game/gameflow.c
+- g_shopItems = 0x53;
++ g_shopItems = 0x50;
+expect: Flow_NewGame_resets_the_run_and_drops_into_respawn
+
+== flow: random bonus weight 11
+file: src/game/gameflow.c
+- g_bonusWeight[ITEM_RANDOM_BONUS] = 111;
++ g_bonusWeight[ITEM_RANDOM_BONUS] = 11;
+expect: Flow_NewGame_sets_the_item_weights
+
+== flow: scoop weight 14
+file: src/game/gameflow.c
+- g_bonusWeight[ITEM_SCOOP] = 140;
++ g_bonusWeight[ITEM_SCOOP] = 14;
+expect: Flow_NewGame_sets_the_item_weights
+
+== flow: time trial keeps extra lives
+file: src/game/gameflow.c
+-         g_bonusWeight[ITEM_EXTRA_LIFE] = 0;
+-         g_bonusWeight[ITEM_EXTRA_TIME] = 0;
++         g_bonusWeight[ITEM_EXTRA_TIME] = 0;
+expect: Flow_NewGame_time_trial_keeps_only_its_own_items_and_runs_faster
+
+== flow: time trial bullet speed item off
+file: src/game/gameflow.c
+- g_bonusWeight[ITEM_EXTRA_BULLET_SPEED] = 15;
++ g_bonusWeight[ITEM_EXTRA_BULLET_SPEED] = 0;
+expect: Flow_NewGame_time_trial_keeps_only_its_own_items_and_runs_faster
+
+== flow: time trial speed 6/7
+file: src/game/gameflow.c
+- g_gameSpeedMul = 7.0f / 6.0f;
++ g_gameSpeedMul = 6.0f / 7.0f;
+expect: Flow_NewGame_time_trial_keeps_only_its_own_items_and_runs_faster
+
+== flow: time trial forgets the difficulty
+file: src/game/gameflow.c
+- g_savedDifficultyTT = g_cfg.difficulty;
++ g_savedDifficultyTT = DIFF_NORMAL;
+expect: Flow_NewGame_time_trial_keeps_only_its_own_items_and_runs_faster
+
+== flow: autoplay money 1000
+file: src/game/gameflow.c
+- g_save.players[g_curPlayer].money = 10000;
++ g_save.players[g_curPlayer].money = 1000;
+expect: Flow_NewGame_autoplay_gets_a_maxed_out_loadout
+
+== flow: autoplay lives without the ship cost
+file: src/game/gameflow.c
+-             g_shipDefs[g_save.players[g_curPlayer].ship]->cost * 10;
++             g_shipDefs[g_save.players[g_curPlayer].ship]->cost;
+expect: Flow_NewGame_autoplay_gets_a_maxed_out_loadout
+
+== flow: back to the hiscore table instead of the title
+file: src/game/gameover.c
+-             g_state = STATE_TITLE;
+-             ClearPlayers();
++             g_state = STATE_HISCORE_TABLE;
++             ClearPlayers();
+expect: Flow_running_out_of_lives_ends_the_game_and_returns_to_the_title
+
+# ---- levelstart.c ----
+
+== flow: StartNextLevel ignores the latch
+file: src/game/levelstart.c
+-     if (g_gameMode != MODE_TIME_TRIAL && g_levelStartLatch)
+-         return;
++     if (0 && g_levelStartLatch)
++         return;
+expect: Flow_StartNextLevel_advances_one_level_until_the_level_starts
+
+== flow: StartNextLevel latch in time trial too
+file: src/game/levelstart.c
+-     if (g_gameMode != MODE_TIME_TRIAL && g_levelStartLatch)
+-         return;
++     if (g_levelStartLatch)
++         return;
+expect: Flow_StartNextLevel_time_trial_ignores_the_latch_and_waits_1s
+
+== flow: StartNextLevel time trial waits 2s
+file: src/game/levelstart.c
+-         g_timerA = g_time + 1000;
+-     else
++         g_timerA = g_time + 2000;
++     else
+expect: Flow_StartNextLevel_time_trial_ignores_the_latch_and_waits_1s
+
+== flow: StartNextLevel waits 1s
+file: src/game/levelstart.c
+-     else
+-         g_timerA = g_time + 2000;
++     else
++         g_timerA = g_time + 1000;
+expect: Flow_StartNextLevel_advances_one_level_until_the_level_starts
+
+== flow: StartNextLevel doesn't count the level played
+file: src/game/levelstart.c
+-     g_pendingLevelsPlayed++;
+-     g_save.players[p].levelFinished = 0;
++     g_save.players[p].levelFinished = 0;
+expect: Flow_StartNextLevel_advances_one_level_until_the_level_starts
+
+== flow: StartNextLevel keeps the done flag
+file: src/game/levelstart.c
+-     g_save.players[p].started = 0;
+-     g_save.players[p].done = 0;
++     g_save.players[p].started = 0;
+expect: Flow_StartNextLevel_advances_one_level_until_the_level_starts
+
+== flow: StartNextLevel malfunction timer floor
+file: src/game/levelstart.c
+-     if (g_malfunctionTimer < 2000)
+-         g_malfunctionTimer = RandRange(2300, 4000);
+-     g_save.players[p].level++;
++     if (g_malfunctionTimer < 200)
++         g_malfunctionTimer = RandRange(2300, 4000);
++     g_save.players[p].level++;
+expect: Flow_StartNextLevel_shortens_the_malfunction_timer
+
+== flow: SwitchPlayer get ready timer B 4s
+file: src/game/levelstart.c
+- g_timerB = g_time + 5000;  // ms
++ g_timerB = g_time + 4000;  // ms
+expect: Flow_SwitchPlayer_resumes_the_other_players_level
+
+== flow: SwitchPlayer loads the old player's level
+file: src/game/levelstart.c
+-             g_curLevelNum = g_save.players[g_curPlayer].level;
+-             LoadLevelData();
++             LoadLevelData();
+expect: Flow_SwitchPlayer_resumes_the_other_players_level
+
+== flow: SwitchPlayer leaves enemy shots
+file: src/game/levelstart.c
+-         for (int j = 0; j < MAX_LEVEL_OBJS; j++)
+-             g_levelObj[j].active = 0;
++
+expect: Flow_SwitchPlayer_resumes_the_other_players_level
+
+== flow: SwitchPlayer always back to player 0
+file: src/game/levelstart.c
+-         if (g_curPlayer == 0)
+-             g_curPlayer = 1;
+-         else
+-             g_curPlayer = 0;
++         g_curPlayer = 1;
+expect: Flow_SwitchPlayer_resumes_the_other_players_level
+
+== flow: SwitchPlayer warp out without hyperspace
+file: src/game/levelstart.c
+- g_save.players[g_curPlayer].hyperspaceOutTimer = g_save.players[g_curPlayer].hyperspaceInDuration;
++ g_save.players[g_curPlayer].hyperspaceOutTimer = 0;
+expect: Flow_SwitchPlayer_to_a_finished_player_warps_out
+
+== flow: SwitchPlayer finished player keeps the shield
+file: src/game/levelstart.c
+-                 if (!g_save.players[g_curPlayer].alienLock) {
+-                     g_save.players[g_curPlayer].shieldL = 0;
++                 if (g_save.players[g_curPlayer].alienLock) {
++                     g_save.players[g_curPlayer].shieldL = 0;
+expect: Flow_SwitchPlayer_to_a_finished_player_warps_out
+
+== flow: SwitchPlayer on the hiscore table
+file: src/game/levelstart.c
+-     if (g_state != STATE_HISCORE_TABLE) {
+-         SoundStopAll();
++     if (1) {
++         SoundStopAll();
+expect: Flow_SwitchPlayer_does_nothing_on_the_hiscore_table
+
+== flow: group aliens spawn a pixel low
+file: src/game/levelstart.c
+- g_enemies[g_curPlayer][k].y = g_curLevelData.grp[j].spawnY - 16.0f;
++ g_enemies[g_curPlayer][k].y = g_curLevelData.grp[j].spawnY - 15.0f;
+expect: Flow_the_first_level_spawns_its_aliens
+expect: Flow_StartLevel_spawns_each_group_at_its_spawn_point
+
+== flow: formation slot mirrored on normal levels
+file: src/game/levelstart.c
+-                         g_enemies[g_curPlayer][k].hoverX =
+-                             g_curLevelData.grp[j].sub[i].xOffset + g_screenW / 2.0f;
++                         g_enemies[g_curPlayer][k].hoverX =
++                             g_screenW / 2.0f - g_curLevelData.grp[j].sub[i].xOffset;
+expect: Flow_the_first_level_spawns_its_aliens
+expect: Flow_StartLevel_spawns_each_group_at_its_spawn_point
+
+== flow: group alien hp without the difficulty bonus
+file: src/game/levelstart.c
+-                     g_enemies[g_curPlayer][k].hp =
+-                         (float)(g_curLevelData.grp[j].sub[i].hp + (int)g_diffHpBonusA);
++                     g_enemies[g_curPlayer][k].hp =
++                         (float)(g_curLevelData.grp[j].sub[i].hp);
+expect: Flow_StartLevel_spawns_each_group_at_its_spawn_point
+
+== flow: oscillation from the fire delay
+file: src/game/levelstart.c
+- g_enemies[g_curPlayer][k].oscillateMul = g_curLevelData.grp[j].sub[i].pathId;
++ g_enemies[g_curPlayer][k].oscillateMul = g_curLevelData.grp[j].sub[i].fireDelay;
+expect: Flow_StartLevel_spawns_each_group_at_its_spawn_point
+
+== flow: bonus group kills not counted
+file: src/game/levelstart.c
+- g_groupKillCount[g_curLevelData.grp[j].groupId]++;
++
+expect: Flow_StartLevel_spawns_each_group_at_its_spawn_point
+
+== flow: path y acceleration from x
+file: src/game/levelstart.c
+- g_enemies[g_curPlayer][k].accelY = g_curLevelData.obj[j][0].pathY;
++ g_enemies[g_curPlayer][k].accelY = g_curLevelData.obj[j][0].pathX;
+expect: Flow_StartLevel_spawns_each_group_at_its_spawn_point
+
+== flow: group index from the sub
+file: src/game/levelstart.c
+-                     g_enemies[g_curPlayer][k].groupIndex = j;
+-                     g_groupEnemyCount[j]++;
++                     g_enemies[g_curPlayer][k].groupIndex = i;
++                     g_groupEnemyCount[j]++;
+expect: Flow_StartLevel_spawns_each_group_at_its_spawn_point
+
+== flow: total enemies not counted
+file: src/game/levelstart.c
+-             g_save.players[g_curPlayer].primaryEnemyCount = spawnedCount;
+-             g_save.players[g_curPlayer].totalEnemies = spawnedCount;
+-         }
+-         spawnedCount = 0;
++             g_save.players[g_curPlayer].primaryEnemyCount = spawnedCount;
++             g_save.players[g_curPlayer].totalEnemies = 0;
++         }
++         spawnedCount = 0;
+expect: Flow_StartLevel_spawns_each_group_at_its_spawn_point
+expect: Flow_the_first_level_spawns_its_aliens
+
+== flow: stagger on bonus waves too
+file: src/game/levelstart.c
+-                     if (g_curLevelData.type != LEVEL_BONUS_WAVE)
+-                         spawnStagger += g_curLevelData.grp[j].spawnStep;
++                     spawnStagger += g_curLevelData.grp[j].spawnStep;
+expect: Flow_StartLevel_staggers_the_attacks_of_a_group
+
+== flow: stagger starts at the step
+file: src/game/levelstart.c
+- spawnStagger = g_curLevelData.grp[j].spawnDelay;
++ spawnStagger = g_curLevelData.grp[j].spawnStep;
+expect: Flow_StartLevel_staggers_the_attacks_of_a_group
+
+== flow: mirror every 101 levels
+file: src/game/levelstart.c
+- g_mirrorLevel = g_save.players[g_curPlayer].level / LEVEL_THEME_CYCLE & 1;
++ g_mirrorLevel = g_save.players[g_curPlayer].level / (LEVEL_THEME_CYCLE + 1) & 1;
+expect: Flow_StartLevel_mirrors_levels_100_to_199
+
+== flow: mirrored velocity not negated
+file: src/game/levelstart.c
+- g_enemies[g_curPlayer][k].velX = 0 - g_curLevelData.grp[j].velX;
++ g_enemies[g_curPlayer][k].velX = g_curLevelData.grp[j].velX;
+expect: Flow_StartLevel_mirrors_levels_100_to_199
+
+== flow: mirrored spawn offset
+file: src/game/levelstart.c
+- g_screenW / 2.0f - (g_curLevelData.grp[j].spawnX + 16.0f);
++ g_screenW / 2.0f - (g_curLevelData.grp[j].spawnX - 16.0f);
+expect: Flow_StartLevel_mirrors_levels_100_to_199
+
+== flow: mirrored path not negated
+file: src/game/levelstart.c
+- g_enemies[g_curPlayer][k].accelX = 0 - g_curLevelData.obj[j][0].pathX;
++ g_enemies[g_curPlayer][k].accelX = g_curLevelData.obj[j][0].pathX;
+expect: Flow_StartLevel_mirrors_levels_100_to_199
+
+== flow: only the first header spawns
+file: src/game/levelstart.c
+-         for (j = 0; j < 4; j++) {
+-             if (g_curLevelData.hdr[j].count > 0) {
++         for (j = 0; j < 1; j++) {
++             if (g_curLevelData.hdr[j].count > 0) {
+expect: Flow_StartLevel_spawns_header_enemies_as_wrappers
+
+== flow: header aliens hp with the group bonus
+file: src/game/levelstart.c
+- (float)(g_curLevelData.hdr[j].hp + (int)g_diffHpBonusB);
++ (float)(g_curLevelData.hdr[j].hp + (int)g_diffHpBonusA);
+expect: Flow_StartLevel_spawns_header_enemies_as_wrappers
+
+== flow: header aliens spawn on screen
+file: src/game/levelstart.c
+-                         g_enemies[g_curPlayer][k].y = -110.0f;
++                         g_enemies[g_curPlayer][k].y = 110.0f;
+expect: Flow_StartLevel_spawns_header_enemies_as_wrappers
+
+== flow: header aliens replace the total
+file: src/game/levelstart.c
+-             g_save.players[g_curPlayer].secondaryEnemyCount = spawnedCount;
+-             g_save.players[g_curPlayer].totalEnemies += spawnedCount;
++             g_save.players[g_curPlayer].secondaryEnemyCount = spawnedCount;
++             g_save.players[g_curPlayer].totalEnemies = spawnedCount;
+expect: Flow_StartLevel_spawns_header_enemies_as_wrappers
+
+== flow: header animation frames from aux 0
+file: src/game/levelstart.c
+- g_enemies[g_curPlayer][k].animFrameCount = g_curLevelData.aux[j].x1 - 1;
++ g_enemies[g_curPlayer][k].animFrameCount = g_curLevelData.aux[0].x1 - 1;
+expect: Flow_StartLevel_spawns_header_enemies_as_wrappers
+
+== flow: header score cap 300000
+file: src/game/levelstart.c
+- ENEMY_SCORE_CAP_HEADER = 200000,
++ ENEMY_SCORE_CAP_HEADER = 300000,
+expect: Flow_StartLevel_spawns_header_enemies_as_wrappers
+
+== flow: group score not capped
+file: src/game/levelstart.c
+-     if (g_enemies[g_curPlayer][k].score > (cap))                \
+-         g_enemies[g_curPlayer][k].score = (cap);                \
++     if (0)                \
++         g_enemies[g_curPlayer][k].score = (cap);                \
+expect: Flow_StartLevel_caps_the_score_of_group_aliens
+
+== flow: negative score kept
+file: src/game/levelstart.c
+-     if (g_enemies[g_curPlayer][k].score < 0)                   \
+-         g_enemies[g_curPlayer][k].score = 0;                   \
++     if (0)                   \
++         g_enemies[g_curPlayer][k].score = 0;                   \
+expect: Flow_StartLevel_caps_the_score_of_group_aliens
+
+== flow: type 2 aliens use type 1 graphics
+file: src/game/levelstart.c
+- INIT_HAZARD_ENEMY(1, g_curLevelData.w[1], ENEMY_SCORE_CAP_GROUP, g_rectsA)
++ INIT_HAZARD_ENEMY(0, g_curLevelData.w[1], ENEMY_SCORE_CAP_GROUP, g_rectsA)
+expect: Flow_StartLevel_caps_the_score_of_group_aliens
+
+== flow: type 3 damage stage
+file: src/game/levelstart.c
+-                         g_enemyDamageStage[g_curPlayer][k] = 2;
++                         g_enemyDamageStage[g_curPlayer][k] = 1;
+expect: Flow_StartLevel_caps_the_score_of_group_aliens
+
+== flow: fire rate not clamped
+file: src/game/levelstart.c
+-                         g_enemyFireRateMin > g_curLevelData.grp[j].sub[i].fireRateMin + g_fireDelayBiasB ?
++                         g_enemyFireRateMin < g_curLevelData.grp[j].sub[i].fireRateMin + g_fireDelayBiasB ?
+expect: Flow_StartLevel_fire_delays
+expect: Flow_StartLevel_spawns_each_group_at_its_spawn_point
+
+== flow: attack delay not clamped
+file: src/game/levelstart.c
+-                             g_fireDelayMin > g_curLevelData.grp[j].sub[i].fireDelay + g_fireDelayBiasA ?
++                             g_fireDelayMin < g_curLevelData.grp[j].sub[i].fireDelay + g_fireDelayBiasA ?
+expect: Flow_StartLevel_fire_delays
+
+== flow: special fire delay 3000
+file: src/game/levelstart.c
+- enum { FIXED_FIRE_DELAY = 3500 };
++ enum { FIXED_FIRE_DELAY = 3000 };
+expect: Flow_StartLevel_fire_delays
+
+== flow: fixed fire delay flag not set
+file: src/game/levelstart.c
+-                         g_enemies[g_curPlayer][k].fixedFireDelay = 1;
++                         g_enemies[g_curPlayer][k].fixedFireDelay = 0;
+expect: Flow_StartLevel_fire_delays
+
+== flow: fixed fire delay needs only no delay
+file: src/game/levelstart.c
+-                     if (g_curLevelData.grp[j].sub[i].fireDelay == 0 &&
+-                         g_curLevelData.grp[j].sub[i].pathId == 0) {
++                     if (g_curLevelData.grp[j].sub[i].fireDelay == 0) {
+expect: Flow_StartLevel_fire_delays
+
+== flow: boss hp bonus x10
+file: src/game/levelstart.c
+- g_enemies[g_curPlayer][k].hp = (float)((int)(g_diffHpBonusB * 20.0f) + g_curLevelData.hdr[0].hp);
++ g_enemies[g_curPlayer][k].hp = (float)((int)(g_diffHpBonusB * 10.0f) + g_curLevelData.hdr[0].hp);
+expect: Flow_StartLevel_spawns_a_boss_with_its_guns
+
+== flow: boss score cap 30000000
+file: src/game/levelstart.c
+- ENEMY_SCORE_CAP_BOSS   = 20000000,
++ ENEMY_SCORE_CAP_BOSS   = 30000000,
+expect: Flow_StartLevel_spawns_a_boss_with_its_guns
+
+== flow: boss gun y offset
+file: src/game/levelstart.c
+- g_curLevelData.grp[bossGunIdx].spawnY + 64.0f - 16.0f;
++ g_curLevelData.grp[bossGunIdx].spawnY + 64.0f;
+expect: Flow_StartLevel_spawns_a_boss_with_its_guns
+
+== flow: boss gun B kind 9
+file: src/game/levelstart.c
+-                 FILL_BOSS_GUN(B, 8)
++                 FILL_BOSS_GUN(B, 9)
+expect: Flow_StartLevel_spawns_a_boss_with_its_guns
+
+== flow: boss fire rate step from min
+file: src/game/levelstart.c
+- g_enemies[g_curPlayer][k].fireDelayStep = g_curLevelData.hdr[0].fireRateMax;
++ g_enemies[g_curPlayer][k].fireDelayStep = g_curLevelData.hdr[0].fireRateMin;
+expect: Flow_StartLevel_spawns_a_boss_with_its_guns
+
+== flow: race level kill count
+file: src/game/levelstart.c
+-         g_diffHurryUpSpeedMax += 0.1f;
+-         g_killCount++;
++         g_diffHurryUpSpeedMax += 0.1f;
+expect: Flow_StartLevel_sets_the_level_type_flags
+
+== flow: race level doesn't track kills
+file: src/game/levelstart.c
+-         SET_LEVEL_FLAGS(0, 1)
++         SET_LEVEL_FLAGS(0, 0)
+expect: Flow_StartLevel_sets_the_level_type_flags
+
+== flow: bonus wave doesn't destroy the ship
+file: src/game/levelstart.c
+-         SET_LEVEL_FLAGS(1, 0)
++         SET_LEVEL_FLAGS(0, 0)
+expect: Flow_StartLevel_sets_the_level_type_flags
+
+== flow: aimed wave doesn't aim
+file: src/game/levelstart.c
+-         g_enemyAimAtPlayer = 1;
+-         g_isWaveLevel = 1;
++         g_isWaveLevel = 1;
+expect: Flow_StartLevel_sets_the_level_type_flags
+
+== flow: background 2 from level 31
+file: src/game/levelstart.c
+- if (bgLevelMod > 25 && bgLevelMod < 51)
++ if (bgLevelMod > 30 && bgLevelMod < 51)
+expect: Flow_StartLevel_picks_the_background_and_death_explosion_by_level
+
+== flow: background 4 band
+file: src/game/levelstart.c
+- if (bgLevelMod > 75 && bgLevelMod < 100)
++ if (bgLevelMod > 75 && bgLevelMod < 99)
+expect: Flow_StartLevel_picks_the_background_and_death_explosion_by_level
+
+== flow: levels 5-8 explosion colour
+file: src/game/levelstart.c
+- SET_DEATH_FX(14, 100, 255, 180, 0)
++ SET_DEATH_FX(14, 100, 255, 128, 0)
+expect: Flow_StartLevel_picks_the_background_and_death_explosion_by_level
+
+== flow: levels 96-99 band
+file: src/game/levelstart.c
+- if (themeLevelMod >= 96 && themeLevelMod <= 99) {
++ if (themeLevelMod >= 96 && themeLevelMod <= 98) {
+expect: Flow_StartLevel_picks_the_background_and_death_explosion_by_level
+
+== flow: level record money from shots
+file: src/game/levelstart.c
+- g_levelRecs[idx].money = g_save.players[g_curPlayer].money;
++ g_levelRecs[idx].money = g_save.players[g_curPlayer].shots;
+expect: Flow_StartLevel_records_the_previous_level
+
+== flow: level record deaths halved twice
+file: src/game/levelstart.c
+-     g_levelRecs[idx].deathsByte = (g_deathsCount - 50) / 2;
++     g_levelRecs[idx].deathsByte = (g_deathsCount - 50) / 4;
+expect: Flow_StartLevel_records_the_previous_level
+
+== flow: loaded level not recorded
+file: src/game/levelstart.c
+- g_loadedLevel = g_save.players[g_curPlayer].level;
++ g_loadedLevel = g_curLevelNum - 1;
+expect: Flow_StartLevel_records_the_previous_level
+
+== flow: marathon ramp on the 100th level
+file: src/game/levelstart.c
+- } else if ((g_save.players[g_curPlayer].level - 1) % LEVEL_THEME_CYCLE == 0 && g_save.players[g_curPlayer].level > MARATHON_START_LEVEL) {
++ } else if (g_save.players[g_curPlayer].level % LEVEL_THEME_CYCLE == 0 && g_save.players[g_curPlayer].level > MARATHON_START_LEVEL) {
+expect: Flow_StartLevel_ramps_the_difficulty_every_100_levels
+
+== flow: marathon fire bias unbounded
+file: src/game/levelstart.c
+-         if (g_fireDelayBiasA < -500)
+-             g_fireDelayBiasA = -500;
++
+expect: Flow_StartLevel_ramps_the_difficulty_every_100_levels
+
+== flow: marathon speed step 0.1
+file: src/game/levelstart.c
+- g_gameSpeedMul += 0.12f;
++ g_gameSpeedMul += 0.1f;
+expect: Flow_StartLevel_ramps_the_difficulty_every_100_levels
+
+== flow: marathon hp bonus B 4
+file: src/game/levelstart.c
+- g_diffHpBonusB += 5.0;
++ g_diffHpBonusB += 4.0;
+expect: Flow_StartLevel_ramps_the_difficulty_every_100_levels
+
+== flow: StartLevel doesn't check game over
+file: src/game/levelstart.c
+-     if (IsGameOver())
+-         ShowHiscoreTable();
+-     g_rankFanfarePlayed = 0;
++     g_rankFanfarePlayed = 0;
+expect: Flow_StartLevel_game_over_shows_the_hiscore_table
+
+== flow: respawn banner names the wrong player
+file: src/game/levelstart.c
+-             sprintf(g_getReadyText, "GET READY PLAYER %d", g_curPlayer + 1);
+-             break;
+-         case MODE_DUAL:
+-             sprintf(g_getReadyText, "G E T   R E A D Y   P L A Y E R S");
+-             break;
+-         case MODE_TEAM:
+-             sprintf(g_getReadyText, "G E T   R E A D Y   T E A M");
++             sprintf(g_getReadyText, "GET READY PLAYER %d", g_curPlayer);
++             break;
++         case MODE_DUAL:
++             sprintf(g_getReadyText, "G E T   R E A D Y   P L A Y E R S");
++             break;
++         case MODE_TEAM:
++             sprintf(g_getReadyText, "G E T   R E A D Y   T E A M");
+expect: Flow_UpdateGetReadyRespawn_names_the_player_in_two_player_games
+
+== flow: respawn get ready 1s
+file: src/game/levelstart.c
+-         g_introDone = 1;
+-         g_timerA = g_time + 2000;
++         g_introDone = 1;
++         g_timerA = g_time + 1000;
+expect: Flow_UpdateGetReadyRespawn_names_the_player_in_two_player_games
+expect: Flow_get_ready_shows_the_level_then_plays_it_after_2_seconds
+
+== flow: respawn banner shown 1s
+file: src/game/levelstart.c
+-         g_levelBannerTime = g_time + 2000;
+-         SoundResetQueue();
++         g_levelBannerTime = g_time + 1000;
++         SoundResetQueue();
+expect: Flow_UpdateGetReadyRespawn_names_the_player_in_two_player_games
+
+== flow: respawn level name off by one
+file: src/game/levelstart.c
+-                 g_levelName[i] = (&g_curLevelData.name1[1])[i];
++                 g_levelName[i] = (&g_curLevelData.name1[0])[i];
+expect: Flow_get_ready_shows_the_level_then_plays_it_after_2_seconds
+
+== flow: respawn ends on the timer's millisecond
+file: src/game/levelstart.c
+-     if (g_timerA != 0 && g_time > g_timerA) {
+-         g_timerA = 0;
+-         g_introDone = 0;
++     if (g_timerA != 0 && g_time >= g_timerA) {
++         g_timerA = 0;
++         g_introDone = 0;
+expect: Flow_UpdateGetReadyRespawn_starts_play_when_the_timer_runs_out
+
+== flow: respawn starts play without TimerStart1 state
+file: src/game/levelstart.c
+-         g_getReadyFlagA = 0;
+-         g_state = STATE_PLAYING;
+-         TimerStart1();
++         g_getReadyFlagA = 0;
++         TimerStart1();
+expect: Flow_UpdateGetReadyRespawn_starts_play_when_the_timer_runs_out
+expect: Flow_get_ready_shows_the_level_then_plays_it_after_2_seconds
+
+== flow: new level get ready keeps timer A
+file: src/game/levelstart.c
+-     if (g_timerA != 0 && g_time > g_timerA)
+-         g_timerA = 0;
++
+expect: Flow_UpdateGetReadyNewLevel_plays_after_timer_B
+
+== flow: new level get ready never plays
+file: src/game/levelstart.c
+-         g_state = STATE_PLAYING;
+-     }
+-     if (g_timerB != 0 && g_introDone == 0) {
++     }
++     if (g_timerB != 0 && g_introDone == 0) {
+expect: Flow_UpdateGetReadyNewLevel_plays_after_timer_B
+
+== flow: new level get ready doesn't start the level
+file: src/game/levelstart.c
+-         if (g_save.players[g_curPlayer].started == 0) {
+-             g_save.players[g_curPlayer].started = 1;
+-             StartLevel();
++         if (g_save.players[g_curPlayer].started == 0) {
++             g_save.players[g_curPlayer].started = 1;
+expect: Flow_UpdateGetReadyNewLevel_plays_after_timer_B
+
+== flow: bg tint up to 3
+file: src/game/levelstart.c
+-     if (g_bgTint > 2)
+-         g_bgTint = 2;
++     if (g_bgTint > 3)
++         g_bgTint = 3;
+expect: Flow_ApplyBgTint_clamps_to_the_three_tints
+
+== flow: bg tint negative kept
+file: src/game/levelstart.c
+-     if (g_bgTint < 0)
+-         g_bgTint = 0;
++
+expect: Flow_ApplyBgTint_clamps_to_the_three_tints
+
+== flow: ResetObjectsKeep clears captured aliens
+file: src/game/levelstart.c
+-         if (g_enemies[p][i].type != ENEMY_CAPTURED) {
+-             g_enemies[p][i].forcedDir = -1;
++         if (1) {
++             g_enemies[p][i].forcedDir = -1;
+expect: Flow_ResetObjectsKeep_keeps_captured_aliens
+
+== flow: ResetObjectsKeep keeps items
+file: src/game/levelstart.c
+-     for (i = 0; i < MAX_SPARKLE_FLASHES; i++)
+-         g_sparkleFlashes[i].active = 0;
+-     for (i = 0; i < MAX_ITEMS; i++) {
+-         g_items[i].alive = 0;
++     for (i = 0; i < MAX_SPARKLE_FLASHES; i++)
++         g_sparkleFlashes[i].active = 0;
++     for (i = 0; i < MAX_ITEMS; i++) {
+expect: Flow_ResetObjectsKeep_keeps_captured_aliens
+
+== flow: ResetAllObjects keeps captured aliens
+file: src/game/levelstart.c
+-     // Enemies (all types, unlike ResetObjectsKeep).
+-     for (i = 0; i < MAX_ENEMIES; i++) {
+-         g_enemies[p][i].forcedDir = -1;
+-         g_enemies[p][i].active = 0;
++     // Enemies (all types, unlike ResetObjectsKeep).
++     for (i = 0; i < MAX_ENEMIES; i++) {
++         g_enemies[p][i].forcedDir = -1;
++         if (g_enemies[p][i].type != ENEMY_CAPTURED) g_enemies[p][i].active = 0;
+expect: Flow_ResetObjectsKeep_keeps_captured_aliens
+
+== flow: ResetObjects uses the current player in dual mode
+file: src/game/levelstart.c
+-     p = g_curPlayer;
+-     if (g_gameMode == MODE_DUAL)
+-         p = 0;
+-
+-     for (i = 0; i < MAX_MAP_OBJS; i++) {
++     p = g_curPlayer;
++
++     for (i = 0; i < MAX_MAP_OBJS; i++) {
+expect: Flow_ResetObjects_clears_the_dual_mode_field_of_player_1
+
+== flow: ResetObjects leaves explosions
+file: src/game/levelstart.c
+-     for (i = 0; i < MAX_EXPLOSIONS; i++) {
+-         g_explosions[i].active = 0;
+-         g_explosions[i].x = 0;
+-         g_explosions[i].y = 0;
+-         g_explosions[i].type = 0;
+-         g_explosions[i].frame = 0;
+-         g_explosions[i].delay = 0;
+-         g_explosions[i].angle = 0;
+-         g_explosions[i].angleVel = 0;
+-     }
+-
+-     for (i = 0; i < MAX_EXPLOSION_PARTICLES; i++) {
+-         g_explosionParticles[i].active = 0;
+-         g_explosionParticles[i].x = 0;
++     for (i = 0; i < MAX_EXPLOSION_PARTICLES; i++) {
++         g_explosionParticles[i].active = 0;
++         g_explosionParticles[i].x = 0;
+expect: Flow_ResetObjects_clears_the_dual_mode_field_of_player_1
+
+# ---- enemies.c (via the game flow) ----
+
+== flow: wave aliens escape at the end of their path
+file: src/game/enemies.c
+-                         case LEVEL_WAVE:
+-                             EN.type = ENEMY_HOVER;
++                         case LEVEL_WAVE:
++                             EN.type = ENEMY_ESCAPER;
+expect: Flow_aliens_fly_their_path_into_formation
+
+# ---- enemies.c ----
+
+== flow: patterned alien accelerates before moving
+file: src/game/enemies.c
+-                     EN.x += EN.velX * g_frameDt;
+-                 EN.y += EN.velY * g_frameDt;
+-                 EN.velX += EN.accelX * g_frameDt;
++                     EN.x += (EN.velX + EN.accelX) * g_frameDt;
++                 EN.y += EN.velY * g_frameDt;
++                 EN.velX += EN.accelX * g_frameDt;
+expect: Flow_patterned_alien_moves_by_its_velocity_and_acceleration
+
+== flow: patterned alien y acceleration from x
+file: src/game/enemies.c
+-                     EN.x += EN.velX * g_frameDt;
+-                 EN.y += EN.velY * g_frameDt;
+-                 EN.velX += EN.accelX * g_frameDt;
+-                 EN.velY += EN.accelY * g_frameDt;
++                     EN.x += EN.velX * g_frameDt;
++                 EN.y += EN.velY * g_frameDt;
++                 EN.velX += EN.accelX * g_frameDt;
++                 EN.velY += EN.accelX * g_frameDt;
+expect: Flow_patterned_alien_moves_by_its_velocity_and_acceleration
+
+== flow: attack stagger counts down twice as fast
+file: src/game/enemies.c
+- EN.attackStaggerTimer -= 1.0f * g_frameDt;
++ EN.attackStaggerTimer -= 2.0f * g_frameDt;
+expect: Flow_patterned_alien_waits_for_its_attack_stagger
+
+== flow: attack stagger at zero still waits
+file: src/game/enemies.c
+- if (EN.attackStaggerTimer > 0.0) {
++ if (EN.attackStaggerTimer >= 0.0) {
+expect: Flow_patterned_alien_waits_for_its_attack_stagger
+
+== flow: patterned aliens ignore the freeze
+file: src/game/enemies.c
+-             case ENEMY_PATTERNED:
+-                 if (PL.freezeTimer)
+-                     break;
++             case ENEMY_PATTERNED:
+expect: Flow_aliens_freeze_during_get_ready_and_the_freeze_item
+
+== flow: patterned aliens move during get ready
+file: src/game/enemies.c
+-                 if (g_timerA)
+-                     break;
+-                 g_enemyActedThisFrame = 1;
+-                 if (EN.y > -10.0
++                 g_enemyActedThisFrame = 1;
++                 if (EN.y > -10.0
+expect: Flow_aliens_freeze_during_get_ready_and_the_freeze_item
+
+== flow: hovering aliens ignore the freeze
+file: src/game/enemies.c
+-                 if (PL.freezeTimer)
+-                     break;
+-                 if (g_timerA)
+-                     break;
+-                 g_enemyActedThisFrame = 1;
+-                 if (EN.x != EN.hoverX) {
++                 if (g_timerA)
++                     break;
++                 g_enemyActedThisFrame = 1;
++                 if (EN.x != EN.hoverX) {
+expect: Flow_aliens_freeze_during_get_ready_and_the_freeze_item
+
+== flow: path step on the hold time itself
+file: src/game/enemies.c
+- if (EN.patternTimer > g_curLevelData.obj[EN.groupIndex][EN.patternStep].holdTime) {
++ if (EN.patternTimer >= g_curLevelData.obj[EN.groupIndex][EN.patternStep].holdTime) {
+expect: Flow_patterned_alien_takes_the_next_path_step_after_its_hold_time
+
+== flow: path step y acceleration from x
+file: src/game/enemies.c
+- EN.accelY = g_curLevelData.obj[EN.groupIndex][EN.patternStep].pathY;
++ EN.accelY = g_curLevelData.obj[EN.groupIndex][EN.patternStep].pathX;
+expect: Flow_patterned_alien_takes_the_next_path_step_after_its_hold_time
+
+== flow: path step timer not restarted
+file: src/game/enemies.c
+-                     EN.accelY = g_curLevelData.obj[EN.groupIndex][EN.patternStep].pathY;
+-                     EN.patternTimer = 1.0f * g_frameDt;
++                     EN.accelY = g_curLevelData.obj[EN.groupIndex][EN.patternStep].pathY;
+expect: Flow_patterned_alien_takes_the_next_path_step_after_its_hold_time
+
+== flow: path not mirrored
+file: src/game/enemies.c
+- EN.accelX = 0 - g_curLevelData.obj[EN.groupIndex][EN.patternStep].pathX;
++ EN.accelX = g_curLevelData.obj[EN.groupIndex][EN.patternStep].pathX;
+expect: Flow_patterned_alien_path_is_mirrored_on_mirror_levels
+
+== flow: flash lasts 10 frames
+file: src/game/enemies.c
+-                         EN.flashActive = 1;
+-                         EN.flashTimer = 15.0f;
++                         EN.flashActive = 1;
++                         EN.flashTimer = 10.0f;
+expect: Flow_flash_step_makes_the_alien_flash
+
+== flow: mid-path stop keeps the velocity
+file: src/game/enemies.c
+-                         EN.forcedDir = dir;
+-                         EN.velX = 0;
+-                         EN.velY = 0;
+-                         EN.accelX = 0;
+-                         EN.accelY = 0;
+-                         EN.patternTimer = 1.0f;
+-                     }
+-                     if (g_curLevelData.obj[EN.groupIndex][EN.patternStep].cmd == OPCMD_STOP_TURN
++                         EN.forcedDir = dir;
++                         EN.velY = 0;
++                         EN.accelX = 0;
++                         EN.accelY = 0;
++                         EN.patternTimer = 1.0f;
++                     }
++                     if (g_curLevelData.obj[EN.groupIndex][EN.patternStep].cmd == OPCMD_STOP_TURN
+expect: Flow_stop_step_halts_the_alien_mid_path
+
+== flow: end of path keeps the group count
+file: src/game/enemies.c
+-                         g_groupEnemyCount[EN.groupIndex] = 0;
+-                         switch (g_curLevelData.type) {
++                         switch (g_curLevelData.type) {
+expect: Flow_wave_aliens_hover_at_the_end_of_their_path
+
+== flow: aimed wave aliens fly by at the end of their path
+file: src/game/enemies.c
+-                         case LEVEL_WAVE_AIMED:
+-                             EN.type = ENEMY_HOVER;
++                         case LEVEL_WAVE_AIMED:
++                             EN.type = ENEMY_FLYBY;
+expect: Flow_wave_aliens_hover_at_the_end_of_their_path
+
+== flow: race aliens' escape not counted
+file: src/game/enemies.c
+-                         case LEVEL_RACE:
+-                             EN.active = 0;
+-                             CreditEscape(g_curPlayer);
++                         case LEVEL_RACE:
++                             EN.active = 0;
+expect: Flow_race_aliens_escape_at_the_end_of_their_path
+
+== flow: bonus wave aliens hover at the end of their path
+file: src/game/enemies.c
+-                         case LEVEL_BONUS_WAVE:
+-                             EN.type = ENEMY_ESCAPER;
++                         case LEVEL_BONUS_WAVE:
++                             EN.type = ENEMY_HOVER;
+expect: Flow_bonus_wave_aliens_fly_off_at_the_end_of_their_path
+
+== flow: escape command ignored
+file: src/game/enemies.c
+- if (g_curLevelData.obj[EN.groupIndex][EN.patternStep].cmd == OPCMD_ESCAPE) {
++ if (g_curLevelData.obj[EN.groupIndex][EN.patternStep].cmd == OPCMD_FLASH) {
+expect: Flow_escape_step_removes_the_alien_and_counts_an_escape
+
+== flow: hover easing by a tenth
+file: src/game/enemies.c
+- aimVx = (EN.x - EN.hoverX) / 20.0;
++ aimVx = (EN.x - EN.hoverX) / 10.0;
+expect: Flow_hovering_alien_eases_toward_its_formation_slot
+
+== flow: hover easing y away from the slot
+file: src/game/enemies.c
+- aimVy = (EN.y - EN.hoverY) / 20.0;
++ aimVy = (EN.hoverY - EN.y) / 20.0;
+expect: Flow_hovering_alien_eases_toward_its_formation_slot
+
+== flow: hover sway offset sign
+file: src/game/enemies.c
+- EN.offsetX = PL.enemySwayX - 16.0f;
++ EN.offsetX = PL.enemySwayX + 16.0f;
+expect: Flow_hovering_alien_follows_the_formation_sway
+
+== flow: sway moves backwards
+file: src/game/enemies.c
+- PL.enemySwayX = PL.enemySwayX + PL.enemySwayVelX * g_frameDt;
++ PL.enemySwayX = PL.enemySwayX - PL.enemySwayVelX * g_frameDt;
+expect: Flow_hovering_alien_follows_the_formation_sway
+
+== flow: sway doesn't bounce at the right
+file: src/game/enemies.c
+-     if (PL.enemySwayX > PL.enemySwayMax) {
+-         PL.enemySwayX = PL.enemySwayMax;
+-         PL.enemySwayVelX = 0 - PL.enemySwayVelX;
++     if (PL.enemySwayX > PL.enemySwayMax) {
++         PL.enemySwayX = PL.enemySwayMax;
+expect: Flow_hovering_alien_follows_the_formation_sway
+
+== flow: hover off-screen margin 250
+file: src/game/enemies.c
+- if (EN.x > g_screenW + 150 || EN.x < -150.0) {
++ if (EN.x > g_screenW + 250 || EN.x < -150.0) {
+expect: Flow_hovering_alien_pushed_off_screen_turns_into_a_flyby
+
+== flow: hovering aliens never dive
+file: src/game/enemies.c
+- if (EN.attackDelay && RandRange(0, EN.attackDelay) == 1) {
++ if (EN.attackDelay && RandRange(0, EN.attackDelay) == 2) {
+expect: Flow_hovering_alien_dives_along_an_attack_pattern
+
+== flow: dive start velocity y from x
+file: src/game/enemies.c
+- EN.velY = g_patterns[EN.patternId].unused6 / 256.0;
++ EN.velY = g_patterns[EN.patternId].unused5 / 256.0;
+expect: Flow_hovering_alien_dives_along_an_attack_pattern
+
+== flow: dive start acceleration y from x
+file: src/game/enemies.c
+- EN.accelY = g_patterns[EN.patternId].entries[0].y / 256.0f;
++ EN.accelY = g_patterns[EN.patternId].entries[0].x / 256.0f;
+expect: Flow_hovering_alien_dives_along_an_attack_pattern
+
+== flow: diving alien moves by its y velocity on x
+file: src/game/enemies.c
+-                         SHOT_SOUNDS
+-                     }
+-                 }
+-
+-                 EN.x += EN.velX * g_frameDt;
++                         SHOT_SOUNDS
++                     }
++                 }
++
++                 EN.x += EN.velY * g_frameDt;
+expect: Flow_diving_alien_returns_to_its_slot_at_the_end_of_the_pattern
+
+== flow: dive step on the tParam itself
+file: src/game/enemies.c
+- if ((int)EN.patternTimer > FP.tParam) {
++ if ((int)EN.patternTimer >= FP.tParam) {
+expect: Flow_diving_alien_returns_to_its_slot_at_the_end_of_the_pattern
+
+== flow: dive acceleration scaled by 128
+file: src/game/enemies.c
+- EN.accelX = FP.x / 256.0f;
++ EN.accelX = FP.x / 128.0f;
+expect: Flow_diving_alien_returns_to_its_slot_at_the_end_of_the_pattern
+
+== flow: dive never ends
+file: src/game/enemies.c
+-                         EN.x -= EN.offsetX;
+-                         EN.y -= EN.offsetY;
+-                         EN_RESTORE
+-                         EN.type = ENEMY_HOVER;
++                         EN.x -= EN.offsetX;
++                         EN.y -= EN.offsetY;
++                         EN_RESTORE
+expect: Flow_diving_alien_returns_to_its_slot_at_the_end_of_the_pattern
+
+== flow: dive escape command 7
+file: src/game/enemies.c
+-     PATCMD_ESCAPE    = 6
++     PATCMD_ESCAPE    = 7
+expect: Flow_diving_alien_escapes_on_an_escape_step
+
+== flow: flyby wraps lower
+file: src/game/enemies.c
+- if (EN.y > g_screenH + 15) {
++ if (EN.y > g_screenH + 25) {
+expect: Flow_flyby_alien_wraps_back_to_the_top
+
+== flow: flyby wraps to the top edge
+file: src/game/enemies.c
+- EN.y = -50.0f;
++ EN.y = 0.0f;
+expect: Flow_flyby_alien_wraps_back_to_the_top
+
+== flow: flyby in hyperspace not counted
+file: src/game/enemies.c
+-                     if (PL.hyperspaceFade > 0.0) {
+-                         EN.active = 0;
+-                         CreditEscape(g_curPlayer);
++                     if (PL.hyperspaceFade > 0.0) {
++                         EN.active = 0;
+expect: Flow_flyby_alien_escapes_during_hyperspace
+
+== flow: escaper falls
+file: src/game/enemies.c
+- EN.y -= EN.descendVelY * g_frameDt;
++ EN.y += EN.descendVelY * g_frameDt;
+expect: Flow_escaper_climbs_off_the_top_and_escapes
+
+== flow: escaper easing 0.5
+file: src/game/enemies.c
+- EN.descendAccelY /= 1.0f + g_frameDt * 0.05f;
++ EN.descendAccelY /= 1.0f + g_frameDt * 0.5f;
+expect: Flow_escaper_climbs_off_the_top_and_escapes
+
+== flow: escaper leaves later
+file: src/game/enemies.c
+- if (EN.y + 32.0 < g_clipTop - 100) {
++ if (EN.y + 32.0 < g_clipTop - 200) {
+expect: Flow_escaper_climbs_off_the_top_and_escapes
+
+== flow: hyperspace scroll applied once
+file: src/game/enemies.c
+-                     EN.y += PL.scrollSpeedY * g_frameDt;
+-                     EN.y += PL.scrollSpeedY * g_frameDt;
+-                     if (EN.y > 700.0) {
+-                         EN.active = 0;
+-                         EN.type = ENEMY_PATTERNED;
+-                     }
+-
+-                 } else if
++                     EN.y += PL.scrollSpeedY * g_frameDt;
++                     if (EN.y > 700.0) {
++                         EN.active = 0;
++                         EN.type = ENEMY_PATTERNED;
++                     }
++
++                 } else if
+expect: Flow_aliens_scroll_away_in_hyperspace
+
+== flow: idle counter runs during get ready
+file: src/game/enemies.c
+- if (g_timerA == 0 && g_state == STATE_PLAYING && PL.freezeTimer == 0)
++ if (g_state == STATE_PLAYING && PL.freezeTimer == 0)
+expect: Flow_idle_counter_counts_frames_where_no_alien_acts
+
+== flow: idle counter not reset by acting aliens
+file: src/game/enemies.c
+-     } else {
+-         g_levelIdleCounter = 0;
+-     }
+-     g_enemyActedThisFrame = 0;
++     }
++     g_enemyActedThisFrame = 0;
+expect: Flow_idle_counter_counts_frames_where_no_alien_acts
+
+== flow: money sucker from 750
+file: src/game/enemies.c
+- if (n > 750 && g_save.players[g_curPlayer].done == 0) {
++ if (n >= 750 && g_save.players[g_curPlayer].done == 0) {
+expect: Flow_SpawnMoneySucker_not_for_poor_players_or_on_boss_levels
+
+== flow: money sucker after the level is done
+file: src/game/enemies.c
+- if (n > 750 && g_save.players[g_curPlayer].done == 0) {
++ if (n > 750) {
+expect: Flow_SpawnMoneySucker_not_for_poor_players_or_on_boss_levels
+
+== flow: money sucker on boss levels
+file: src/game/enemies.c
+-     if (g_curLevelData.type == LEVEL_RACE || g_curLevelData.type == LEVEL_BOSS)
+-         return;
+-
+-     // Tuning: 750
++     if (g_curLevelData.type == LEVEL_RACE)
++         return;
++
++     // Tuning: 750
+expect: Flow_SpawnMoneySucker_not_for_poor_players_or_on_boss_levels
+
+== flow: money sucker cooldown 12s
+file: src/game/enemies.c
+- g_moneySuckerCooldown = g_time + 120000;
++ g_moneySuckerCooldown = g_time + 12000;
+expect: Flow_SpawnMoneySucker_comes_for_a_rich_player
+
+== flow: two money suckers at once
+file: src/game/enemies.c
+-                         if (g_enemies[set][i].type == ENEMY_MONEY_SUCKER)
+-                             return;
++                         if (g_enemies[set][i].type == ENEMY_MONEY_SUCKER && 0)
++                             return;
+expect: Flow_SpawnMoneySucker_comes_for_a_rich_player
+
+== flow: money sucker hp bonus x3
+file: src/game/enemies.c
+- g_enemies[set][j].hp = (float)(g_moneySuckerBaseHp + (int)g_diffHpBonusB * 2);
++ g_enemies[set][j].hp = (float)(g_moneySuckerBaseHp + (int)g_diffHpBonusB * 3);
+expect: Flow_SpawnMoneySucker_comes_for_a_rich_player
+
+== flow: money sucker not counted
+file: src/game/enemies.c
+-                                 g_save.players[g_curPlayer].totalEnemies++;
+-                             }
+-                             g_enemies[set][j].speedX = RandFloat(0.5f, 1.5f);
++                             }
++                             g_enemies[set][j].speedX = RandFloat(0.5f, 1.5f);
+expect: Flow_SpawnMoneySucker_comes_for_a_rich_player
+
+== flow: money sucker cooldown inclusive
+file: src/game/enemies.c
+- if (RandFloat(0.0f, 200.0f) < g_frameDt * 7.0 && g_time > g_moneySuckerCooldown) {
++ if (RandFloat(0.0f, 200.0f) < g_frameDt * 7.0 && g_time >= g_moneySuckerCooldown) {
+expect: Flow_SpawnMoneySucker_waits_for_its_cooldown
+
+== flow: elite from level 15
+file: src/game/enemies.c
+-         g_save.players[set].done == 0 && g_gameMode != MODE_TIME_TRIAL && g_save.players[set].level > 15
++         g_save.players[set].done == 0 && g_gameMode != MODE_TIME_TRIAL && g_save.players[set].level > 14
+expect: Flow_SpawnEliteFlyby_not_before_level_16_or_within_10_levels
+
+== flow: elite in time trial
+file: src/game/enemies.c
+-         g_save.players[set].done == 0 && g_gameMode != MODE_TIME_TRIAL && g_save.players[set].level > 15
++         g_save.players[set].done == 0 && g_save.players[set].level > 15
+expect: Flow_SpawnEliteFlyby_not_before_level_16_or_within_10_levels
+
+== flow: elite every 9 levels
+file: src/game/enemies.c
+- if (g_save.players[set].level - g_lastEliteSpawnLevel < 10)
++ if (g_save.players[set].level - g_lastEliteSpawnLevel < 9)
+expect: Flow_SpawnEliteFlyby_not_before_level_16_or_within_10_levels
+
+== flow: elite level not recorded
+file: src/game/enemies.c
+- g_lastEliteSpawnLevel = g_save.players[set].level;
++
+expect: Flow_SpawnEliteFlyby_appears_after_level_15
+
+== flow: elite hp bonus x5
+file: src/game/enemies.c
+- g_enemies[set][j].hp = (float)((int)g_diffHpBonusB * 10 + g_eliteHpBonus);
++ g_enemies[set][j].hp = (float)((int)g_diffHpBonusB * 5 + g_eliteHpBonus);
+expect: Flow_SpawnEliteFlyby_appears_after_level_15
+
+== flow: elite score
+file: src/game/enemies.c
+- SCORE_ELITE_GUARD  = 10000000,
++ SCORE_ELITE_GUARD  = 1000000,
+expect: Flow_SpawnEliteFlyby_appears_after_level_15
+
+== flow: fire boost close cut by half
+file: src/game/enemies.c
+- return val -= q * 3;
++ return val -= q * 2;
+expect: Flow_NearPlayerFireBoost_cuts_values_near_the_player
+
+== flow: fire boost middle band 20 px
+file: src/game/enemies.c
+-             if (d < 30)
++             if (d < 20)
+expect: Flow_NearPlayerFireBoost_cuts_values_near_the_player
+
+== flow: fire boost reach 60 px
+file: src/game/enemies.c
+-     if (d < 50) {
+-         q = val / 4;
++     if (d < 60) {
++         q = val / 4;
+expect: Flow_NearPlayerFireBoost_cuts_values_near_the_player
+
+# ---- hurryup.c ----
+
+== flow: hurry-up deadline unarmed in single player
+file: src/game/hurryup.c
+-     case MODE_SINGLE:
+-         g_save.players[g_curPlayer].effectDuration = g_bonusDuration;
+-         g_save.players[g_curPlayer].time = g_time + g_save.players[g_curPlayer].effectDuration;
++     case MODE_SINGLE:
++         g_save.players[g_curPlayer].effectDuration = g_bonusDuration;
++         g_save.players[g_curPlayer].time = g_time;
+expect: Flow_SetHurryUpTimer_arms_the_current_players_deadline
+
+== flow: dual hurry-up deadline for the current player
+file: src/game/hurryup.c
+-     case MODE_DUAL:
+-         g_save.players[0].effectDuration = g_bonusDuration;
+-         g_save.players[0].time = g_time + g_save.players[0].effectDuration;
++     case MODE_DUAL:
++         g_save.players[g_curPlayer].effectDuration = g_bonusDuration;
++         g_save.players[g_curPlayer].time = g_time + g_save.players[g_curPlayer].effectDuration;
+expect: Flow_SetHurryUpTimer_arms_the_current_players_deadline
+
+== flow: GetHurryUpTimer dual reads the current player
+file: src/game/hurryup.c
+-     case MODE_DUAL:
+-         t = g_save.players[0].time;
++     case MODE_DUAL:
++         t = g_save.players[g_curPlayer].time;
+expect: Flow_SetHurryUpTimer_arms_the_current_players_deadline
+
+== flow: last event time not set
+file: src/game/hurryup.c
+-     g_lastEventTime = g_time + g_bonusDuration;
+- }
++ }
+expect: Flow_SetHurryUpTimer_arms_the_current_players_deadline
+
+== flow: hurry up on the deadline
+file: src/game/hurryup.c
+- if (g_time > GetHurryUpTimer() && g_save.players[g_curPlayer].done == 0 && g_curLevelData.type != LEVEL_BOSS
++ if (g_time >= GetHurryUpTimer() && g_save.players[g_curPlayer].done == 0 && g_curLevelData.type != LEVEL_BOSS
+expect: Flow_HurryUp_sends_a_mothership_after_the_deadline
+
+== flow: hurry up on boss levels and when done
+file: src/game/hurryup.c
+- if (g_time > GetHurryUpTimer() && g_save.players[g_curPlayer].done == 0 && g_curLevelData.type != LEVEL_BOSS
++ if (g_time > GetHurryUpTimer()
+expect: Flow_HurryUp_not_on_boss_or_race_levels_or_when_done
+
+== flow: hurry up in time trial
+file: src/game/hurryup.c
+-         && g_gameMode != MODE_TIME_TRIAL && g_curLevelData.type != LEVEL_RACE) {
++         && g_curLevelData.type != LEVEL_RACE) {
+expect: Flow_HurryUp_not_on_boss_or_race_levels_or_when_done
+
+== flow: mothership score 2000
+file: src/game/hurryup.c
+-     MOTHERSHIP_SCORE      = 2500,
++     MOTHERSHIP_SCORE      = 2000,
+expect: Flow_HurryUp_sends_a_mothership_after_the_deadline
+
+== flow: mothership hp without the difficulty bonus
+file: src/game/hurryup.c
+- g_enemies[p][i].hp = (int)g_diffHpBonusA + g_diffEnemyHpBonus;
++ g_enemies[p][i].hp = g_diffEnemyHpBonus;
+expect: Flow_HurryUp_sends_a_mothership_after_the_deadline
+
+== flow: mothership flies lower
+file: src/game/hurryup.c
+- g_enemies[p][i].y = 20.0f;
++ g_enemies[p][i].y = 30.0f;
+expect: Flow_HurryUp_sends_a_mothership_after_the_deadline
+
+== flow: hurry up message 2s
+file: src/game/hurryup.c
+- g_msgTimer = g_time + 1000;
++ g_msgTimer = g_time + 2000;
+expect: Flow_HurryUp_sends_a_mothership_after_the_deadline
+
+== flow: hurry up effect 5s
+file: src/game/hurryup.c
+-     HURRYUP_EFFECT_MS     = 10000,
++     HURRYUP_EFFECT_MS     = 5000,
+expect: Flow_HurryUp_sends_a_mothership_after_the_deadline
+
+== flow: hurry up interval step 6
+file: src/game/hurryup.c
+-     HURRYUP_INTERVAL_STEP = 8,
++     HURRYUP_INTERVAL_STEP = 6,
+expect: Flow_HurryUp_sends_a_mothership_after_the_deadline
+
+== flow: hurry up interval floor 30
+file: src/game/hurryup.c
+-     HURRYUP_INTERVAL_MIN  = 40,
++     HURRYUP_INTERVAL_MIN  = 30,
+expect: Flow_HurryUp_interval_has_a_floor_of_40
+
+== flow: guard count not raised
+file: src/game/hurryup.c
+-                 g_guardCount++;
+-                 if (g_guardCount > 8)
++                 if (g_guardCount > 8)
+expect: Flow_HurryUp_sends_a_mothership_after_the_deadline
+
+== flow: mothership not counted
+file: src/game/hurryup.c
+-                 } else {
+-                     g_save.players[g_curPlayer].totalEnemies++;
+-                 }
+-                 g_save.players[g_curPlayer].hurryupComboCount++;
++                 }
++                 g_save.players[g_curPlayer].hurryupComboCount++;
+expect: Flow_HurryUp_sends_a_mothership_after_the_deadline
+
+== flow: money ship every 9th
+file: src/game/hurryup.c
+-     MONEY_SHIP_EVERY      = 8,
++     MONEY_SHIP_EVERY      = 9,
+expect: Flow_HurryUp_every_8th_brings_a_money_ship
+
+== flow: money ship not counted
+file: src/game/hurryup.c
+-                             } else {
+-                                 g_save.players[g_curPlayer].totalEnemies++;
+-                             }
++                             }
+expect: Flow_HurryUp_every_8th_brings_a_money_ship
+
+== flow: money ship score
+file: src/game/hurryup.c
+-     MONEY_SHIP_SCORE      = 25000
++     MONEY_SHIP_SCORE      = 2500
+expect: Flow_HurryUp_every_8th_brings_a_money_ship
+
+== flow: no hurry up during play
+file: src/game/gameflow.c
+-         HurryUp();
+-         SpawnEliteFlyby();
++         SpawnEliteFlyby();
+expect: Flow_HurryUp_mothership_appears_during_play
+
+# ---- warp.c ----
+
+== flow: CenturyLevelFlag false
+file: src/game/warp.c
+- int CenturyLevelFlag()
+- {
+-     return 1;
++ int CenturyLevelFlag()
++ {
++     return 0;
+expect: Flow_CenturyLevelFlag_is_always_set
+
+== flow: malfunction at warp speed 120
+file: src/game/warp.c
+-         g_save.players[g_curPlayer].starSpeed > 120.0) {
++         g_save.players[g_curPlayer].starSpeed >= 120.0) {
+expect: Flow_WarpMalfunction_needs_warp_speed_and_malfunction_levels
+
+== flow: malfunction without malfunction levels
+file: src/game/warp.c
+- if (g_numMalfunction > 0 && RandRange(0, g_malfunctionTimer) < 4 &&
++ if (g_numMalfunction >= 0 && RandRange(0, g_malfunctionTimer) < 4 &&
+expect: Flow_WarpMalfunction_needs_warp_speed_and_malfunction_levels
+
+== flow: malfunction alert 1s
+file: src/game/warp.c
+-         g_alertTextTime = g_time + 2000;
+-         g_warpMsgBlinkTime
++         g_alertTextTime = g_time + 1000;
++         g_warpMsgBlinkTime
+expect: Flow_WarpMalfunction_drops_into_a_malfunction_level
+
+== flow: malfunction alarm in 3s
+file: src/game/warp.c
+- g_malfunctionAlarmTime = g_time + 300;
++ g_malfunctionAlarmTime = g_time + 3000;
+expect: Flow_WarpMalfunction_drops_into_a_malfunction_level
+
+== flow: malfunction loads level 0
+file: src/game/warp.c
+- g_curLevelNum = RandRange(0, g_numMalfunction) + 1;
++ g_curLevelNum = RandRange(0, g_numMalfunction);
+expect: Flow_WarpMalfunction_drops_into_a_malfunction_level
+
+== flow: malfunction state not set
+file: src/game/warp.c
+-         g_fadeColorSet = 2;
+-         g_state = STATE_MALFUNCTION;
++         g_fadeColorSet = 2;
+expect: Flow_WarpMalfunction_drops_into_a_malfunction_level
+
+== flow: malfunction clears captured aliens
+file: src/game/warp.c
+-             if (g_enemies[pl][i].type != ENEMY_CAPTURED)
+-                 g_enemies[pl][i].active = 0;
++             g_enemies[pl][i].active = 0;
+expect: Flow_WarpMalfunction_drops_into_a_malfunction_level
+
+== flow: malfunction one wrapper less
+file: src/game/warp.c
+-                 if (--count < 0)
++                 if (--count < 1)
+expect: Flow_WarpMalfunction_drops_into_a_malfunction_level
+
+== flow: malfunction wrappers not counted
+file: src/game/warp.c
+-                 g_save.players[g_curPlayer].totalEnemies++;
+-                 t = RandRange(0, g_animFrameCount) + 1;
++                 t = RandRange(0, g_animFrameCount) + 1;
+expect: Flow_WarpMalfunction_drops_into_a_malfunction_level
+
+== flow: malfunction wrapper score
+file: src/game/warp.c
+-     HAZARD_ENEMY_SCORE            = 5000
++     HAZARD_ENEMY_SCORE            = 500
+expect: Flow_WarpMalfunction_drops_into_a_malfunction_level
+
+== flow: malfunction wrapper hp 6
+file: src/game/warp.c
+-                                       (int)g_diffHpBonusB + 7;
++                                       (int)g_diffHpBonusB + 6;
+expect: Flow_WarpMalfunction_drops_into_a_malfunction_level
+
+== flow: malfunction warp speed kept
+file: src/game/warp.c
+-         g_save.players[g_curPlayer].starSpeed = 0;
+-         g_save.players[g_curPlayer].starVelZ = -5.0f;
++         g_save.players[g_curPlayer].starVelZ = -5.0f;
+expect: Flow_WarpMalfunction_drops_into_a_malfunction_level
+
+== flow: jump out star speed 2.0
+file: src/game/warp.c
+-         CUR.starSpeed += 2.15f;
++         CUR.starSpeed += 2.0f;
+expect: Flow_UpdateHyperspace_jumps_out_then_waits_twice_as_long
+
+== flow: jump out mid phase three times as long
+file: src/game/warp.c
+- CUR.hyperspaceMidTimer = CUR.hyperspaceInDuration * 2;
++ CUR.hyperspaceMidTimer = CUR.hyperspaceInDuration * 3;
+expect: Flow_UpdateHyperspace_jumps_out_then_waits_twice_as_long
+
+== flow: jump out not a death sequence
+file: src/game/warp.c
+-     if (CUR.hyperspaceOutTimer > 0) {
+-         g_deathSeqActive = 1;
++     if (CUR.hyperspaceOutTimer > 0) {
+expect: Flow_UpdateHyperspace_jumps_out_then_waits_twice_as_long
+
+== flow: mid phase done delay 3s
+file: src/game/warp.c
+- CUR.doneTime = g_time + HYPERSPACE_MID_DONE_DELAY_MS;
++ CUR.doneTime = g_time + DONE_DELAY_MS;
+expect: Flow_UpdateHyperspace_mid_phase_finishes_the_level
+
+== flow: mid phase silent
+file: src/game/warp.c
+-             SoundPlay(g_sfxWarp2, -1, 255, 0.0f, 127, g_sndFlags);
++
+expect: Flow_UpdateHyperspace_mid_phase_finishes_the_level
+
+== flow: jump in doesn't account for the enemies
+file: src/game/warp.c
+-             CUR.killed = CUR.totalEnemies;
+-             CUR.escaped = 0;
+-             if (CUR.done == 0) {
++             CUR.escaped = 0;
++             if (CUR.done == 0) {
+expect: Flow_UpdateHyperspace_jump_in_goes_to_the_next_level
+
+== flow: jump in clears captured aliens
+file: src/game/warp.c
+-                 if (g_enemies[g_curPlayer][i].type != ENEMY_CAPTURED)
+-                     g_enemies[g_curPlayer][i].active = 0;
++                 g_enemies[g_curPlayer][i].active = 0;
+expect: Flow_UpdateHyperspace_jump_in_goes_to_the_next_level
+
+== flow: jump in keeps the death sequence
+file: src/game/warp.c
+-             CUR.hyperspaceInTimer = 0;
+-             g_deathSeqActive = 0;
++             CUR.hyperspaceInTimer = 0;
+expect: Flow_UpdateHyperspace_jump_in_goes_to_the_next_level
+
+== flow: shop needs more than 50
+file: src/game/warp.c
+- if (CUR.money >= SHOP_MIN_MONEY && g_gameMode != MODE_TIME_TRIAL) {
++ if (CUR.money > SHOP_MIN_MONEY && g_gameMode != MODE_TIME_TRIAL) {
+expect: Flow_UpdateHyperspace_jump_in_with_money_goes_shopping
+
+== flow: jump in star speed reset to 0
+file: src/game/warp.c
+-             CUR.starSpeed = 5;
++             CUR.starSpeed = 0;
+expect: Flow_UpdateHyperspace_jump_in_goes_to_the_next_level
+
+== flow: level warp only three levels
+file: src/game/warp.c
+-                     CUR.level++;
+-                     StartLevel();
+-                 }
+-
+-                 g_shopSelItem = 0;
++                     StartLevel();
++                 }
++
++                 g_shopSelItem = 0;
+expect: Flow_UpdateHyperspace_level_warp_skips_four_levels
+
+== flow: level warp stays pending
+file: src/game/warp.c
+-                 CUR.levelWarpPending = 0;
++
+expect: Flow_UpdateHyperspace_level_warp_skips_four_levels
+
+== flow: stars scroll up
+file: src/game/warp.c
+- g_starY[i] = CUR.starSpeed + g_starY[i];
++ g_starY[i] = g_starY[i] - CUR.starSpeed;
+expect: Flow_UpdateHyperspace_scrolls_the_stars
+
+== flow: stars don't wrap at the bottom
+file: src/game/warp.c
+-         if (g_starY[i] > g_starYMax)
+-             g_starY[i] -= g_starYMax - g_starYMin;
++
+expect: Flow_UpdateHyperspace_scrolls_the_stars
+
+# ---- levelobj.c ----
+
+== flow: enemy shots leave lower
+file: src/game/levelobj.c
+- if (g_levelObj[i].y > g_screenH)
++ if (g_levelObj[i].y > g_screenH + 10)
+expect: Flow_enemy_shot_falls_and_leaves_the_screen
+
+== flow: enemy shots drift the wrong way
+file: src/game/levelobj.c
+- g_levelObj[i].x += g_levelObj[i].vx;
++ g_levelObj[i].x -= g_levelObj[i].vx;
+expect: Flow_enemy_shot_falls_and_leaves_the_screen
+
+== flow: enemy shots keep moving in hyperspace
+file: src/game/levelobj.c
+-             if (g_save.players[g_curPlayer].hyperspaceFade > 0.0) {
+-                 g_levelObj[i].y += g_save.players[g_curPlayer].scrollSpeedY * g_frameDt;
+-             } else if
++             if (g_save.players[g_curPlayer].hyperspaceFade > 0.0) {
++                 g_levelObj[i].y += g_save.players[g_curPlayer].scrollSpeedY;
++             } else if
+expect: Flow_enemy_shot_scrolls_in_hyperspace
+
+== flow: beam fades out later
+file: src/game/levelobj.c
+-                     if (g_levelObj[i].f28 < 1.0)
+-                         g_levelObj[i].active = 0;
++                     if (g_levelObj[i].f28 < 0.5)
++                         g_levelObj[i].active = 0;
+expect: Flow_guard_beam_fades_out
+
+== flow: beam moves like a shot
+file: src/game/levelobj.c
+-                 if (g_levelObj[i].type == LOBJ_BEAM && g_state != STATE_PAUSED) {
++                 if (g_levelObj[i].type == LOBJ_BEAM && g_state == STATE_PAUSED) {
+expect: Flow_guard_beam_fades_out
+
+== flow: rocket fuse lasts a frame longer
+file: src/game/levelobj.c
+- if (g_levelObj[i].fuse < 0.0) {
++ if (g_levelObj[i].fuse < -1.0) {
+expect: Flow_mothership_rocket_explodes_when_its_fuse_runs_out
+
+== flow: rocket moves along y on x
+file: src/game/levelobj.c
+- g_levelObj[i].x += g_dirVecX[g_levelObj[i].frame] * g_levelObj[i].speed * g_frameDt;
++ g_levelObj[i].x += g_dirVecY[g_levelObj[i].frame] * g_levelObj[i].speed * g_frameDt;
+expect: Flow_mothership_rocket_explodes_when_its_fuse_runs_out
+
+== flow: rocket explodes without an explosion
+file: src/game/levelobj.c
+-                     SpawnExplosion(ex, ey, 24, 24, 150, 0, 1, 50, 100, 255, 50, 100, 255);
++
+expect: Flow_mothership_rocket_explodes_when_its_fuse_runs_out
+
+# ---- mapobj.c ----
+
+== flow: debris overwrites the first slot
+file: src/game/mapobj.c
+-         if (g_mapObjs[i].active == 0) {
+-             g_isBossLevel = 1;
++         if (1) {
++             g_isBossLevel = 1;
+expect: Flow_SpawnDebris_fills_the_first_free_slot
+
+== flow: debris always counts as a shot
+file: src/game/mapobj.c
+- g_save.players[player].shots += countsAsShot;
++ g_save.players[player].shots += 1;
+expect: Flow_SpawnDebris_recoil_slows_the_shot
+
+== flow: debris doesn't use energy
+file: src/game/mapobj.c
+- g_save.players[player].energy += countsAsShot;
++
+expect: Flow_SpawnDebris_fills_the_first_free_slot
+expect: Flow_SpawnDebris_chains_linked_pieces
+
+== flow: debris x offset 16
+file: src/game/mapobj.c
+- g_mapObjs[i].x = x + 20 - g_objW[type] / 2.0f - g_debrisXOffset[type];
++ g_mapObjs[i].x = x + 16 - g_objW[type] / 2.0f - g_debrisXOffset[type];
+expect: Flow_SpawnDebris_fills_the_first_free_slot
+
+== flow: debris ignores the recoil
+file: src/game/mapobj.c
+- g_mapObjs[i].vy = speed * spd * g_debrisVySpeedFactor[type] - push * drag;
++ g_mapObjs[i].vy = speed * g_debrisVySpeedFactor[type] - push * drag;
+expect: Flow_SpawnDebris_recoil_slows_the_shot
+
+== flow: debris damage not stored
+file: src/game/mapobj.c
+- g_mapObjs[i].dmg = dmg;
++ g_mapObjs[i].dmg = 1;
+expect: Flow_SpawnDebris_fills_the_first_free_slot
+
+== flow: second linked piece of the first type
+file: src/game/mapobj.c
+- g_mapObjs[i].link2 = SpawnDebris(x, y, player, g_debrisLinkType2[type], dmg, countsAsShot,
++ g_mapObjs[i].link2 = SpawnDebris(x, y, player, g_debrisLinkType1[type], dmg, countsAsShot,
+expect: Flow_SpawnDebris_chains_linked_pieces
+
+== flow: full debris pool returns slot 0
+file: src/game/mapobj.c
+-     result = -1;
+-     for (i = 0; i < MAX_MAP_OBJS; i++) {
++     result = 0;
++     for (i = 0; i < MAX_MAP_OBJS; i++) {
+expect: Flow_SpawnDebris_returns_minus_1_when_full
+
+== flow: shots move backwards
+file: src/game/mapobj.c
+- g_mapObjs[i].y += g_mapObjs[i].vy * g_frameDt;
++ g_mapObjs[i].y -= g_mapObjs[i].vy * g_frameDt;
+expect: Flow_UpdateMapObjects_moves_shots_and_refunds_them_off_screen
+
+== flow: shots leave the top later
+file: src/game/mapobj.c
+- if ((int)g_mapObjs[i].y < -50) {
++ if ((int)g_mapObjs[i].y < -60) {
+expect: Flow_UpdateMapObjects_moves_shots_and_refunds_them_off_screen
+
+== flow: finished shots not refunded
+file: src/game/mapobj.c
+-                     g_save.players[g_mapObjs[i].player].energy -= g_mapObjs[i].cost;
++
+expect: Flow_UpdateMapObjects_moves_shots_and_refunds_them_off_screen
+
+== flow: shot sprite cycles every half frame
+file: src/game/mapobj.c
+- g_mapObjs[i].animT -= 1.0f * g_frameDt;
++ g_mapObjs[i].animT -= 0.5f * g_frameDt;
+expect: Flow_UpdateMapObjects_cycles_the_shot_sprite_every_frame_of_animT
+
+== flow: chain end never reached
+file: src/game/mapobj.c
+- if (g_mapObjs[i].type == -1) {
++ if (g_mapObjs[i].type < -1) {
+expect: Flow_UpdateMapObjects_ends_a_chain_at_type_minus_1
+
+== flow: lasers don't advance while playing
+file: src/game/mapobj.c
+-                 if (g_state != STATE_PAUSED && g_mapObjs[i].laser != 0)
++                 if (g_state == STATE_PAUSED && g_mapObjs[i].laser != 0)
+expect: Flow_UpdateMapObjects_ends_a_chain_at_type_minus_1
+
+== flow: expired missile keeps the lock
+file: src/game/mapobj.c
+-                     g_enemies[g_curPlayer][e].locked = 0;
++
+expect: Flow_homing_missile_explodes_when_its_life_runs_out
+
+== flow: missile lives a frame longer
+file: src/game/mapobj.c
+- if (g_mapObjs[i].life < 0.0) {
++ if (g_mapObjs[i].life < -1.0) {
+expect: Flow_homing_missile_explodes_when_its_life_runs_out
+
+# ---- gameover.c ----
+
+== flow: tally chunk 500000
+file: src/game/gameover.c
+-     CASH_CHUNK_1000000  = 1000000,
++     CASH_CHUNK_1000000  = 500000,
+expect: Flow_TallyStep_drains_cash_in_decreasing_chunks
+
+== flow: tally cash worth 10 a unit
+file: src/game/gameover.c
+-     CASH_TO_SCORE_MULT  = 100,
++     CASH_TO_SCORE_MULT  = 10,
+expect: Flow_TallyStep_drains_cash_in_decreasing_chunks
+
+== flow: tally 10s step from 20
+file: src/game/gameover.c
+- } else if (g_bonusTally[i].cashRemaining >= 10) {
++ } else if (g_bonusTally[i].cashRemaining >= 20) {
+expect: Flow_TallyStep_drains_cash_in_decreasing_chunks
+
+== flow: tally cash delay 150
+file: src/game/gameover.c
+- g_tallyDelay = g_tallyDelay < 100 ? g_tallyDelay : 100;
++ g_tallyDelay = g_tallyDelay < 150 ? g_tallyDelay : 150;
+expect: Flow_TallyStep_drains_cash_in_decreasing_chunks
+
+== flow: tally idle delay 400
+file: src/game/gameover.c
+- g_tallyDelay = g_tallyDelay < 500 ? g_tallyDelay : 500;
++ g_tallyDelay = g_tallyDelay < 400 ? g_tallyDelay : 400;
+expect: Flow_TallyStep_drains_cash_in_decreasing_chunks
+
+== flow: tally max cash bonus repeats
+file: src/game/gameover.c
+- } else if (g_bonusTally[i].maxCashFlag > 0 && g_bonusTally[i].maxCashFlag != -1) {
++ } else if (g_bonusTally[i].maxCashFlag >= 0 && g_bonusTally[i].maxCashFlag != -1) {
+expect: Flow_TallyStep_then_rank_perfects_and_hit_percent
+
+== flow: tally max cash bonus x4
+file: src/game/gameover.c
+-     MAX_CASH_BONUS_MULT = 5,
++     MAX_CASH_BONUS_MULT = 4,
+expect: Flow_TallyStep_then_rank_perfects_and_hit_percent
+
+== flow: rank bonus table
+file: src/game/gameover.c
+-     10000, 20000, 30000, 40000,
++     10000, 25000, 30000, 40000,
+expect: Flow_TallyStep_then_rank_perfects_and_hit_percent
+
+== flow: rank bonus read before the increment
+file: src/game/gameover.c
+-             g_bonusTally[i].rankBonus = g_bonusTally[i].rankBonus
+-                 + g_rankBonusTable[g_bonusTally[i].rank];
++             g_bonusTally[i].rankBonus = g_bonusTally[i].rankBonus
++                 + g_rankBonusTable[g_bonusTally[i].rank - 1];
+expect: Flow_TallyStep_then_rank_perfects_and_hit_percent
+
+== flow: perfect bonus 50000
+file: src/game/gameover.c
+-     PERFECT_BONUS_SCORE = 100000,
++     PERFECT_BONUS_SCORE = 50000,
+expect: Flow_TallyStep_then_rank_perfects_and_hit_percent
+
+== flow: hit bonus 500
+file: src/game/gameover.c
+-     HIT_PERCENT_BONUS   = 1000,
++     HIT_PERCENT_BONUS   = 500,
+expect: Flow_TallyStep_then_rank_perfects_and_hit_percent
+
+== flow: hit percent tick delay 50
+file: src/game/gameover.c
+- g_tallyDelay = g_tallyDelay < 75 ? g_tallyDelay : 75;
++ g_tallyDelay = g_tallyDelay < 50 ? g_tallyDelay : 50;
+expect: Flow_TallyStep_advances_every_slot
+
+== flow: tally only the first slot
+file: src/game/gameover.c
+-     g_tallyDelay = 1000;
+-     for (i = 0; i < count; i++) {
++     g_tallyDelay = 1000;
++     for (i = 0; i < 1; i++) {
+expect: Flow_TallyStep_advances_every_slot
+
+== flow: hit percent x10
+file: src/game/gameover.c
+- pct = (int)((double)g_save.players[player].hits / g_save.players[player].shots * 100.0);
++ pct = (int)((double)g_save.players[player].hits / g_save.players[player].shots * 10.0);
+expect: Flow_InitPlayerStats_starts_the_tally_from_the_players_run
+
+== flow: hit percent over 100
+file: src/game/gameover.c
+-     if (pct > 100)
+-         pct = 100;
++
+expect: Flow_InitPlayerStats_starts_the_tally_from_the_players_run
+
+== flow: zero shots kept
+file: src/game/gameover.c
+-     if (g_save.players[player].shots == 0)
+-         g_save.players[player].shots = 1;
++
+expect: Flow_InitPlayerStats_starts_the_tally_from_the_players_run
+
+== flow: perfects from the rank
+file: src/game/gameover.c
+- g_bonusTally[slot].perfectsRemaining = (int)g_save.players[player].bonusRoundCount;
++ g_bonusTally[slot].perfectsRemaining = (int)g_save.players[player].rank;
+expect: Flow_InitPlayerStats_starts_the_tally_from_the_players_run
+
+== flow: tally total not reset
+file: src/game/gameover.c
+-     g_bonusTally[slot].total = 0;
++
+expect: Flow_InitPlayerStats_starts_the_tally_from_the_players_run
+
+== flow: game over layers fade by 20
+file: src/game/gameover.c
+- if ((alpha -= 25, speed /= 1.5, alpha) < 0)
++ if ((alpha -= 20, speed /= 1.5, alpha) < 0)
+expect: Flow_InitLayers_puts_the_skull_in_front
+
+== flow: no skull
+file: src/game/gameover.c
+-             g_fx[i].gfx = g_gfxSkull;
++
+expect: Flow_InitLayers_puts_the_skull_in_front
+
+== flow: game over layers start at 25
+file: src/game/gameover.c
+-     speed = 20.0f;
++     speed = 25.0f;
+expect: Flow_InitLayers_puts_the_skull_in_front
+
+== flow: post round timeout inclusive
+file: src/game/gameover.c
+-     if ((unsigned int)(g_time - g_screenTimerStart) > (unsigned int)g_screenDelayMs)
+-         g_state = STATE_PLAYING;
++     if ((unsigned int)(g_time - g_screenTimerStart) >= (unsigned int)g_screenDelayMs)
++         g_state = STATE_PLAYING;
+expect: Flow_PostRoundIdleTimeout_resumes_play_after_the_delay
+
+== flow: tally bonus not added to the score
+file: src/game/gameover.c
+-             case MODE_SINGLE:
+-                 g_save.players[0].score += g_bonusTally[0].total;
+-                 break;
++             case MODE_SINGLE:
++                 break;
+expect: Flow_game_over_tally_adds_the_bonus_to_the_score
+
+== flow: game over screen 4s
+file: src/game/gameover.c
+-         case 2:
+-             g_screenDelayMs = 5000;
++         case 2:
++             g_screenDelayMs = 4000;
+expect: Flow_game_over_screens_advance_on_their_timeouts
+
+== flow: game over shows the versus result
+file: src/game/gameover.c
+-             g_frameFunc = GameOverScreen;
++             g_frameFunc = VersusResult;
+expect: Flow_game_over_screens_advance_on_their_timeouts
+
+== flow: game over screens advance a frame early
+file: src/game/gameover.c
+-     if ((unsigned int)(g_time - g_screenTimerStart) > (unsigned int)g_screenDelayMs) {
+-         g_advanceScreenFlag = 1;
++     if ((unsigned int)(g_time - g_screenTimerStart) > (unsigned int)g_screenDelayMs / 2) {
++         g_advanceScreenFlag = 1;
+expect: Flow_game_over_screens_advance_on_their_timeouts
+
+== flow: space doesn't skip the tally
+file: src/game/gameover.c
+-         if (KeyDown(K_VK_SPACE) == true && g_transitionLock == 0) {
++         if (KeyDown(K_VK_RETURN) == true && g_transitionLock == 0) {
+expect: Flow_space_skips_the_game_over_tally
+
+== flow: space tallies one step
+file: src/game/gameover.c
+-                 } while (g_tallyState != 0);
++                 } while (0);
+expect: Flow_space_skips_the_game_over_tally
+
+# ---- shooting an alien (end to end) ----
+
+== flow: kills not counted
+file: src/game/gameflow.c
+- g_save.players[p].killed++;
++ g_save.players[p].killed += 0;
+expect: Flow_shooting_the_last_alien_scores_and_completes_the_level
+expect: Flow_CreditKill_finishes_the_level_when_every_enemy_is_accounted_for
+
+== flow: kill score doubled
+file: src/game/collide.c
+- killScore = g_enemies[p][j].score * g_scoreMul[g_mapObjs[i].player];
++ killScore = g_enemies[p][j].score * 2 * g_scoreMul[g_mapObjs[i].player];
+expect: Flow_shooting_the_last_alien_scores_and_completes_the_level

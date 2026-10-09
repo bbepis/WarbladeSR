@@ -153,6 +153,9 @@ enum BgTint {
 // Player
 // ============================================================================
 
+// Player::ship: the ship types (g_shipDefs), picked at random for each new game.
+enum { NUM_SHIPS = 10 };
+
 // Player::weapon.
 enum WeaponType {
     WEAPON_SINGLE       = 0,

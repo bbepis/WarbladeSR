@@ -1,0 +1,48 @@
+<!doctype html>
+<!-- The browser build's page (README.md, "Browser"): page.js loads Warblade data into the
+     virtual file system, authenticates the player and syncs saves to the server.
+     No inline script or style, so the server's Content-Security-Policy can forbid them. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Warblade SR 2.0</title>
+<link rel="stylesheet" href="page.css">
+</head>
+<body>
+<div id="stage">
+  <canvas id="canvas" tabindex="-1" aria-label="Warblade game"></canvas>
+  <output id="performance" aria-label="Game frames per second" hidden>— FPS</output>
+  <div id="loading">
+    <img id="loading-art" src="loading-title.jpg" alt="Warblade" fetchpriority="high">
+    <div id="loading-state">
+      <p id="status" role="status" aria-live="polite">Loading…</p>
+      <progress id="progress" aria-label="Loading game"></progress>
+      <label class="button" id="pick" hidden>Choose Warblade folder
+        <input type="file" id="folder" webkitdirectory directory multiple></label>
+      <button id="retry" hidden>Reload</button>
+    </div>
+  </div>
+</div>
+<!-- These inputs sit over the game's own fields and summon the mobile keyboard. -->
+<input id="login-name" class="game-login-input" type="text" aria-label="Player name"
+       maxlength="32" autocomplete="off" autocapitalize="none" autocorrect="off"
+       spellcheck="false" enterkeyhint="next" hidden>
+<input id="login-password" class="game-login-input" type="password" aria-label="Password"
+       maxlength="256" autocomplete="off" autocapitalize="none" autocorrect="off"
+       spellcheck="false" enterkeyhint="go" hidden>
+<button id="login-guest" class="game-login-input" type="button"
+        aria-label="Play as guest" hidden></button>
+<div id="touch" hidden>
+  <div id="stick"><div id="knob"></div></div>
+  <div id="rocket">ROCKET</div>
+  <div id="fire">FIRE</div>
+  <div id="pause">PAUSE</div>
+</div>
+<div id="save-alert" role="alert" hidden></div>
+
+
+<script src="page.js"></script>
+<script async src="warblade.js"></script>
+</body>
+</html>

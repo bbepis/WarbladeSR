@@ -14,7 +14,7 @@
 #include "game.h"
 
 #pragma data_seg(".data$g7cd000")
-__declspec(align(16)) unsigned char g_unref_7cd000[1] = {1};   // not referenced by game code
+_Alignas(16) unsigned char g_unref_7cd000[1] = {1};   // not referenced by game code
 #pragma data_seg(".data$g7cd001")
 char g_hiscoresCleared = 1;
 #pragma data_seg(".data$g7cd002")
@@ -708,7 +708,7 @@ float g_worldZoomInit = 1.0f;
 #pragma data_seg(".data$g7d3308")
 float g_worldZoom = 1.0f;
 #pragma bss_seg(".bss$g7e3940")
-__declspec(align(16)) unsigned char g_pad_7e3940[4];
+_Alignas(16) unsigned char g_pad_7e3940[4];
 #pragma bss_seg(".bss$g7e3944")
 unsigned int g_exitSoundStartTime;
 #pragma bss_seg(".bss$g7e3948")
@@ -1042,7 +1042,9 @@ unsigned char g_pad_af6038[8];
 #pragma bss_seg(".bss$gaf6040")
 __int64 g_playTimeFt;
 #pragma bss_seg(".bss$gaf6048")
-float g_panTable[319];
+// BuildRampTables fills one entry per screen column; the decompile had 319, and the rest spilled
+// into the padding after it.
+float g_panTable[800];   // the screen width (g_screenW)
 #pragma bss_seg(".bss$gaf6544")
 float g_pan;
 #pragma bss_seg(".bss$gaf6548")
@@ -1264,25 +1266,9 @@ char g_strP[260];
 #pragma bss_seg(".bss$gb4a9ec")
 int g_hazard3GfxH;
 #pragma bss_seg(".bss$gb4a9f0")
-ShipDef *g_shipDefs[1];
-#pragma bss_seg(".bss$gb4a9f4")
-int *g_shipStatsPtr1;
-#pragma bss_seg(".bss$gb4a9f8")
-int *g_shipStatsPtr2;
-#pragma bss_seg(".bss$gb4a9fc")
-int *g_shipStatsPtr3;
-#pragma bss_seg(".bss$gb4aa00")
-int *g_shipStatsPtr4;
-#pragma bss_seg(".bss$gb4aa04")
-int *g_shipStatsPtr5;
-#pragma bss_seg(".bss$gb4aa08")
-int *g_shipStatsPtr6;
-#pragma bss_seg(".bss$gb4aa0c")
-int *g_shipStatsPtr7;
-#pragma bss_seg(".bss$gb4aa10")
-int *g_shipStatsPtr8;
-#pragma bss_seg(".bss$gb4aa14")
-int *g_shipStatsPtr9;
+// One per ship type (Player::ship, 0-9); the decompile had split it into g_shipDefs[1] and
+// nine separate pointers, which only lined up under MSVC's section ordering.
+ShipDef *g_shipDefs[NUM_SHIPS];
 #pragma bss_seg(".bss$gb4aa18")
 char g_moneyBuf3[280];
 #pragma bss_seg(".bss$gb4ab30")

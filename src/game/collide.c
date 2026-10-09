@@ -73,10 +73,7 @@ void ItemsVsBothPlayers()
 {
     g_curPlayer = RandRange(0, 2);
     ItemsVsPlayer();
-    if (g_curPlayer == 0)
-        g_curPlayer = 1;
-    if (g_curPlayer == 1)
-        g_curPlayer = 0;
+    g_curPlayer = 1 - g_curPlayer;
     ItemsVsPlayer();
     g_curPlayer = 0;
 }
@@ -100,13 +97,11 @@ bool BoxOverlap(int type, int x, int y, int left, int top, int right, int bottom
         return false;
     }
     if (type == 1) {
-        // NOTE: the terminator check reads g_boxesB, but the overlap test below reads
-        // g_boxesA[j] instead of g_boxesB[j] -- kept as in the original for the byte match.
         for (j = 0; j < 9; j++) {
             if (g_boxesB[j].x0 == -1)
                 return false;
-            if (right > g_boxesA[j].x0 + x && bottom > g_boxesA[j].y0 + y &&
-                left < g_boxesA[j].x1 + x && top < g_boxesA[j].y1 + y)
+            if (right > g_boxesB[j].x0 + x && bottom > g_boxesB[j].y0 + y &&
+                left < g_boxesB[j].x1 + x && top < g_boxesB[j].y1 + y)
                 return true;
         }
         return false;
@@ -143,6 +138,7 @@ void BulletsVsPlayer()
 
     if (g_save.players[g_curPlayer].dead == 0
         && g_save.players[g_curPlayer].shieldTimer == 0
+        && !g_cheatGodMode
         && g_save.players[g_curPlayer].lives > g_shipDefs[g_save.players[g_curPlayer].ship]->minEnergy) {
         if (g_save.players[g_curPlayer].mirrorTime != 0) {
             if (Rand1ff() < 0x100)
@@ -309,8 +305,7 @@ void BulletsVsBothPlayers()
 {
     g_curPlayer = RandRange(0, 2);
     BulletsVsPlayer();
-    if (g_curPlayer == 0)
-        g_curPlayer = 1;
+    g_curPlayer = 1 - g_curPlayer;
     BulletsVsPlayer();
     g_curPlayer = 0;
 }
@@ -1319,8 +1314,7 @@ void ShieldGrabEnemiesBothPlayers()
 {
     g_curPlayer = RandRange(0, 2);
     ShieldGrabEnemies();
-    if (g_curPlayer == 0)
-        g_curPlayer = 1;
+    g_curPlayer = 1 - g_curPlayer;
     ShieldGrabEnemies();
     g_curPlayer = 0;
 }

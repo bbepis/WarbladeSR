@@ -1,0 +1,2739 @@
+# src/game/stages/*.c: the shop, bonus results, gem drop, meteor storm, memory station
+# (tests/test_stages_*.c)
+
+# ---- shop.c ----
+
+== stages: shop extra speed adds two steps
+file: src/game/stages/shop.c
+- P.speed = P.speed + g_speedStep;
++ P.speed = P.speed + g_speedStep * 2;
+expect: stages_shop_extra_speed_adds_one_step_for_50
+
+== stages: shop extra speed not clamped
+file: src/game/stages/shop.c
+-                                 if (P.speed > g_speedStep * g_maxSpeedMul + g_speedBase)
+-                                     P.speed = g_speedStep * g_maxSpeedMul + g_speedBase;
++
+expect: stages_shop_extra_speed_clamps_to_the_top_speed
+
+== stages: shop extra speed sold at top speed
+file: src/game/stages/shop.c
+- if (P.speed < g_speedStep * g_maxSpeedMul + g_speedBase) {
++ if (P.speed <= g_speedStep * g_maxSpeedMul + g_speedBase) {
+expect: stages_shop_extra_speed_refused_at_top_speed
+
+== stages: shop price of extra speed
+file: src/game/stages/shop.c
+-     0, 50, 75, 100,
++     0, 55, 75, 100,
+expect: stages_shop_extra_speed_adds_one_step_for_50
+
+== stages: shop extra bullet adds two
+file: src/game/stages/shop.c
+- P.bullets++;
++ P.bullets += 2;
+expect: stages_shop_extra_bullet_adds_one_for_75
+
+== stages: shop extra bullet cap 51
+file: src/game/stages/shop.c
+- if (P.bullets < 50) {
++ if (P.bullets <= 50) {
+expect: stages_shop_extra_bullet_refused_at_50_bullets
+
+== stages: shop less speed half step
+file: src/game/stages/shop.c
+- P.speed = P.speed - g_speedStep;
++ P.speed = P.speed - g_speedStep / 2;
+expect: stages_shop_less_speed_removes_one_step_for_150
+
+== stages: shop less speed below base
+file: src/game/stages/shop.c
+- if (P.speed > g_speedBase) {
++ if (P.speed >= g_speedBase) {
+expect: stages_shop_less_speed_refused_at_base_speed
+
+== stages: shop quad shot sells triple
+file: src/game/stages/shop.c
+-                         case SHOP_QUAD_SHOT:
+-                             BUY_WEAPON(WEAPON_QUAD)
++                         case SHOP_QUAD_SHOT:
++                             BUY_WEAPON(WEAPON_TRIPLE)
+expect: stages_shop_weapons_equip_and_cost_their_price
+
+== stages: shop laser sells war plasma
+file: src/game/stages/shop.c
+-                             BUY_WEAPON(WEAPON_LASER)
++                             BUY_WEAPON(WEAPON_WAR_PLASMA)
+expect: stages_shop_weapons_equip_and_cost_their_price
+
+== stages: shop fireballs price
+file: src/game/stages/shop.c
+- 800, 990, 1000,
++ 800, 999, 1000,
+expect: stages_shop_weapons_equip_and_cost_their_price
+
+== stages: shop weapon resold
+file: src/game/stages/shop.c
+-     if (P.weapon != (w)) {          \
++     if (1) {          \
+expect: stages_shop_weapon_already_equipped_is_refused
+
+== stages: shop auto fire not set
+file: src/game/stages/shop.c
+-                                 if (P.autofire != 1) {
+-                                     P.autofire = 1;
++                                 if (P.autofire != 1) {
++                                     P.autofire = 0;
+expect: stages_shop_auto_fire_unit_for_400
+
+== stages: shop auto fire resold
+file: src/game/stages/shop.c
+- if (P.autofire != 1) {
++ if (P.autofire != 2) {
+expect: stages_shop_auto_fire_refused_when_owned
+
+== stages: shop auto fire with super autofire
+file: src/game/stages/shop.c
+-                             if (P.superAuto == 0) {
+-                                 if (P.autofire != 1) {
++                             if (1) {
++                                 if (P.autofire != 1) {
+expect: stages_shop_auto_fire_refused_with_super_autofire
+
+== stages: shop armour step 1
+file: src/game/stages/shop.c
+- P.armour = P.armour + g_shipDefs[P.ship]->armourStep;
++ P.armour = P.armour + 1;
+expect: stages_shop_ship_armour_adds_a_step_for_600
+
+== stages: shop armour added count
+file: src/game/stages/shop.c
+- g_armourAddedCount = g_armourAddedCount + 5;
++ g_armourAddedCount = g_armourAddedCount + 4;
+expect: stages_shop_ship_armour_adds_a_step_for_600
+
+== stages: shop armour not clamped
+file: src/game/stages/shop.c
+-                             if (P.armour >
+-                                 g_shipDefs[P.ship]->baseArmour + g_shipDefs[P.ship]->maxArmourBonus)
+-                                 P.armour = g_shipDefs[P.ship]->baseArmour +
+-                                            g_shipDefs[P.ship]->maxArmourBonus;
++
+expect: stages_shop_ship_armour_clamps_to_the_ship_cap
+
+== stages: shop armour sold at cap
+file: src/game/stages/shop.c
+-                             if (P.armour <
+-                                 g_shipDefs[P.ship]->baseArmour + g_shipDefs[P.ship]->maxArmourBonus) {
++                             if (P.armour <=
++                                 g_shipDefs[P.ship]->baseArmour + g_shipDefs[P.ship]->maxArmourBonus) {
+expect: stages_shop_ship_armour_refused_at_the_cap
+
+== stages: shop extra life adds one
+file: src/game/stages/shop.c
+- P.lives = P.lives + g_shipDefs[P.ship]->cost;
++ P.lives = P.lives + 1;
+expect: stages_shop_extra_life_adds_the_ship_cost_for_800
+
+== stages: shop extra life gained count
+file: src/game/stages/shop.c
+- g_livesGainedCount = g_livesGainedCount + 10;
++ g_livesGainedCount = g_livesGainedCount + 1;
+expect: stages_shop_extra_life_adds_the_ship_cost_for_800
+
+== stages: shop extra life not clamped
+file: src/game/stages/shop.c
+-                             if (P.lives > g_shipDefs[P.ship]->minEnergy + g_shipDefs[P.ship]->maxEnergy)
+-                                 P.lives = g_shipDefs[P.ship]->minEnergy + g_shipDefs[P.ship]->maxEnergy;
++
+expect: stages_shop_extra_life_clamps_to_the_hangar
+
+== stages: shop extra life sold with full hangar
+file: src/game/stages/shop.c
+- if (P.lives < g_shipDefs[P.ship]->minEnergy + g_shipDefs[P.ship]->maxEnergy) {
++ if (P.lives <= g_shipDefs[P.ship]->minEnergy + g_shipDefs[P.ship]->maxEnergy) {
+expect: stages_shop_extra_life_refused_with_a_full_hangar
+
+== stages: shop secret not shown
+file: src/game/stages/shop.c
+- g_secretShown = 1;
++ g_secretShown = 0;
+expect: stages_shop_game_secret_shows_a_secret_for_1000
+
+== stages: shop secret forgets previous
+file: src/game/stages/shop.c
+-                                 } while (!gotUniquePick);
+-                                 g_secretPicPrev = g_secretPicCur;
++                                 } while (!gotUniquePick);
+expect: stages_shop_game_secret_shows_a_secret_for_1000
+
+== stages: shop secret may repeat
+file: src/game/stages/shop.c
+-                                     } else if (g_secretPicPick != g_secretPicCur &&
+-                                                g_secretPicPick != g_secretPicPrev)
++                                     } else if (g_secretPicPick != g_secretPicCur + 1000)
+expect: stages_shop_game_secret_shows_a_secret_for_1000
+
+== stages: shop secret price
+file: src/game/stages/shop.c
+- 990, 1000, 1250,
++ 990, 900, 1250,
+expect: stages_shop_game_secret_shows_a_secret_for_1000
+
+== stages: shop rank 2 secret number
+file: src/game/stages/shop.c
+- g_secretPicPick = 0x1e;
++ g_secretPicPick = 0x1d;
+expect: stages_shop_game_secret_is_fixed_for_a_rank_2_profile
+
+== stages: shop secret seen ignored
+file: src/game/stages/shop.c
+-                                         if (P.secretFlags[g_secretPicPick] != 0 &&
+-                                             P.secretSeen[g_secretPicPick] != 0)
+-                                             gotUniquePick = 0;
++                                         if (P.secretFlags[g_secretPicPick] != 0 &&
++                                             P.secretSeen[g_secretPicPick] != 0)
++                                             gotUniquePick = 1;
+expect: stages_shop_game_secret_prefers_unseen_secrets_of_a_profile
+
+== stages: shop secret not marked seen
+file: src/game/stages/shop.c
+-                                             P.secretSeen[g_secretPicPick] = 1;
++
+expect: stages_shop_game_secret_prefers_unseen_secrets_of_a_profile
+
+== stages: shop rank marker order
+file: src/game/stages/shop.c
+-                             TRY_GRANT_MARK(MARK_5)
+-                             TRY_GRANT_MARK(MARK_4)
++                             TRY_GRANT_MARK(MARK_4)
++                             TRY_GRANT_MARK(MARK_5)
+expect: stages_shop_rank_marker_sells_the_missing_marks_in_order
+
+== stages: shop rank marker sells all at once
+file: src/game/stages/shop.c
+-     if (!((short)P.marks & (bit)) && gotMark == 0) { \
++     if (!((short)P.marks & (bit))) { \
+expect: stages_shop_rank_marker_sells_the_missing_marks_in_order
+
+== stages: shop rank marker skips mark 3
+file: src/game/stages/shop.c
+-                             TRY_GRANT_MARK(MARK_3)
++
+expect: stages_shop_rank_marker_fills_a_gap
+
+== stages: shop rank marker price
+file: src/game/stages/shop.c
+- 1000, 1250, 1500,
++ 1000, 1200, 1500,
+expect: stages_shop_rank_marker_fills_a_gap
+
+== stages: shop all-marks bonus repeats
+file: src/game/stages/shop.c
+- if (!g_marksBonusGiven) {
++ if (1) {
+expect: stages_shop_rank_marker_with_all_marks_pays_a_bonus_once
+
+== stages: shop rank-up bonus amount
+file: src/game/stages/shop.c
+- enum { RANK_UP_SCORE_BONUS = 1000000 };
++ enum { RANK_UP_SCORE_BONUS = 100000 };
+expect: stages_shop_rank_marker_with_all_marks_pays_a_bonus_once
+expect: stages_shop_closing_with_all_marks_promotes_a_rank
+
+== stages: shop all-marks bonus rings a visit
+file: src/game/stages/shop.c
+-                             } else
+-                                 AddCash();
+-                             PAY;
++                             }
++                             AddCash();
++                             PAY;
+expect: stages_shop_rank_marker_with_all_marks_pays_a_bonus_once
+
+== stages: shop all-marks colour after max rank
+file: src/game/stages/shop.c
+- if (!P.maxRankReached)
++ if (1)
+expect: stages_shop_rank_marker_bonus_keeps_colour_after_max_rank
+
+== stages: shop extra time adds 3
+file: src/game/stages/shop.c
+- P.buffDuration = P.buffDuration + 5;
++ P.buffDuration = P.buffDuration + 3;
+expect: stages_shop_extra_time_adds_5_for_1500
+
+== stages: shop extra time over maximum
+file: src/game/stages/shop.c
+- if (P.buffDuration < g_timeMax) {
++ if (P.buffDuration <= g_timeMax) {
+expect: stages_shop_extra_time_refused_at_the_maximum
+
+== stages: shop rocket pack of 5
+file: src/game/stages/shop.c
+- P.rockets = P.rockets + 10;
++ P.rockets = P.rockets + 5;
+expect: stages_shop_rocket_pack_adds_10_for_5000
+
+== stages: shop rockets not clamped
+file: src/game/stages/shop.c
+-                                 if (P.rockets > 50)
+-                                     P.rockets = 50;
++
+expect: stages_shop_rocket_pack_tops_up_to_50
+
+== stages: shop rockets sold when full
+file: src/game/stages/shop.c
+- if (P.rockets < 50) {
++ if (P.rockets <= 50) {
+expect: stages_shop_rocket_pack_refused_at_50
+
+== stages: shop alien lock resold
+file: src/game/stages/shop.c
+- if (!P.alienLock) {
++ if (1) {
+expect: stages_shop_alien_lock_for_15000_once
+
+== stages: shop super autofire interval
+file: src/game/stages/shop.c
+- P.autofireInterval = 0x19;
++ P.autofireInterval = 0x20;
+expect: stages_shop_super_autofire_for_30000
+
+== stages: shop super autofire resold
+file: src/game/stages/shop.c
+-                             if (P.superAuto == 0) {
+-                                 P.superAuto = 1;
++                             if (1) {
++                                 P.superAuto = 1;
+expect: stages_shop_super_autofire_refused_when_owned
+
+== stages: shop clear shields without profile
+file: src/game/stages/shop.c
+-                             if (g_profileIndex != -1 && g_gameMode == MODE_SINGLE && g_playerUpdateFn != StateDemo) {
+-                                 P.secretBirdCounter = 0x14;
++                             if (1) {
++                                 P.secretBirdCounter = 0x14;
+expect: stages_shop_clear_shields_needs_a_profile
+
+== stages: shop clear shields keeps secret 26 unset
+file: src/game/stages/shop.c
+- P.secretFlags[25] = 1;
++ P.secretFlags[25] = 0;
+expect: stages_shop_clear_shields_resets_the_profile_progress
+
+== stages: shop clear shields promotes rank 2
+file: src/game/stages/shop.c
+-                                 if (GetRank(g_profileIndex) == 1)
++                                 if (GetRank(g_profileIndex) == 2)
+expect: stages_shop_clear_shields_resets_the_profile_progress
+
+== stages: shop clear shields price
+file: src/game/stages/shop.c
+-     5000, 15000, 30000, 500000, 0, 0, 0
++     5000, 15000, 30000, 400000, 0, 0, 0
+expect: stages_shop_clear_shields_resets_the_profile_progress
+
+== stages: shop unaffordable is silent
+file: src/game/stages/shop.c
+-                         if (g_secretShown == 0)
+-                             PlayBuzzerSfx();
++                         if (g_secretShown == 0)
++                             ;
+expect: stages_shop_unaffordable_item_buzzes_and_takes_nothing
+
+== stages: shop sells on credit
+file: src/game/stages/shop.c
+-                     if (P.money >= g_prices[g_shopSelItem]) {
++                     if (P.money >= 0) {
+expect: stages_shop_unaffordable_item_buzzes_and_takes_nothing
+
+== stages: shop broke after refusal stays open
+file: src/game/stages/shop.c
+-                             g_transitionLock = 1;
+-                         }
+-
+-                         CHECK_BROKE()
++                             g_transitionLock = 1;
++                         }
+expect: stages_shop_unaffordable_with_under_50_closes_the_shop
+
+== stages: shop broke threshold 49
+file: src/game/stages/shop.c
+- if (P.money < 50.0 && g_secretShown == 0) {
++ if (P.money < 49.0 && g_secretShown == 0) {
+expect: stages_shop_spending_below_50_closes_the_shop
+
+== stages: shop broke threshold 51
+file: src/game/stages/shop.c
+- if (P.money < 50.0 && g_secretShown == 0) {
++ if (P.money < 51.0 && g_secretShown == 0) {
+expect: stages_shop_keeping_exactly_50_keeps_it_open
+
+== stages: shop fire repeats while held
+file: src/game/stages/shop.c
+-                 g_shopFireEdge = 0;
+-
+-                 if (g_shopSelItem == 0) {
++
++                 if (g_shopSelItem == 0) {
+expect: stages_shop_buys_only_on_the_fire_edge
+
+== stages: shop input cooldown ignored
+file: src/game/stages/shop.c
+- g_inputCooldown < 1) {
++ g_inputCooldown < 10) {
+expect: stages_shop_ignores_input_during_the_cooldown
+
+== stages: shop fire before slid in
+file: src/game/stages/shop.c
+-             g_transitionLock == 0 && (int)g_shopTransition == 500) {
+-             if (g_shopFireEdge) {
++             g_transitionLock == 0) {
++             if (g_shopFireEdge) {
+expect: stages_shop_ignores_fire_until_slid_in
+
+== stages: shop exit row buys
+file: src/game/stages/shop.c
+-                 if (g_shopSelItem == 0) {
+-                     g_playerBroke = 1;
++                 if (g_shopSelItem == -5) {
++                     g_playerBroke = 1;
+expect: stages_shop_fire_on_exit_row_closes_the_shop
+
+== stages: shop escape selects row 1
+file: src/game/stages/shop.c
+-                     g_shopSelItem = 0;
+-                     g_shopDownEdge = 0;
++                     g_shopSelItem = 1;
++                     g_shopDownEdge = 0;
+expect: stages_shop_escape_goes_to_exit_row_then_leaves
+
+== stages: shop never finishes closing
+file: src/game/stages/shop.c
+- if (g_shopClosing && g_offY <= -600.0 && g_state) {
++ if (g_shopClosing && g_offY < -600.0 && g_state) {
+expect: stages_shop_closing_slides_up_and_starts_the_next_level
+
+== stages: shop keeps level transitioning
+file: src/game/stages/shop.c
+-         } else
+-             P.levelTransitioning = 0;
++         }
+expect: stages_shop_closing_slides_up_and_starts_the_next_level
+
+== stages: shop promotes two ranks
+file: src/game/stages/shop.c
+- P.rank = P.rank + 1;
++ P.rank = P.rank + 2;
+expect: stages_shop_closing_with_all_marks_promotes_a_rank
+
+== stages: shop promotes past the unlocked rank
+file: src/game/stages/shop.c
+- if (P.rank < GetStat(g_profileIndex)) {
++ if (P.rank <= GetStat(g_profileIndex)) {
+expect: stages_shop_closing_with_all_marks_at_the_unlocked_rank_only_pays
+
+== stages: shop dual player two never shops
+file: src/game/stages/shop.c
+-             if (g_save.players[1].money >= SHOP_MIN_MONEY &&
++             if (g_save.players[1].money >= 1000000 &&
+expect: stages_shop_dual_hands_the_shop_to_player_two
+
+== stages: shop dual broke player two shops
+file: src/game/stages/shop.c
+-             if (g_save.players[1].money >= SHOP_MIN_MONEY &&
++             if (g_save.players[1].money >= 0 &&
+expect: stages_shop_dual_skips_a_broke_player_two
+
+== stages: shop dual keeps the selection
+file: src/game/stages/shop.c
+-                 g_shopSelItem = 0;                                                                       \
++                                                                                        \
+expect: stages_shop_dual_hands_the_shop_to_player_two
+
+== stages: shop up onto unaffordable row
+file: src/game/stages/shop.c
+-                 if (P.money < g_prices[g_shopSelItem])
+-                     g_shopSelItem--;
++                 if (P.money < 0)
++                     g_shopSelItem--;
+expect: stages_shop_up_moves_only_to_affordable_rows
+
+== stages: shop up past the last row
+file: src/game/stages/shop.c
+-                 if (g_shopSelItem > nitems)
++                 if (g_shopSelItem > nitems + 1)
+expect: stages_shop_up_stops_at_the_last_unlocked_row
+
+== stages: shop down below exit
+file: src/game/stages/shop.c
+-                 if (--g_shopSelItem < 0)
+-                     g_shopSelItem = 0;
++                 if (--g_shopSelItem < 0)
++                     g_shopSelItem = 1;
+expect: stages_shop_down_moves_back_to_the_exit_row
+
+== stages: shop hover row offset
+file: src/game/stages/shop.c
+- hoverItem = (int)((0 - (g_mouseY - 490.0 - 12.0)) / hoverStep);
++ hoverItem = (int)((0 - (g_mouseY - 490.0 + 12.0)) / hoverStep);
+expect: stages_shop_mouse_hover_selects_the_row_under_it
+
+== stages: shop hover keeps unaffordable row
+file: src/game/stages/shop.c
+-             g_shopSelItem = 0;
+-             g_mouseDown = 0;
++             g_mouseDown = 0;
+expect: stages_shop_mouse_hover_on_unaffordable_row_selects_exit
+
+== stages: shop tier 70 at 69
+file: src/game/stages/shop.c
+- if (g_shownStat >= 70) g_shopItems = SHOP_ITEMS_TIER70;
++ if (g_shownStat >= 69) g_shopItems = SHOP_ITEMS_TIER70;
+expect: stages_shop_stat_below_70_keeps_the_item_list
+
+== stages: shop tier 70 at 71
+file: src/game/stages/shop.c
+- if (g_shownStat >= 70) g_shopItems = SHOP_ITEMS_TIER70;
++ if (g_shownStat >= 71) g_shopItems = SHOP_ITEMS_TIER70;
+expect: stages_shop_stat_70_unlocks_tier_one
+
+== stages: shop tier 80 at 81
+file: src/game/stages/shop.c
+- if (g_shownStat >= 80) g_shopItems = SHOP_ITEMS_TIER80;
++ if (g_shownStat >= 81) g_shopItems = SHOP_ITEMS_TIER80;
+expect: stages_shop_stat_80_unlocks_tier_two
+
+== stages: shop tier 90 at 91
+file: src/game/stages/shop.c
+- if (g_shownStat >= 90) g_shopItems = SHOP_ITEMS_TIER90;
++ if (g_shownStat >= 91) g_shopItems = SHOP_ITEMS_TIER90;
+expect: stages_shop_stat_90_unlocks_tier_three
+
+== stages: shop bonus rank tier
+file: src/game/stages/shop.c
+- SHOP_ITEMS_BONUS_RANK = 0x57,
++ SHOP_ITEMS_BONUS_RANK = 0x56,
+expect: stages_shop_bonus_rank_unlocks_everything
+
+== stages: shop time trial unlocks
+file: src/game/stages/shop.c
+- if (g_gameMode != MODE_TIME_TRIAL) {
++ if (1) {
+expect: stages_shop_time_trial_keeps_the_item_list
+
+== stages: shop AddCash counts two visits
+file: src/game/stages/shop.c
+- shopVisits = g_save.players[g_shopCurPlayer].shopVisits + 1;
++ shopVisits = g_save.players[g_shopCurPlayer].shopVisits + 2;
+expect: stages_shop_AddCash_counts_a_visit_and_rings
+
+== stages: shop AddCash silent
+file: src/game/stages/shop.c
+-     SoundPlay(g_sfxCash, -1, 100, 0.0f, 0xdf, g_sndFlags);
++
+expect: stages_shop_AddCash_counts_a_visit_and_rings
+
+== stages: shop LoadShopPic no-selection reloads
+file: src/game/stages/shop.c
+-     if (idx == -1)
+-         return;
++     if (idx == -1)
++         idx = 0;
+expect: stages_shop_LoadShopPic_loads_the_item_picture
+
+== stages: shop LoadShopPic next picture
+file: src/game/stages/shop.c
+- g_gfxShopItemPic = LoadGraphic(g_shopPics[idx], 1, 0);
++ g_gfxShopItemPic = LoadGraphic(g_shopPics[idx + 1], 1, 0);
+expect: stages_shop_LoadShopPic_loads_the_item_picture
+
+== stages: shop LoadSecretPic index
+file: src/game/stages/shop.c
+- g_gfxSecretPic = LoadGraphic(g_secretPics[idx], 1, 0);
++ g_gfxSecretPic = LoadGraphic(g_secretPics[idx + 1], 1, 0);
+expect: stages_shop_LoadSecretPic_loads_the_secret_picture
+
+== stages: shop AddSparkleFlash fills every slot
+file: src/game/stages/shop.c
+-             g_sparkleFlashes[i].fade = (float)fade;
+-             break;
++             g_sparkleFlashes[i].fade = (float)fade;
+expect: stages_shop_AddSparkleFlash_takes_the_first_free_slot
+
+== stages: shop AddSparkleFlash swaps r and b
+file: src/game/stages/shop.c
+-             g_sparkleFlashes[i].r = r;
++             g_sparkleFlashes[i].r = b;
+expect: stages_shop_AddSparkleFlash_takes_the_first_free_slot
+
+== stages: shop sparkle fades half
+file: src/game/stages/shop.c
+- g_sparkleFlashes[i].alpha -= (double)g_sparkleFlashes[i].fade;
++ g_sparkleFlashes[i].alpha -= (double)g_sparkleFlashes[i].fade / 2;
+expect: stages_shop_UpdateSparkleFlashes_fades_then_frees
+
+== stages: shop sparkle lingers below zero
+file: src/game/stages/shop.c
+- if (g_sparkleFlashes[i].alpha < 0.0)
++ if (g_sparkleFlashes[i].alpha < -30.0)
+expect: stages_shop_UpdateSparkleFlashes_fades_then_frees
+
+== stages: shop bonus flag kept
+file: src/game/stages/shop.c
+-     g_bonusFlag = 0;
+-     if (g_profileIndex
++     if (g_profileIndex
+expect: stages_shop_CheckProfileBonus_without_profile
+
+== stages: shop has-lives kept
+file: src/game/stages/shop.c
+-     g_hasLives = 0;
++
+expect: stages_shop_CheckProfileBonus_without_profile
+
+== stages: shop has-lives threshold
+file: src/game/stages/shop.c
+- if (g_lives > 0)
++ if (g_lives > 3)
+expect: stages_shop_CheckProfileBonus_reads_profile_lives
+
+== stages: shop free life every 251 levels
+file: src/game/stages/shop.c
+- % 250 == 0 && g_playerBroke && !g_extraLifeGranted) {
++ % 251 == 0 && g_playerBroke && !g_extraLifeGranted) {
+expect: stages_shop_CheckProfileBonus_grants_a_life_every_250_levels_when_broke
+
+== stages: shop free life not latched
+file: src/game/stages/shop.c
+-             g_extraLifeGranted = 1;
++
+expect: stages_shop_CheckProfileBonus_grants_a_life_every_250_levels_when_broke
+
+== stages: shop free life latch kept
+file: src/game/stages/shop.c
+-         if ((g_save.players[g_shopCurPlayer].level + 1) % 250 != 0)
+-             g_extraLifeGranted = 0;
++
+expect: stages_shop_CheckProfileBonus_grants_a_life_every_250_levels_when_broke
+
+== stages: shop free life when not broke
+file: src/game/stages/shop.c
+- % 250 == 0 && g_playerBroke && !g_extraLifeGranted) {
++ % 250 == 0 && !g_extraLifeGranted) {
+expect: stages_shop_CheckProfileBonus_no_life_when_not_broke
+
+== stages: shop bonus flag for rank 3
+file: src/game/stages/shop.c
+-         if (GetRank(g_profileIndex) == 1) {
+-             if (HasAllMedals(g_profileIndex))
++         if (GetRank(g_profileIndex) == 3) {
++             if (HasAllMedals(g_profileIndex))
+expect: stages_shop_CheckProfileBonus_flags_rank_with_all_medals
+
+== stages: shop save prompt blink rate
+file: src/game/stages/shop.c
+- g_saveMsgBlinkRate = g_blinkRate * 4;
++ g_saveMsgBlinkRate = g_blinkRate * 3;
+expect: stages_shop_DrawSavePrompt_alternates_the_two_messages
+
+== stages: shop save prompt order
+file: src/game/stages/shop.c
+-         if (g_saveMsgToggle)
++         if (!g_saveMsgToggle)
+expect: stages_shop_DrawSavePrompt_alternates_the_two_messages
+
+# ---- bonusround.c ----
+
+== stages: bonus IsSpecialLevel misses boss
+file: src/game/stages/bonusround.c
+-     if (g_curLevelData.type == LEVEL_BOSS || g_curLevelData.type == LEVEL_RACE
++     if (g_curLevelData.type == LEVEL_RACE
+expect: stages_bonus_IsSpecialLevel_for_bonus_race_and_boss_levels
+
+== stages: bonus IsSpecialLevel includes type 1
+file: src/game/stages/bonusround.c
+-             || g_curLevelData.type == LEVEL_BONUS_WAVE)
++             || g_curLevelData.type <= LEVEL_BONUS_WAVE)
+expect: stages_bonus_IsSpecialLevel_not_for_normal_levels
+
+== stages: bonus IsSpecialLevel in time trial
+file: src/game/stages/bonusround.c
+-     if (g_gameMode == MODE_TIME_TRIAL)
+-         return 0;
++     if (g_gameMode == MODE_TIME_TRIAL + 1)
++         return 0;
+expect: stages_bonus_IsSpecialLevel_never_in_time_trial
+
+== stages: bonus bank always overwrites
+file: src/game/stages/bonusround.c
+-         if (g_save.players[g_curPlayer].bonusRoundScore > g_save.players[g_curPlayer].bonusHighScore)
++         if (1)
+expect: stages_bonus_BankBonusScore_keeps_the_best_round
+
+== stages: bonus bank skips hyperspace restore
+file: src/game/stages/bonusround.c
+-         RESTORE_HYPERSPACE(g_save.players[g_curPlayer], g_save.players[g_curPlayer])
++
+expect: stages_bonus_BankBonusScore_restores_the_saved_hyperspace
+
+== stages: bonus bank dual restores from player one
+file: src/game/stages/bonusround.c
+-         RESTORE_HYPERSPACE(g_save.players[0], g_save.players[g_vsTurnPlayer])
++         RESTORE_HYPERSPACE(g_save.players[0], g_save.players[0])
+expect: stages_bonus_BankBonusScore_dual_banks_both_players
+
+== stages: bonus bank dual skips player two
+file: src/game/stages/bonusround.c
+-         if (g_save.players[1].bonusRoundScore > g_save.players[1].bonusHighScore)
+-             g_save.players[1].bonusHighScore = g_save.players[1].bonusRoundScore;
++
+expect: stages_bonus_BankBonusScore_dual_banks_both_players
+
+== stages: bonus not-perfect base bonus
+file: src/game/stages/bonusround.c
+- enum { NOT_PERFECT_BONUS = 10000 };
++ enum { NOT_PERFECT_BONUS = 5000 };
+expect: stages_bonus_results_timeout_without_perfect_pays_the_base_bonus
+
+== stages: bonus timeout keeps the streak
+file: src/game/stages/bonusround.c
+-                     g_save.players[g_curPlayer].bonusRoundPoints = NOT_PERFECT_BONUS;
+-                     g_save.players[g_curPlayer].perfectStreak = 0;
++                     g_save.players[g_curPlayer].bonusRoundPoints = NOT_PERFECT_BONUS;
+expect: stages_bonus_results_timeout_without_perfect_pays_the_base_bonus
+
+== stages: bonus timeout keeps the tracking flags
+file: src/game/stages/bonusround.c
+-             g_save.players[g_curPlayer].trackKillsFlag = 0;
++
+expect: stages_bonus_results_timeout_without_perfect_pays_the_base_bonus
+
+== stages: bonus timeout ignores the perfect award
+file: src/game/stages/bonusround.c
+-                 if (g_save.players[g_curPlayer].bonusKilled < g_save.players[g_curPlayer].totalEnemies &&
+-                     g_perfectAwardedP0 == 0) {
++                 if (g_save.players[g_curPlayer].bonusKilled < g_save.players[g_curPlayer].totalEnemies) {
+expect: stages_bonus_results_timeout_after_perfect_keeps_the_combo
+
+== stages: bonus timeout with every alien
+file: src/game/stages/bonusround.c
+-                 if (g_save.players[g_curPlayer].bonusKilled < g_save.players[g_curPlayer].totalEnemies &&
++                 if (g_save.players[g_curPlayer].bonusKilled <= g_save.players[g_curPlayer].totalEnemies &&
+expect: stages_bonus_results_timeout_with_every_alien_keeps_the_combo
+
+== stages: bonus times out while paused
+file: src/game/stages/bonusround.c
+-         if (g_time > g_bonusResultsTime && g_state != STATE_PAUSED) {
++         if (g_time > g_bonusResultsTime) {
+expect: stages_bonus_results_do_not_time_out_while_paused
+
+== stages: bonus tally every frame
+file: src/game/stages/bonusround.c
+-                         g_save.players[g_curPlayer].bonusTallyTick = 3;
++                         g_save.players[g_curPlayer].bonusTallyTick = 0;
+expect: stages_bonus_tally_counts_one_alien_every_fourth_frame
+
+== stages: bonus tally alien score
+file: src/game/stages/bonusround.c
+- enum { TALLY_ALIEN_SCORE = 500 };
++ enum { TALLY_ALIEN_SCORE = 400 };
+expect: stages_bonus_tally_counts_one_alien_every_fourth_frame
+
+== stages: bonus tally past the kills
+file: src/game/stages/bonusround.c
+-                         if (g_save.players[g_curPlayer].bonusTally
+-                             < g_save.players[g_curPlayer].bonusKilled) {
++                         if (g_save.players[g_curPlayer].bonusTally
++                             <= g_save.players[g_curPlayer].bonusKilled) {
+expect: stages_bonus_tally_counts_one_alien_every_fourth_frame
+
+== stages: bonus tally extends the results
+file: src/game/stages/bonusround.c
+-                             g_perfectCheckDelay = g_time + 1000;
+-                             g_bonusResultsTime = g_time + 4000;
+-                             SoundPlay(g_sfxBell3, -1, 155, 0, 127, g_sndFlags);
++                             g_perfectCheckDelay = g_time + 1000;
++                             g_bonusResultsTime = g_time + 3000;
++                             SoundPlay(g_sfxBell3, -1, 155, 0, 127, g_sndFlags);
+expect: stages_bonus_tally_counts_one_alien_every_fourth_frame
+
+== stages: bonus tally ignores multiplier
+file: src/game/stages/bonusround.c
+-                             ADD_PLAYER_SCORE(g_save.players[g_curPlayer].score, g_curPlayer,
+-                                 TALLY_ALIEN_SCORE);
++                             g_save.players[g_curPlayer].score += TALLY_ALIEN_SCORE;
+expect: stages_bonus_tally_uses_the_score_multiplier
+
+== stages: bonus killed not clamped
+file: src/game/stages/bonusround.c
+-                 if (g_save.players[g_curPlayer].bonusKilled > g_save.players[g_curPlayer].totalEnemies)
+-                     g_save.players[g_curPlayer].bonusKilled = g_save.players[g_curPlayer].totalEnemies;
++
+expect: stages_bonus_results_clamp_killed_to_the_wave_size
+
+== stages: bonus perfect without delay
+file: src/game/stages/bonusround.c
+-                 if (g_save.players[g_curPlayer].bonusTally >= g_save.players[g_curPlayer].totalEnemies &&
+-                     g_time > g_perfectCheckDelay && g_state != STATE_PAUSED) {
++                 if (g_save.players[g_curPlayer].bonusTally >= g_save.players[g_curPlayer].totalEnemies &&
++                     g_time >= g_perfectCheckDelay && g_state != STATE_PAUSED) {
+expect: stages_bonus_perfect_waits_for_the_check_delay
+
+== stages: bonus perfect awarded every frame
+file: src/game/stages/bonusround.c
+-                     g_save.players[p].perfectDone = 1;
++                     g_save.players[p].perfectDone = 0;
+expect: stages_bonus_perfect_awards_the_round_points_once
+
+== stages: bonus perfect count
+file: src/game/stages/bonusround.c
+-                     g_perfectCount++;
++
+expect: stages_bonus_perfect_awards_the_round_points_once
+
+== stages: bonus perfect round count
+file: src/game/stages/bonusround.c
+-                     g_save.players[p].bonusRoundCount += 1.0;
++
+expect: stages_bonus_perfect_awards_the_round_points_once
+
+== stages: bonus perfect banner offset
+file: src/game/stages/bonusround.c
+-                     CopyBytesAt(g_perfect, g_bonusNumBuf, 10 - len + 14, len);
++                     CopyBytesAt(g_perfect, g_bonusNumBuf, 10 - len + 13, len);
+expect: stages_bonus_perfect_awards_the_round_points_once
+
+== stages: bonus perfect banner not cleared
+file: src/game/stages/bonusround.c
+-                     CopyBytesAt(g_perfect, g_perfectBlank, 14, 10);
++
+expect: stages_bonus_perfect_awards_the_round_points_once
+
+== stages: bonus combo step ignored
+file: src/game/stages/bonusround.c
+-                             g_comboLevel = g_comboLevel + g_comboStep;
++                             g_comboLevel = g_comboLevel + 1;
+expect: stages_bonus_perfect_reprices_the_next_round_from_the_combo
+
+== stages: bonus combo table
+file: src/game/stages/bonusround.c
+- { 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000 };
++ { 10, 25, 50, 100, 250, 400, 1000, 2500, 5000, 10000 };
+expect: stages_bonus_perfect_reprices_the_next_round_from_the_combo
+
+== stages: bonus combo step kept
+file: src/game/stages/bonusround.c
+-                         g_comboStep = 0;
+-                     }
++                     }
+expect: stages_bonus_perfect_reprices_the_next_round_from_the_combo
+
+== stages: bonus combo cap 8
+file: src/game/stages/bonusround.c
+-                             if (g_comboLevel > 9)
+-                                 g_comboLevel = 9;
++                             if (g_comboLevel > 8)
++                                 g_comboLevel = 8;
+expect: stages_bonus_perfect_combo_tops_out_at_level_9
+
+== stages: bonus combo threshold
+file: src/game/stages/bonusround.c
+- enum { COMBO_THRESHOLD = 10000000, COMBO_UNIT_SCORE = 1000 };
++ enum { COMBO_THRESHOLD = 10000001, COMBO_UNIT_SCORE = 1000 };
+expect: stages_bonus_perfect_above_the_combo_threshold_keeps_its_price
+
+== stages: bonus secret 22 on the first perfect
+file: src/game/stages/bonusround.c
+-                     if (g_save.players[p].perfectStreak > 1 && g_profileIndex != -1 &&
++                     if (g_save.players[p].perfectStreak > 0 && g_profileIndex != -1 &&
+expect: stages_bonus_first_perfect_marks_no_secret
+
+== stages: bonus secret 22 not marked
+file: src/game/stages/bonusround.c
+-                         MarkSecretFound(g_profileIndex, 22);
++                         MarkSecretFound(g_profileIndex, 21);
+expect: stages_bonus_second_perfect_in_a_row_marks_secret_22
+
+== stages: bonus dual tally skips player two
+file: src/game/stages/bonusround.c
+-                             g_save.players[1].bonusTally++;
++
+expect: stages_bonus_dual_tally_counts_both_players
+
+== stages: bonus dual tally player two score
+file: src/game/stages/bonusround.c
+-                             ADD_PLAYER_SCORE(g_save.players[1].score, 1, TALLY_ALIEN_SCORE);
++                             ADD_PLAYER_SCORE(g_save.players[0].score, 0, TALLY_ALIEN_SCORE);
+expect: stages_bonus_dual_tally_counts_both_players
+
+== stages: bonus dual player two own wave size
+file: src/game/stages/bonusround.c
+-                 if (g_save.players[1].bonusTally >= g_save.players[0].totalEnemies &&
++                 if (g_save.players[1].bonusTally >= g_save.players[1].totalEnemies &&
+expect: stages_bonus_dual_player_two_perfect_uses_player_one_wave_size
+
+== stages: bonus banner never expires
+file: src/game/stages/bonusround.c
+-         if (g_time > g_bannerMsgTime)
+-             g_bannerMsgTime = 0;
++         if (g_time > g_bannerMsgTime + 10)
++             g_bannerMsgTime = 0;
+expect: stages_bonus_messages_expire_after_their_time
+
+== stages: bonus alert expires early
+file: src/game/stages/bonusround.c
+-         if (g_time > g_msgTimer)
++         if (g_time >= g_msgTimer)
+expect: stages_bonus_messages_stay_until_their_time
+
+== stages: bonus level banner expires early
+file: src/game/stages/bonusround.c
+-         if (g_time > g_levelBannerTime)
++         if (g_time >= g_levelBannerTime)
+expect: stages_bonus_messages_stay_until_their_time
+
+== stages: bonus warp alert blink rate
+file: src/game/stages/bonusround.c
+-                 g_warpMsgBlinkTime = g_time + 70;
++                 g_warpMsgBlinkTime = g_time + 80;
+expect: stages_bonus_warp_alert_blinks_every_70ms
+
+== stages: bonus flares do not bounce right
+file: src/game/stages/bonusround.c
+-                     g_bonusFxX = g_screenW - 100;
+-                     g_bonusFxVel = 0 - g_bonusFxVel;
++                     g_bonusFxX = g_screenW - 100;
+expect: stages_bonus_results_flares_bounce_between_the_edges
+
+== stages: bonus flares left edge
+file: src/game/stages/bonusround.c
+-                 if ((int)g_bonusFxX < 100) {
++                 if ((int)g_bonusFxX < 90) {
+expect: stages_bonus_results_flares_bounce_between_the_edges
+
+# ---- gemdrop.c ----
+
+== stages: gem intro gate inclusive
+file: src/game/stages/gemdrop.c
+-     if (g_time < g_gemDropIntroTimer) {
++     if (g_time <= g_gemDropIntroTimer) {
+expect: stages_gem_intro_gate_is_active_until_its_timer
+
+== stages: gem intro scratch kept
+file: src/game/stages/gemdrop.c
+-         g_gemDropIntroActive = 1;
+-         g_introGateScratch = 0;
++         g_gemDropIntroActive = 1;
+expect: stages_gem_intro_gate_is_active_until_its_timer
+
+== stages: gem init distance
+file: src/game/stages/gemdrop.c
+-     g_levelDist = 2680.0f;
++     g_levelDist = 2600.0f;
+expect: stages_gem_init_resets_the_stage
+
+== stages: gem init keeps gems active
+file: src/game/stages/gemdrop.c
+-         g_fallingGems[i].active = 0;
+-         g_fallingGems[i].h = 0x33;
++         g_fallingGems[i].h = 0x33;
+expect: stages_gem_init_resets_the_stage
+
+== stages: gem init keeps pickup count
+file: src/game/stages/gemdrop.c
+-     g_pickupCount = 0;
+-     for (i = 0; i < MAX_FALLING_GEMS; i++) {
+-         g_fallingGems[i].active = 0;
++     for (i = 0; i < MAX_FALLING_GEMS; i++) {
++         g_fallingGems[i].active = 0;
+expect: stages_gem_init_resets_the_stage
+
+== stages: gem init anim timer
+file: src/game/stages/gemdrop.c
+-         g_fallingGems[i].animDelay = (float)RandRange(3, 6);
++         g_fallingGems[i].animDelay = (float)RandRange(3, 7);
+expect: stages_gem_init_resets_the_stage
+
+== stages: gem init energy
+file: src/game/stages/gemdrop.c
+-     ResetObjectsKeep();
+-     g_save.players[0].energy = 0;
+-     g_save.players[1].energy = 0;
+-     g_save.players[2].energy = 0;
+-     g_save.players[3].energy = 0;
+-     g_levelDist = 2680.0f;
++     ResetObjectsKeep();
++     g_save.players[1].energy = 0;
++     g_save.players[2].energy = 0;
++     g_levelDist = 2680.0f;
+expect: stages_gem_init_resets_the_stage
+
+== stages: gem spawn speed
+file: src/game/stages/gemdrop.c
+-                 g_fallingGems[i].vy = RandFloat(7.0f, 14.0f);
++                 g_fallingGems[i].vy = RandFloat(7.0f, 18.0f);
+expect: stages_gem_update_spawns_a_gem_above_the_screen
+
+== stages: gem spawn height
+file: src/game/stages/gemdrop.c
+-                 g_fallingGems[i].y = -60.0f;
+-                 g_fallingGems[i].vy = RandFloat(7.0f, 14.0f);
++                 g_fallingGems[i].y = -50.0f;
++                 g_fallingGems[i].vy = RandFloat(7.0f, 14.0f);
+expect: stages_gem_update_spawns_a_gem_above_the_screen
+
+== stages: gem spawn mask width
+file: src/game/stages/gemdrop.c
+-                 g_fallingGems[i].hmaW = g_diamondBigGfxW;
++                 g_fallingGems[i].hmaW = 0;
+expect: stages_gem_update_spawns_a_gem_above_the_screen
+
+== stages: gem spawn too far right
+file: src/game/stages/gemdrop.c
+-                 g_fallingGems[i].x = RandFloat(70.0f, (float)(g_screenW - 150));
+-                 g_fallingGems[i].hma = g_hmaDiamondBig;
++                 g_fallingGems[i].x = RandFloat(70.0f, (float)(g_screenW - 100));
++                 g_fallingGems[i].hma = g_hmaDiamondBig;
+expect: stages_gem_update_spawns_the_three_gem_kinds_by_weight
+
+== stages: gem spawn over the cap
+file: src/game/stages/gemdrop.c
+-     if (g_pickupCount < (int)g_maxFallingGems && g_levelDist > 0.0) {
++     if (g_pickupCount <= (int)g_maxFallingGems && g_levelDist > 0.0) {
+expect: stages_gem_update_spawns_a_gem_above_the_screen
+
+== stages: gem spawn not counted
+file: src/game/stages/gemdrop.c
+-                 g_fallingGems[i].hmaH = g_diamondBigGfxH;
+-                 g_pickupCount++;
++                 g_fallingGems[i].hmaH = g_diamondBigGfxH;
+expect: stages_gem_update_spawns_a_gem_above_the_screen
+
+== stages: gem cap does not grow
+file: src/game/stages/gemdrop.c
+-     g_maxFallingGems = g_maxFallingGems + g_maxFallingGemsInc;
++
+expect: stages_gem_update_raises_the_cap_over_time
+
+== stages: gem small weight
+file: src/game/stages/gemdrop.c
+-                 if (r <= 50)
+-                     g_fallingGems[i].type = 0;
+-                 if (r > 50 && r < 85)
+-                     g_fallingGems[i].type = 0x50;
+-                 if (r >= 85)
+-                     g_fallingGems[i].type = 0xa0;
+-
+-                 g_fallingGems[i].frame = RandRange(0, 11);
++                 if (r <= 40)
++                     g_fallingGems[i].type = 0;
++                 if (r > 40 && r < 85)
++                     g_fallingGems[i].type = 0x50;
++                 if (r >= 85)
++                     g_fallingGems[i].type = 0xa0;
++
++                 g_fallingGems[i].frame = RandRange(0, 11);
+expect: stages_gem_update_spawns_the_three_gem_kinds_by_weight
+
+== stages: gem big weight
+file: src/game/stages/gemdrop.c
+-                 if (r > 50 && r < 85)
+-                     g_fallingGems[i].type = 0x50;
+-                 if (r >= 85)
+-                     g_fallingGems[i].type = 0xa0;
+-
+-                 g_fallingGems[i].frame = RandRange(0, 11);
++                 if (r > 50 && r < 95)
++                     g_fallingGems[i].type = 0x50;
++                 if (r >= 95)
++                     g_fallingGems[i].type = 0xa0;
++
++                 g_fallingGems[i].frame = RandRange(0, 11);
+expect: stages_gem_update_spawns_the_three_gem_kinds_by_weight
+
+== stages: gem fall ignores frame time
+file: src/game/stages/gemdrop.c
+-             g_fallingGems[i].y += g_fallingGems[i].vy * g_frameDt;
++             g_fallingGems[i].y += g_fallingGems[i].vy;
+expect: stages_gem_update_moves_and_animates_gems
+
+== stages: gem anim wraps at 11
+file: src/game/stages/gemdrop.c
+-                 if (g_fallingGems[i].frame > 10)
++                 if (g_fallingGems[i].frame > 11)
+expect: stages_gem_update_moves_and_animates_gems
+
+== stages: gem anim timer not reloaded
+file: src/game/stages/gemdrop.c
+-                 g_fallingGems[i].animTimer = g_fallingGems[i].animDelay;
+-                 g_fallingGems[i].frame++;
++                 g_fallingGems[i].animTimer = 0;
++                 g_fallingGems[i].frame++;
+expect: stages_gem_update_moves_and_animates_gems
+
+== stages: gem falls off too early
+file: src/game/stages/gemdrop.c
+-             if (g_fallingGems[i].y > g_screenH + g_fallingGems[i].h + 5) {
++             if (g_fallingGems[i].y >= g_screenH + g_fallingGems[i].h + 5) {
+expect: stages_gem_update_keeps_a_gem_on_the_bottom_edge
+
+== stages: gem fallen gem stays
+file: src/game/stages/gemdrop.c
+-             if (g_fallingGems[i].y > g_screenH + g_fallingGems[i].h + 5) {
++             if (g_fallingGems[i].y > g_screenH + g_fallingGems[i].h + 50) {
+expect: stages_gem_update_replaces_a_gem_that_fell_off
+
+== stages: gem replacement speed
+file: src/game/stages/gemdrop.c
+-                             g_fallingGems[j].vy = RandFloat(6.0f, 10.0f);
++                             g_fallingGems[j].vy = RandFloat(6.0f, 12.0f);
+expect: stages_gem_update_replaces_a_gem_that_fell_off
+
+== stages: gem no replacement
+file: src/game/stages/gemdrop.c
+-                 if (g_pickupCount < (int)g_maxFallingGems) {
++                 if (g_pickupCount < (int)g_maxFallingGems - 1) {
+expect: stages_gem_update_replaces_a_gem_that_fell_off
+
+== stages: gem respawn reuses movement index
+file: src/game/stages/gemdrop.c
+-                     for (int j = 0; j < MAX_FALLING_GEMS; j++) {
++                     for (i = 0; i < MAX_FALLING_GEMS; i++) {
++                         int j = i;
+expect: stages_gem_update_respawn_moves_each_existing_gem_once
+
+== stages: gem distance ignores frame time
+file: src/game/stages/gemdrop.c
+-     g_levelDist -= 1.0f * g_frameDt;
++     g_levelDist -= 1.0f;
+expect: stages_gem_update_counts_down_the_stage
+
+== stages: gem stage never ends
+file: src/game/stages/gemdrop.c
+-     if (g_levelDist < 0.0) {
+-         g_flashOverlayActive = 1;
++     if (g_levelDist < -1.0) {
++         g_flashOverlayActive = 1;
+expect: stages_gem_update_ends_the_stage_when_the_distance_runs_out
+
+== stages: gem end keeps super drop
+file: src/game/stages/gemdrop.c
+-         g_superGemDrop = 0;
+-         g_state = STATE_PLAYING;
++         g_state = STATE_PLAYING;
+expect: stages_gem_update_ends_the_stage_when_the_distance_runs_out
+
+== stages: gem end kills not counted
+file: src/game/stages/gemdrop.c
+-         g_save.players[g_curPlayer].killed = g_save.players[g_curPlayer].totalEnemies;
++         g_save.players[g_curPlayer].killed = 0;
+expect: stages_gem_update_ends_the_stage_when_the_distance_runs_out
+
+== stages: gem end done delay
+file: src/game/stages/gemdrop.c
+-                 g_save.players[g_curPlayer].doneTime = g_time + DONE_DELAY_MS;
++                 g_save.players[g_curPlayer].doneTime = g_time + 2000;
+expect: stages_gem_update_ends_the_stage_when_the_distance_runs_out
+
+== stages: gem end overwrites done time
+file: src/game/stages/gemdrop.c
+-             if (g_save.players[g_curPlayer].doneTime == 0)
++             if (1)
+expect: stages_gem_update_keeps_an_earlier_done_time
+
+== stages: gem spawns after the stage
+file: src/game/stages/gemdrop.c
+-     if (g_pickupCount < (int)g_maxFallingGems && g_levelDist > 0.0) {
++     if (g_pickupCount < (int)g_maxFallingGems && g_levelDist >= 0.0) {
+expect: stages_gem_update_spawns_nothing_after_the_stage
+
+== stages: gem small score
+file: src/game/stages/gemdrop.c
+-     GEM_SCORE_LOW = 50000,
++     GEM_SCORE_LOW = 5000,
+expect: stages_gem_catching_a_small_gem_scores_50000
+
+== stages: gem medium score
+file: src/game/stages/gemdrop.c
+-     GEM_SCORE_MID = 100000,
++     GEM_SCORE_MID = 10000,
+expect: stages_gem_catching_a_medium_gem_scores_100000
+
+== stages: gem big type
+file: src/game/stages/gemdrop.c
+-                         if (g_fallingGems[i].type == 160) {
+-                             AWARD(GEM_SCORE_HIGH)
++                         if (g_fallingGems[i].type == 161) {
++                             AWARD(GEM_SCORE_HIGH)
+expect: stages_gem_catching_a_big_gem_scores_500000
+
+== stages: gem super small score
+file: src/game/stages/gemdrop.c
+-     SUPER_GEM_SCORE_LOW = 1000000,
++     SUPER_GEM_SCORE_LOW = 100000,
+expect: stages_gem_super_drop_small_gem_scores_a_million
+
+== stages: gem super medium score
+file: src/game/stages/gemdrop.c
+-             AWARD(SUPER_GEM_SCORE_MID)
++             AWARD(SUPER_GEM_SCORE_LOW)
+expect: stages_gem_super_drop_medium_gem_scores_5_million
+
+== stages: gem super big score
+file: src/game/stages/gemdrop.c
+-     SUPER_GEM_SCORE_HIGH = 10000000,
++     SUPER_GEM_SCORE_HIGH = 1000000,
+expect: stages_gem_super_drop_big_gem_scores_10_million
+
+== stages: gem super ignored
+file: src/game/stages/gemdrop.c
+-                     if (!g_superGemDrop) {
++                     if (1) {
+expect: stages_gem_super_drop_small_gem_scores_a_million
+
+== stages: gem catch stays active
+file: src/game/stages/gemdrop.c
+-                     g_pickupCount--;
+-                     g_fallingGems[i].active = 0;
++                     g_pickupCount--;
+expect: stages_gem_catching_a_small_gem_scores_50000
+
+== stages: gem catch not uncounted
+file: src/game/stages/gemdrop.c
+-                     g_pickupCount--;
+-                     g_fallingGems[i].active = 0;
++                     g_fallingGems[i].active = 0;
+expect: stages_gem_catching_a_small_gem_scores_50000
+
+== stages: gem catch silent
+file: src/game/stages/gemdrop.c
+-                     SoundPlay(g_sfxJingles, RandRange(30000, 45000), 255,
++                     SoundPlay(0, RandRange(30000, 45000), 255,
+expect: stages_gem_catching_a_small_gem_scores_50000
+
+== stages: gem catch ignores multiplier
+file: src/game/stages/gemdrop.c
+-     ADD_PLAYER_SCORE(g_save.players[p].score, p, val); \
++     g_save.players[p].score += val; \
+expect: stages_gem_catch_uses_the_score_multiplier_and_shows_a_popup
+
+== stages: gem catch no popup
+file: src/game/stages/gemdrop.c
+-     AddScorePopup(bx + 20, by + 20, val, 0);
++
+expect: stages_gem_catch_uses_the_score_multiplier_and_shows_a_popup
+
+== stages: gem ship box too wide
+file: src/game/stages/gemdrop.c
+-     x2 = x1 + 40;
++     x2 = x1 + 41;
+expect: stages_gem_catch_needs_an_overlap
+
+== stages: gem ship box too short
+file: src/game/stages/gemdrop.c
+-     y2 = y1 + 27;
++     y2 = y1 + 26;
+expect: stages_gem_catch_needs_an_overlap
+
+== stages: gem touching edges count
+file: src/game/stages/gemdrop.c
+-             if (bx < x2 && bx2 > x1 && by < y2 && by2 > y1) {
++             if (bx <= x2 && bx2 >= x1 && by <= y2 && by2 >= y1) {
+expect: stages_gem_catch_needs_an_overlap
+
+== stages: gem catch credits player one
+file: src/game/stages/gemdrop.c
+-     y1 = (int)g_save.players[p].y;
++     y1 = (int)g_save.players[0].y;
+expect: stages_gem_catch_by_the_second_player
+
+== stages: gem mirror never
+file: src/game/stages/gemdrop.c
+-     else if (Rand7f() < 64)
++     else if (Rand7f() < 128)
+expect: stages_gem_mirror_effect_sometimes_mirrors_the_ship
+
+== stages: gem mirror position
+file: src/game/stages/gemdrop.c
+-         x1 = (int)((g_screenW - 40) - g_save.players[p].x);
++         x1 = (int)((g_screenW - 80) - g_save.players[p].x);
+expect: stages_gem_mirror_effect_sometimes_mirrors_the_ship
+
+== stages: gem draw frame row height
+file: src/game/stages/gemdrop.c
+-                 g_fallingGems[i].sy = g_fallingGems[i].frame * 0x33; // 0x33 = 51 px per row
++                 g_fallingGems[i].sy = g_fallingGems[i].frame * 0x32;
+expect: stages_gem_draw_records_the_hit_rect_and_frame_row
+
+== stages: gem draw hit rect width
+file: src/game/stages/gemdrop.c
+-                 g_fallingGems[i].r3 = g_fallingGems[i].r1 + g_fallingGems[i].w;
++                 g_fallingGems[i].r3 = g_fallingGems[i].r1 + g_fallingGems[i].h;
+expect: stages_gem_draw_records_the_hit_rect_and_frame_row
+
+# ---- meteorstorm.c ----
+
+== stages: storm intro gate rearms the meter
+file: src/game/stages/meteorstorm.c
+-         if (!g_bonusMeterStarted) {
++         if (1) {
+expect: stages_storm_intro_gate_arms_the_meter_once
+
+== stages: storm intro meter start height
+file: src/game/stages/meteorstorm.c
+-             g_meterY = 550.0f;
+-             g_meterV = 35.0f;
+-             g_meterDirUp = 1;
+-             g_bonusMeterStarted = 1;
++             g_meterY = 500.0f;
++             g_meterV = 35.0f;
++             g_meterDirUp = 1;
++             g_bonusMeterStarted = 1;
+expect: stages_storm_intro_gate_arms_the_meter_once
+
+== stages: storm intro gate keeps the lock
+file: src/game/stages/meteorstorm.c
+-     } else {
+-         g_transitionLock = 0;
+-     }
++     }
+expect: stages_storm_intro_gate_releases_the_lock_when_over
+
+== stages: storm intro gate inclusive
+file: src/game/stages/meteorstorm.c
+-     if (g_time < g_resultsScreenEndTime) {
++     if (g_time <= g_resultsScreenEndTime) {
+expect: stages_storm_intro_gate_releases_the_lock_when_over
+
+== stages: storm init countdown length
+file: src/game/stages/meteorstorm.c
+-     g_raceStartTime = g_time + 4000;
++     g_raceStartTime = g_time + 3000;
+expect: stages_storm_init_sets_up_the_race
+
+== stages: storm init boost
+file: src/game/stages/meteorstorm.c
+-     g_boostCharge = 5.0f;
++     g_boostCharge = 0.0f;
+expect: stages_storm_init_sets_up_the_race
+
+== stages: storm init leaves meteors
+file: src/game/stages/meteorstorm.c
+-     for (i = 0; i < MAX_BONUS_METEORS; i++)
+-         g_bonusMeteors[i].active = 0;
+-     g_bonusItemCount = 0;
++     g_bonusItemCount = 0;
+expect: stages_storm_init_sets_up_the_race
+
+== stages: storm init star speed not saved
+file: src/game/stages/meteorstorm.c
+-     g_save.players[g_curPlayer].savedRaceStarSpeed = g_save.players[g_curPlayer].starSpeed;
++
+expect: stages_storm_init_sets_up_the_race
+
+== stages: storm countdown three early
+file: src/game/stages/meteorstorm.c
+-     if (g_raceCountdownStage == 3 && dt < 2000) {
++     if (g_raceCountdownStage == 3 && dt < 3000) {
+expect: stages_storm_countdown_three_two_one
+
+== stages: storm countdown two early
+file: src/game/stages/meteorstorm.c
+-     if (g_raceCountdownStage == 2 && dt < 1000) {
++     if (g_raceCountdownStage == 2 && dt < 1500) {
+expect: stages_storm_countdown_three_two_one
+
+== stages: storm countdown one early
+file: src/game/stages/meteorstorm.c
+-     if (g_raceCountdownStage == 1 && dt < 10) {
++     if (g_raceCountdownStage == 1 && dt < 100) {
+expect: stages_storm_countdown_three_two_one
+
+== stages: storm countdown wrong voice
+file: src/game/stages/meteorstorm.c
+-         SoundQueueAdd(g_sfxVoiceTwo, 0, 2);
++         SoundQueueAdd(g_sfxVoiceThree, 0, 2);
+expect: stages_storm_countdown_three_two_one
+
+== stages: storm counters not reset before start
+file: src/game/stages/meteorstorm.c
+-         g_slowFrameCount = 0;
+-         g_fastFrameCount = 0;
+-         g_speedPct = 0.0f;
++         g_speedPct = 0.0f;
+expect: stages_storm_nothing_moves_before_the_start
+
+== stages: storm boost release kept before start
+file: src/game/stages/meteorstorm.c
+-         g_boostReleased = 0;
+-         g_raceHoldTime = g_time;
++         g_raceHoldTime = g_time;
+expect: stages_storm_nothing_moves_before_the_start
+
+== stages: storm distance before start
+file: src/game/stages/meteorstorm.c
+-     if (g_time > g_raceStartTime) {
+-         g_raceDistanceLeft -= (g_boostCharge / 2.0 + 3.0) * g_frameDt;
++     if (1) {
++         g_raceDistanceLeft -= (g_boostCharge / 2.0 + 3.0) * g_frameDt;
+expect: stages_storm_nothing_moves_before_the_start
+
+== stages: storm distance per frame
+file: src/game/stages/meteorstorm.c
+-         g_raceDistanceLeft -= (g_boostCharge / 2.0 + 3.0) * g_frameDt;
++         g_raceDistanceLeft -= (g_boostCharge / 2.0 + 2.0) * g_frameDt;
+expect: stages_storm_race_scores_and_covers_distance_each_frame
+
+== stages: storm meter not updated
+file: src/game/stages/meteorstorm.c
+-         g_meterValue = (int)g_raceDistanceLeft;
++
+expect: stages_storm_race_scores_and_covers_distance_each_frame
+
+== stages: storm speed ramp
+file: src/game/stages/meteorstorm.c
+-         g_baseSpeedRamp += g_frameDt * (double)0.0012f;
++         g_baseSpeedRamp += (double)0.0012f;
+expect: stages_storm_race_scores_and_covers_distance_each_frame
+
+== stages: storm star speed follows boost
+file: src/game/stages/meteorstorm.c
+-         g_save.players[g_curPlayer].savedRaceStarSpeed + (g_baseSpeedRamp + g_boostCharge) * 2;
++         g_save.players[g_curPlayer].savedRaceStarSpeed + (g_baseSpeedRamp + g_boostCharge) * 3;
+expect: stages_storm_race_scores_and_covers_distance_each_frame
+
+== stages: storm frame score scale
+file: src/game/stages/meteorstorm.c
+-         bonus = (int)(g_boostCharge / g_chargeMax * 50.0) + 1;
++         bonus = (int)(g_boostCharge / g_chargeMax * 40.0) + 1;
+expect: stages_storm_race_scores_and_covers_distance_each_frame
+expect: stages_storm_race_score_grows_with_the_boost
+
+== stages: storm frame score floor
+file: src/game/stages/meteorstorm.c
+-         bonus = (int)(g_boostCharge / g_chargeMax * 50.0) + 1;
++         bonus = (int)(g_boostCharge / g_chargeMax * 50.0);
+expect: stages_storm_race_score_grows_with_the_boost
+
+== stages: storm frame score ignores multiplier in tally
+file: src/game/stages/meteorstorm.c
+-         g_save.players[g_curPlayer].bonusRoundScore += (bonus * 10) * g_scoreMul[g_curPlayer];
++         g_save.players[g_curPlayer].bonusRoundScore += (bonus * 10);
+expect: stages_storm_race_score_grows_with_the_boost
+
+== stages: storm zero multiplier kept
+file: src/game/stages/meteorstorm.c
+-         if (g_scoreMul[g_curPlayer] < 1)
+-             g_scoreMul[g_curPlayer] = 1;
++
+expect: stages_storm_race_repairs_a_zero_score_multiplier
+
+== stages: storm fast threshold
+file: src/game/stages/meteorstorm.c
+-         if (g_chargeMax / 7.0 * 2 > g_boostCharge)
+-             g_slowFrameCount++;
+-         if (g_chargeMax / 7.0 * 2 <= g_boostCharge)
++         if (g_chargeMax / 7.0 * 3 > g_boostCharge)
++             g_slowFrameCount++;
++         if (g_chargeMax / 7.0 * 3 <= g_boostCharge)
+expect: stages_storm_speed_percentage_counts_fast_frames
+
+== stages: storm speed percentage formula
+file: src/game/stages/meteorstorm.c
+-             g_speedPct = (1.0 - (float)g_slowFrameCount / g_fastFrameCount) * 100.0;
++             g_speedPct = (1.0 - (float)g_slowFrameCount / (g_fastFrameCount + g_slowFrameCount)) * 100.0;
+expect: stages_storm_speed_percentage_counts_fast_frames
+
+== stages: storm speed percentage when slow
+file: src/game/stages/meteorstorm.c
+-         if (g_fastFrameCount > g_slowFrameCount)
++         if (g_fastFrameCount > 0)
+expect: stages_storm_speed_percentage_counts_fast_frames
+
+== stages: storm spawns over the target
+file: src/game/stages/meteorstorm.c
+-     if (g_bonusItemCount < (int)g_bonusSpawnTarget && g_raceDistanceLeft > 0.0) {
++     if (g_bonusItemCount <= (int)g_bonusSpawnTarget && g_raceDistanceLeft > 0.0) {
+expect: stages_storm_spawns_meteors_up_to_the_target
+
+== stages: storm spawn not counted
+file: src/game/stages/meteorstorm.c
+-                 SpawnMeteor(i);
+-                 g_bonusMeteors[i].active = 1;
+-                 g_bonusItemCount++;
++                 SpawnMeteor(i);
++                 g_bonusMeteors[i].active = 1;
+expect: stages_storm_spawns_meteors_up_to_the_target
+
+== stages: storm spawn ramp ignores boost
+file: src/game/stages/meteorstorm.c
+-         g_bonusSpawnTarget += g_bonusSpawnRampRate * g_frameDt * (1.0 + g_boostCharge / 30.0 * g_frameDt);
++         g_bonusSpawnTarget += g_bonusSpawnRampRate * g_frameDt;
+expect: stages_storm_spawn_target_ramps_with_the_boost
+
+== stages: storm rock ignores boost
+file: src/game/stages/meteorstorm.c
+-                 g_bonusMeteors[i].y += (g_bonusMeteors[i].vy + g_baseSpeedRamp + g_boostCharge) * g_frameDt;
+-
+-                 if (g_bonusMeteors[i].y > g_screenH) {
++                 g_bonusMeteors[i].y += (g_bonusMeteors[i].vy + g_baseSpeedRamp) * g_frameDt;
++
++                 if (g_bonusMeteors[i].y > g_screenH) {
+expect: stages_storm_meteors_fall_with_the_race_speed
+
+== stages: storm rock drifts double
+file: src/game/stages/meteorstorm.c
+-             if (g_bonusMeteors[i].type == METEOR_HAZARD) {
+-                 g_bonusMeteors[i].x += g_bonusMeteors[i].vx * g_frameDt;
++             if (g_bonusMeteors[i].type == METEOR_HAZARD) {
++                 g_bonusMeteors[i].x += g_bonusMeteors[i].vx * 2;
+expect: stages_storm_meteors_fall_with_the_race_speed
+
+== stages: storm rock not replaced
+file: src/game/stages/meteorstorm.c
+-                         for (j = 0; j < MAX_BONUS_METEORS; j++) {
++                         for (j = 0; j < 0; j++) {
+expect: stages_storm_meteor_that_falls_off_is_replaced
+
+== stages: storm rock falls off late
+file: src/game/stages/meteorstorm.c
+-                 if (g_bonusMeteors[i].y > g_screenH) {
+-                     g_bonusMeteors[i].active = 0;
+-                     g_bonusItemCount--;
++                 if (g_bonusMeteors[i].y > g_screenH + 100) {
++                     g_bonusMeteors[i].active = 0;
++                     g_bonusItemCount--;
+expect: stages_storm_meteor_that_falls_off_is_replaced
+
+== stages: storm money meteor frame wrap
+file: src/game/stages/meteorstorm.c
+-                         if (g_bonusMeteors[i].sy == 370)
++                         if (g_bonusMeteors[i].sy == 407)
+expect: stages_storm_bonus_meteor_animates_through_its_frames
+
+== stages: storm diamond frame step
+file: src/game/stages/meteorstorm.c
+-                         g_bonusMeteors[i].sy += 51;
++                         g_bonusMeteors[i].sy += 37;
+expect: stages_storm_bonus_meteor_animates_through_its_frames
+
+== stages: storm bonus anim timer
+file: src/game/stages/meteorstorm.c
+-                 if (g_bonusMeteors[i].animTimer < 0.0) {
+-                     g_bonusMeteors[i].animTimer = 5.0f;
++                 if (g_bonusMeteors[i].animTimer < 0.0) {
++                     g_bonusMeteors[i].animTimer = 4.0f;
+expect: stages_storm_bonus_meteor_animates_through_its_frames
+
+== stages: storm bonus meteor never leaves
+file: src/game/stages/meteorstorm.c
+-                 if (g_bonusMeteors[i].y > g_screenH)
+-                     g_bonusMeteors[i].active = 0;
++                 if (g_bonusMeteors[i].y > g_screenH + 100)
++                     g_bonusMeteors[i].active = 0;
+expect: stages_storm_bonus_meteor_leaves_at_the_bottom
+
+== stages: storm finish distance step
+file: src/game/stages/meteorstorm.c
+-         g_save.players[g_curPlayer].raceDistance += 134;
++         g_save.players[g_curPlayer].raceDistance += 100;
+expect: stages_storm_finish_ends_the_stage
+
+== stages: storm finish state
+file: src/game/stages/meteorstorm.c
+-         g_state = STATE_METEOR_STORM; // meteor storm results
++         g_state = STATE_PLAYING;
+expect: stages_storm_finish_ends_the_stage
+
+== stages: storm finish results time
+file: src/game/stages/meteorstorm.c
+-         g_resultsScreenEndTime = g_time + 3000;
+-         g_raceDistanceLeft = 0.0f;
++         g_resultsScreenEndTime = g_time + 2000;
++         g_raceDistanceLeft = 0.0f;
+expect: stages_storm_finish_ends_the_stage
+
+== stages: storm finish kills not counted
+file: src/game/stages/meteorstorm.c
+-         g_save.players[g_curPlayer].killed = g_save.players[g_curPlayer].totalEnemies;
+-         g_save.players[g_curPlayer].escaped = 0;
+-         ResetObjectsKeep();
++         g_save.players[g_curPlayer].escaped = 0;
++         ResetObjectsKeep();
+expect: stages_storm_finish_ends_the_stage
+
+== stages: storm extra score
+file: src/game/stages/meteorstorm.c
+-     EXTRA_SCORE = 1000000,
++     EXTRA_SCORE = 100000,
+expect: stages_storm_finish_below_90_percent_pays_the_extra_bonus
+
+== stages: storm finish tally not tracked
+file: src/game/stages/meteorstorm.c
+-     g_save.players[g_curPlayer].bonusRoundScore += (val) * g_scoreMul[g_curPlayer]; \
++     \
+expect: stages_storm_finish_below_90_percent_pays_the_extra_bonus
+
+== stages: storm super threshold
+file: src/game/stages/meteorstorm.c
+-             } else if (g_speedPct >= 90.0) {
+-                 AWARD(SUPER_SCORE)
++             } else if (g_speedPct > 90.0) {
++                 AWARD(SUPER_SCORE)
+expect: stages_storm_finish_at_90_percent_pays_the_super_bonus
+
+== stages: storm super money
+file: src/game/stages/meteorstorm.c
+-     SUPER_MONEY = 1000,
++     SUPER_MONEY = 2000,
+expect: stages_storm_finish_at_90_percent_pays_the_super_bonus
+
+== stages: storm super score
+file: src/game/stages/meteorstorm.c
+-     SUPER_SCORE = 2000000,
++     SUPER_SCORE = 1000000,
+expect: stages_storm_finish_at_90_percent_pays_the_super_bonus
+
+== stages: storm extreme threshold
+file: src/game/stages/meteorstorm.c
+-             } else if (g_speedPct >= 99.0) {
+-                 AWARD(EXTREME_SCORE)
++             } else if (g_speedPct > 99.0) {
++                 AWARD(EXTREME_SCORE)
+expect: stages_storm_finish_at_99_percent_pays_the_extreme_bonus
+
+== stages: storm extreme money
+file: src/game/stages/meteorstorm.c
+-                 g_save.players[g_curPlayer].money += EXTREME_MONEY;
+-                 g_resultsScreenEndTime = g_time + 8000;
++                 g_save.players[g_curPlayer].money += EXTREME_MONEY;
++                 g_resultsScreenEndTime = g_time + 9000;
+expect: stages_storm_finish_at_99_percent_pays_the_extreme_bonus
+
+== stages: storm streak not counted
+file: src/game/stages/meteorstorm.c
+-             g_save.players[g_curPlayer].drunkStreak++;
++
+expect: stages_storm_finish_at_99_percent_pays_the_extreme_bonus
+
+== stages: storm streak kept on slow finish
+file: src/game/stages/meteorstorm.c
+-         } else {
+-             g_save.players[g_curPlayer].drunkStreak = 0;
+-         }
++         }
+expect: stages_storm_finish_below_90_percent_pays_the_extra_bonus
+
+== stages: storm mega score
+file: src/game/stages/meteorstorm.c
+-     MEGA_SCORE = 10000000,
++     MEGA_SCORE = 1000000,
+expect: stages_storm_finish_at_100_percent_pays_the_mega_bonus
+
+== stages: storm mega money
+file: src/game/stages/meteorstorm.c
+-     MEGA_MONEY = 25000,
++     MEGA_MONEY = 20000,
+expect: stages_storm_finish_at_100_percent_pays_the_mega_bonus
+
+== stages: storm mega results time
+file: src/game/stages/meteorstorm.c
+-                 g_save.players[g_curPlayer].money += MEGA_MONEY;
+-                 g_resultsScreenEndTime = g_time + 10000;
++                 g_save.players[g_curPlayer].money += MEGA_MONEY;
++                 g_resultsScreenEndTime = g_time + 8000;
+expect: stages_storm_finish_at_100_percent_pays_the_mega_bonus
+
+== stages: storm mega despite release
+file: src/game/stages/meteorstorm.c
+-             if ((int)g_speedPct == 100 && !g_boostReleased) {
+-                 AWARD(MEGA_SCORE)
++             if ((int)g_speedPct == 100) {
++                 AWARD(MEGA_SCORE)
+expect: stages_storm_finish_at_100_percent_after_releasing_the_boost_is_extreme
+
+== stages: storm drunk never
+file: src/game/stages/meteorstorm.c
+-         if (g_save.players[g_curPlayer].drunkModeTimer > 0)
+-             g_drunk = 1;
++         if (g_save.players[g_curPlayer].drunkModeTimer > 100)
++             g_drunk = 1;
+expect: stages_storm_drunk_finish_below_90_percent
+
+== stages: storm drunk extra score
+file: src/game/stages/meteorstorm.c
+-     DRUNK_EXTRA_SCORE = 2000000,
++     DRUNK_EXTRA_SCORE = 1000000,
+expect: stages_storm_drunk_finish_below_90_percent
+
+== stages: storm drunk super money
+file: src/game/stages/meteorstorm.c
+-     DRUNK_SUPER_MONEY = 5000,
++     DRUNK_SUPER_MONEY = 1000,
+expect: stages_storm_drunk_finish_at_90_percent
+
+== stages: storm drunk super threshold
+file: src/game/stages/meteorstorm.c
+-             } else if (g_speedPct >= 90.0) {
+-                 AWARD(DRUNK_SUPER_SCORE)
++             } else if (g_speedPct > 90.0) {
++                 AWARD(DRUNK_SUPER_SCORE)
+expect: stages_storm_drunk_finish_at_90_percent
+
+== stages: storm drunk extreme score
+file: src/game/stages/meteorstorm.c
+-     DRUNK_EXTREME_SCORE = 10000000,
++     DRUNK_EXTREME_SCORE = 5000000,
+expect: stages_storm_drunk_finish_at_99_percent
+
+== stages: storm drunk extreme money
+file: src/game/stages/meteorstorm.c
+-     DRUNK_EXTREME_MONEY = 10000,
++     DRUNK_EXTREME_MONEY = 5000,
+expect: stages_storm_drunk_finish_at_99_percent
+
+== stages: storm drunk mega score
+file: src/game/stages/meteorstorm.c
+-     DRUNK_MEGA_SCORE = 20000000,
++     DRUNK_MEGA_SCORE = 10000000,
+expect: stages_storm_drunk_finish_at_100_percent
+
+== stages: storm drunk mega money
+file: src/game/stages/meteorstorm.c
+-     DRUNK_MEGA_MONEY = 50000,
++     DRUNK_MEGA_MONEY = 25000,
+expect: stages_storm_drunk_finish_at_100_percent
+
+== stages: storm finish money uncapped
+file: src/game/stages/meteorstorm.c
+-         if (g_save.players[g_curPlayer].money > g_save.players[g_curPlayer].moneyMax)
+-             g_save.players[g_curPlayer].money = g_save.players[g_curPlayer].moneyMax;
++
+expect: stages_storm_finish_money_is_capped
+
+== stages: storm finish record money
+file: src/game/stages/meteorstorm.c
+-         if (g_save.players[g_curPlayer].money > g_moneyMax)
+-             g_moneyMax = g_save.players[g_curPlayer].money;
++
+expect: stages_storm_finish_money_is_capped
+
+== stages: storm speed streak medal at 4
+file: src/game/stages/meteorstorm.c
+-                 g_save.players[g_curPlayer].drunkStreak == 5) {
++                 g_save.players[g_curPlayer].drunkStreak == 4) {
+expect: stages_storm_fifth_fast_finish_in_a_row_wins_a_medal
+
+== stages: storm drunk medal without drunk
+file: src/game/stages/meteorstorm.c
+-             g_drunk && g_speedPct >= 99.0) {
++             g_speedPct >= 99.0) {
+expect: stages_storm_sober_finish_wins_no_drunk_medal
+
+== stages: storm drunk medal not awarded
+file: src/game/stages/meteorstorm.c
+-                 AwardMedal(g_profileIndex, MEDAL_DRUNK_FINISH);
++                 AwardMedal(g_profileIndex, MEDAL_SPEED_STREAK);
+expect: stages_storm_drunk_fast_finish_wins_a_medal_and_a_secret
+
+== stages: storm secret 29 number
+file: src/game/stages/meteorstorm.c
+-             MarkSecretFound(g_profileIndex, 29);
++             MarkSecretFound(g_profileIndex, 28);
+expect: stages_storm_drunk_fast_finish_wins_a_medal_and_a_secret
+
+== stages: storm secret 5 with no multiplier only
+file: src/game/stages/meteorstorm.c
+-         if (g_scoreMul[g_curPlayer] > 1 && g_profileIndex != -1 && g_gameMode == MODE_SINGLE &&
++         if (g_scoreMul[g_curPlayer] > 2 && g_profileIndex != -1 && g_gameMode == MODE_SINGLE &&
+expect: stages_storm_finish_with_a_multiplier_marks_secret_5
+
+== stages: storm rock graphic sheet
+file: src/game/stages/meteorstorm.c
+-         g_bonusMeteors[idx].sx = g_meteorSrcX[m];
++         g_bonusMeteors[idx].sx = g_meteorSrcX[m] + 1;
+expect: stages_storm_spawn_a_rock
+
+== stages: storm rock hit box
+file: src/game/stages/meteorstorm.c
+-     g_bonusMeteors[idx].x2_40 = g_bonusMeteors[idx].x1_38 + g_bonusMeteors[idx].w;
++     g_bonusMeteors[idx].x2_40 = g_bonusMeteors[idx].x1_38 + g_bonusMeteors[idx].h;
+expect: stages_storm_spawn_a_rock
+
+== stages: storm rock start height
+file: src/game/stages/meteorstorm.c
+-     g_bonusMeteors[idx].y = RandFloat(-700.0f, -200.0f);
++     g_bonusMeteors[idx].y = RandFloat(-700.0f, -100.0f);
+expect: stages_storm_spawn_a_rock
+
+== stages: storm rock volume
+file: src/game/stages/meteorstorm.c
+-         g_bonusMeteors[idx].vol = g_bonusVolume[idx];
++         g_bonusMeteors[idx].vol = g_bonusVolume[m];
+expect: stages_storm_spawn_a_rock
+
+== stages: storm rare items mostly diamonds
+file: src/game/stages/meteorstorm.c
+-         if (RandRange(0, 99) < 50) {
++         if (RandRange(0, 99) < 70) {
+expect: stages_storm_spawn_rare_items_half_diamonds
+
+== stages: storm diamond width
+file: src/game/stages/meteorstorm.c
+-             g_bonusMeteors[idx].h = 0x33;
+-             g_bonusMeteors[idx].w = 0x50;
++             g_bonusMeteors[idx].h = 0x33;
++             g_bonusMeteors[idx].w = 0x40;
+expect: stages_storm_spawn_rare_items_half_diamonds
+
+== stages: storm rare chance ignored
+file: src/game/stages/meteorstorm.c
+-     if (RandRange(0, 99) < g_bonusRareChance) {
++     if (RandRange(0, 99) <= g_bonusRareChance) {
+expect: stages_storm_spawn_a_rock
+
+== stages: storm bonus weights
+file: src/game/stages/meteorstorm.c
+-     int bonusrnd[6] = { 50, 30, 10, 150, 80, 40 };
++     int bonusrnd[6] = { 50, 30, 30, 150, 80, 40 };
+expect: stages_storm_spawn_bonus_kinds_by_weight
+
+== stages: storm bonus roll range
+file: src/game/stages/meteorstorm.c
+-             r = RandRange(0, sum - 1);
++             r = RandRange(0, sum - 41);
+expect: stages_storm_spawn_bonus_kinds_by_weight
+
+== stages: storm bonus sheet column
+file: src/game/stages/meteorstorm.c
+-             g_bonusMeteors[idx].sx = k * 64;
++             g_bonusMeteors[idx].sx = k * 80;
+expect: stages_storm_spawn_bonus_kinds_by_weight
+
+== stages: storm crash keeps racing
+file: src/game/stages/meteorstorm.c
+-                         g_raceDistanceLeft = 1.0f;
++                         g_raceDistanceLeft = 2.0f;
+expect: stages_storm_hitting_a_rock_crashes_the_race
+
+== stages: storm crash keeps streak
+file: src/game/stages/meteorstorm.c
+-                         P.drunkStreak = 0;
++
+expect: stages_storm_hitting_a_rock_crashes_the_race
+
+== stages: storm crash keeps star speed
+file: src/game/stages/meteorstorm.c
+-                         P.starSpeed = P.savedRaceStarSpeed;
++
+expect: stages_storm_hitting_a_rock_crashes_the_race
+
+== stages: storm ship box wider
+file: src/game/stages/meteorstorm.c
+-     px2 = px + 40;
++     px2 = px + 41;
+expect: stages_storm_missing_a_rock_changes_nothing
+
+== stages: storm ship box taller
+file: src/game/stages/meteorstorm.c
+-     py2 = py + 27;
++     py2 = py + 28;
+expect: stages_storm_missing_a_rock_changes_nothing
+
+== stages: storm money meteor 50
+file: src/game/stages/meteorstorm.c
+-     METEOR_MONEY_50 = 50,
++     METEOR_MONEY_50 = 60,
+expect: stages_storm_money_meteor_50
+
+== stages: storm money meteor 100
+file: src/game/stages/meteorstorm.c
+-                             P.money = P.money + METEOR_MONEY_100;
++                             P.money = P.money + METEOR_MONEY_50;
+expect: stages_storm_money_meteor_100
+
+== stages: storm money meteor 250
+file: src/game/stages/meteorstorm.c
+-     METEOR_MONEY_250 = 250,
++     METEOR_MONEY_250 = 200,
+expect: stages_storm_money_meteor_250
+
+== stages: storm score meteor 1000
+file: src/game/stages/meteorstorm.c
+-     METEOR_SCORE_1000 = 1000,
++     METEOR_SCORE_1000 = 100,
+expect: stages_storm_score_meteor_1000
+
+== stages: storm score meteor 5000 column
+file: src/game/stages/meteorstorm.c
+-                         case 0x100:
++                         case 0x101:
+expect: stages_storm_score_meteor_5000
+
+== stages: storm score meteor 10000
+file: src/game/stages/meteorstorm.c
+-     METEOR_SCORE_10000 = 10000,
++     METEOR_SCORE_10000 = 1000,
+expect: stages_storm_score_meteor_10000
+
+== stages: storm score meteor not tallied
+file: src/game/stages/meteorstorm.c
+-     P.bonusRoundScore = P.bonusRoundScore + (v) * g_scoreMul[g_curPlayer];
++     P.bonusRoundScore = P.bonusRoundScore;
+expect: stages_storm_score_meteor_1000
+
+== stages: storm money meteor stays
+file: src/game/stages/meteorstorm.c
+-                         g_bonusMeteors[i].active = 0;
+-                         SoundPlay(g_sfxBing, -1, 255, 0.0f, 0x7f, g_sndFlags);
++                         SoundPlay(g_sfxBing, -1, 255, 0.0f, 0x7f, g_sndFlags);
+expect: stages_storm_money_meteor_50
+
+== stages: storm money meteor uncapped
+file: src/game/stages/meteorstorm.c
+-                         if (P.money > P.moneyMax)
+-                             P.money = P.moneyMax;
++
+expect: stages_storm_money_meteor_respects_the_money_cap
+
+== stages: storm small gem score
+file: src/game/stages/meteorstorm.c
+-     GEM_SCORE_2500 = 2500,
++     GEM_SCORE_2500 = 2000,
+expect: stages_storm_gem_small_scores_2500_and_five_gems
+
+== stages: storm medium gem score
+file: src/game/stages/meteorstorm.c
+-     GEM_SCORE_5000 = 5000,
++     GEM_SCORE_5000 = 4000,
+expect: stages_storm_gem_medium_scores_5000_and_five_gems
+
+== stages: storm big gem column
+file: src/game/stages/meteorstorm.c
+-                         if (g_bonusMeteors[i].sx == 0xa0) {
++                         if (g_bonusMeteors[i].sx == 0xa1) {
+expect: stages_storm_gem_big_scores_10000_and_five_gems
+
+== stages: storm gems per catch
+file: src/game/stages/meteorstorm.c
+-     for (j = 0; j < 5; j++) {                                                               \
++     for (j = 0; j < 4; j++) {                                                               \
+expect: stages_storm_gem_small_scores_2500_and_five_gems
+
+== stages: storm gem stays
+file: src/game/stages/meteorstorm.c
+-                         g_bonusMeteors[i].active = 0;
+-                         SoundQueueAdd(g_sfxBonus, 50, 0);
++                         SoundQueueAdd(g_sfxBonus, 50, 0);
+expect: stages_storm_gem_small_scores_2500_and_five_gems
+
+== stages: storm gem drop every 50
+file: src/game/stages/meteorstorm.c
+-         if ((P.gems - SHIP->gemBase) / SHIP->gemStep % 100 == 0)                   \
++         if ((P.gems - SHIP->gemBase) / SHIP->gemStep % 50 == 0)                    \
+expect: stages_storm_gem_medium_scores_5000_and_five_gems
+
+== stages: storm gem drop never
+file: src/game/stages/meteorstorm.c
+-         if ((P.gems - SHIP->gemBase) / SHIP->gemStep % 100 == 0)                   \
++         if ((P.gems - SHIP->gemBase) / SHIP->gemStep % 100 == 50)                  \
+expect: stages_storm_hundredth_gem_starts_a_gem_drop
+
+== stages: storm gem drop not banked
+file: src/game/stages/meteorstorm.c
+-     BankBonusScore();                                                                            \
++     \
+expect: stages_storm_hundredth_gem_starts_a_gem_drop
+
+== stages: storm gem drop intro time
+file: src/game/stages/meteorstorm.c
+-     g_gemDropIntroTimer = g_time + 4000;                                                        \
++     g_gemDropIntroTimer = g_time + 3000;                                                        \
+expect: stages_storm_hundredth_gem_starts_a_gem_drop
+
+== stages: storm super gem drop at 999
+file: src/game/stages/meteorstorm.c
+-     if ((P.gems - SHIP->gemBase) / SHIP->gemStep >= 1000) {                        \
++     if ((P.gems - SHIP->gemBase) / SHIP->gemStep >= 1004) {                        \
+expect: stages_storm_thousandth_gem_starts_a_super_gem_drop
+
+== stages: storm super gem drop keeps gems
+file: src/game/stages/meteorstorm.c
+-         P.gems = P.gems - SHIP->gemStep * 1000;                                    \
++         P.gems = P.gems - SHIP->gemStep * 999;                                     \
+expect: stages_storm_thousandth_gem_starts_a_super_gem_drop
+
+== stages: storm small gem drop meter
+file: src/game/stages/meteorstorm.c
+-                                 g_meterY = 550.0f;
+-                                 g_meterV = 35.0f;
++                                 g_meterY = 500.0f;
++                                 g_meterV = 35.0f;
+expect: stages_storm_thousandth_gem_starts_a_super_gem_drop
+
+== stages: storm speed meter text width
+file: src/game/stages/meteorstorm.c
+-         sprintf(g_speedPctText, "%3d%%", (int)g_speedPct);
++         sprintf(g_speedPctText, "%d%%", (int)g_speedPct);
+expect: stages_storm_speed_meter_text
+
+== stages: storm speed meter default charge
+file: src/game/stages/meteorstorm.c
+-         g_chargeMax = 15.0f;
++         g_chargeMax = 10.0f;
+expect: stages_storm_speed_meter_text
+
+== stages: storm meter show time
+file: src/game/stages/meteorstorm.c
+-     g_meterShowUntil = g_time + 3000;
++     g_meterShowUntil = g_time + 2000;
+expect: stages_storm_results_screen_shows_the_speed
+
+== stages: storm results speed text
+file: src/game/stages/meteorstorm.c
+-     sprintf(g_logBuf, "SPEED PERCENTAGE  %d", (int)g_speedPct);                     \
++     sprintf(g_logBuf, "SPEED PERCENTAGE %d", (int)g_speedPct);                      \
+expect: stages_storm_results_screen_shows_the_speed
+
+== stages: storm crash screen speed text
+file: src/game/stages/meteorstorm.c
+-         sprintf(g_logBuf, "SPEED PERCENTAGE  %d", (int)g_speedPct);
+-         DrawMenuText(g_logBuf, POS_CENTERED, cy + 22, 1);
++         sprintf(g_logBuf, "%d POINTS", g_save.players[g_curPlayer].meteorBonus);
++         DrawMenuText(g_logBuf, POS_CENTERED, cy + 22, 1);
+expect: stages_storm_crash_screen_shows_the_meteor_bonus
+
+== stages: storm dual draw ignores turn player
+file: src/game/stages/meteorstorm.c
+-     if (g_gameMode == MODE_DUAL) {
+-         g_curPlayer = g_vsTurnPlayer;
+-     }
++
+expect: stages_storm_dual_follows_the_turn_player
+
+# ---- memorystation.c ----
+
+== stages: memory grid not centred
+file: src/game/stages/memorystation.c
+-     g_gridX = (g_screenW >> 1) - g_save.players[g_curPlayer].rows * 64 / 2;
++     g_gridX = (g_screenW >> 1) - g_save.players[g_curPlayer].cols * 64 / 2;
+expect: stages_memory_InitGrid_deals_a_centred_grid_face_down
+
+== stages: memory cards dealt face up
+file: src/game/stages/memorystation.c
+-             g_cards[x][y].open = 1;
++             g_cards[x][y].open = 0;
+expect: stages_memory_InitGrid_deals_a_centred_grid_face_down
+
+== stages: memory card spacing
+file: src/game/stages/memorystation.c
+-             g_cards[x][y].y = y * 64 + g_gridY;
++             g_cards[x][y].y = y * 60 + g_gridY;
+expect: stages_memory_InitGrid_deals_a_centred_grid_face_down
+
+== stages: memory deal without a pair
+file: src/game/stages/memorystation.c
+-     } while (AllTypesUnique());
++     } while (0);
+expect: stages_memory_InitGrid_always_deals_a_pair
+
+== stages: memory deal time factor
+file: src/game/stages/memorystation.c
+-     secs = (int)(g_save.players[g_curPlayer].buffDuration * 1.5);
++     secs = (int)(g_save.players[g_curPlayer].buffDuration * 2);
+expect: stages_memory_InitGrid_resets_the_round
+
+== stages: memory deal time cap
+file: src/game/stages/memorystation.c
+-     if (secs > 300)
+-         secs = 300;  // cap the round timer at 5 minutes
++     if (secs > 360)
++         secs = 360;
+expect: stages_memory_InitGrid_caps_the_time_at_5_minutes
+
+== stages: memory deal keeps the pending pick
+file: src/game/stages/memorystation.c
+-     g_memPendingCardType = -1;
+-     g_memCursorFrame = 0;
++     g_memCursorFrame = 0;
+expect: stages_memory_InitGrid_resets_the_round
+
+== stages: memory deal keeps the popups
+file: src/game/stages/memorystation.c
+-     for (j = 0; j < MAX_POPUPS; j++)
+-         g_popups[j].active = 0;
++
+expect: stages_memory_InitGrid_resets_the_round
+
+== stages: memory deal bird snapshot
+file: src/game/stages/memorystation.c
+-     g_memorySecretBirdSnapshot = g_save.players[g_curPlayer].secretBirdCounter;
++
+expect: stages_memory_InitGrid_resets_the_round
+
+== stages: memory unique counts face-up cards
+file: src/game/stages/memorystation.c
+-             if (g_cards[r][c].active != 0 && g_cards[r][c].open != 0) {
++             if (g_cards[r][c].active != 0) {
+expect: stages_memory_AllTypesUnique_looks_at_face_down_cards
+
+== stages: memory unique counts extra time
+file: src/game/stages/memorystation.c
+-     typer[CARD_EXTRA_TIME] = 0;
+-     for (int k = 0; k < 50; k++) {
+-         if (typer[k] >= 2) {
++     for (int k = 0; k < 50; k++) {
++         if (typer[k] >= 2) {
+expect: stages_memory_AllTypesUnique_ignores_extra_time_cards
+
+== stages: memory pairs count halves wrong
+file: src/game/stages/memorystation.c
+-         typer[k] = typer[k] >> 1;
++         typer[k] = (typer[k] + 1) >> 1;
+expect: stages_memory_CountTypePairs_counts_remaining_pairs
+
+== stages: memory pairs count extra time
+file: src/game/stages/memorystation.c
+-     typer[CARD_EXTRA_TIME] = 0;
+-     for (int k = 0; k < 50; k++) {
+-         typer[k] = typer[k] >> 1;
++     for (int k = 0; k < 50; k++) {
++         typer[k] = typer[k] >> 1;
+expect: stages_memory_CountTypePairs_counts_remaining_pairs
+
+== stages: memory pairs count taken cards
+file: src/game/stages/memorystation.c
+-             if (g_cards[r][c].active != 0) {
+-                 typer[g_cards[r][c].type]++;
++             if (1) {
++                 typer[g_cards[r][c].type]++;
+expect: stages_memory_CountTypePairs_counts_remaining_pairs
+
+== stages: memory first pick not turned
+file: src/game/stages/memorystation.c
+-                 if (SEL.active != 0) {
+-                     SEL.open = 0;
++                 if (SEL.active != 0) {
++                     SEL.open = 1;
+expect: stages_memory_first_pick_turns_the_card
+
+== stages: memory match costs no try
+file: src/game/stages/memorystation.c
+-                 CUR.tries++;
++
+expect: stages_memory_matching_pair_is_taken
+
+== stages: memory match resolves late
+file: src/game/stages/memorystation.c
+-                         g_memPickResolveTime = g_time + 150;
++                         g_memPickResolveTime = g_time + 250;
+expect: stages_memory_matching_pair_is_taken
+
+== stages: memory match never recognised
+file: src/game/stages/memorystation.c
+-                 if (SEL.type == g_cards[pickRow][pickCol].type) {
++                 if (SEL.type == g_cards[pickRow][pickCol].type + 100) {
+expect: stages_memory_matching_pair_is_taken
+
+== stages: memory matched cards stay
+file: src/game/stages/memorystation.c
+-                         g_cards[matchRow][matchCol].type == g_memPendingCardType)
+-                         g_cards[matchRow][matchCol].active = 0;
++                         g_cards[matchRow][matchCol].type == g_memPendingCardType)
++                         g_cards[matchRow][matchCol].open = 0;
+expect: stages_memory_matching_pair_is_taken
+
+== stages: memory match takes face-down cards too
+file: src/game/stages/memorystation.c
+-                     if (g_cards[matchRow][matchCol].open == 0 &&
+-                         g_cards[matchRow][matchCol].type == g_memPendingCardType)
++                     if (g_cards[matchRow][matchCol].type == g_memPendingCardType)
+expect: stages_memory_matching_pair_is_taken
+
+== stages: memory mismatch shown longer
+file: src/game/stages/memorystation.c
+-                 if (g_autoplay == 0)
+-                     g_memPickResolveTime = g_time + 450;
++                 if (g_autoplay == 0)
++                     g_memPickResolveTime = g_time + 500;
+expect: stages_memory_mismatch_turns_both_back
+
+== stages: memory mismatch stays face up
+file: src/game/stages/memorystation.c
+-                     if (g_cards[openRow][openCol].open == 0)
+-                         g_cards[openRow][openCol].open = 1;
++                     if (g_cards[openRow][openCol].open == 0)
++                         g_cards[openRow][openCol].open = 0;
+expect: stages_memory_mismatch_turns_both_back
+
+== stages: memory same card counts as second pick
+file: src/game/stages/memorystation.c
+-             } else if (SEL.active != 0 && (pickRow != g_memSelRow || pickCol != g_memSelCol)) {
++             } else if (SEL.active != 0) {
+expect: stages_memory_picking_the_turned_card_again_does_nothing
+
+== stages: memory picks while resolving
+file: src/game/stages/memorystation.c
+-     if (g_time > g_memPickResolveTime && g_memPendingCardType == -1) {
+-         g_memPickResolveTime = 0;
++     if (g_memPendingCardType == -1) {
++         g_memPickResolveTime = 0;
+expect: stages_memory_no_pick_while_a_pick_resolves
+
+== stages: memory lose time single resolve delay
+file: src/game/stages/memorystation.c
+-                     PICK(1, 350, )
++                     PICK(1, 300, )
+expect: stages_memory_lose_time_card_works_alone
+
+== stages: memory lose time amount
+file: src/game/stages/memorystation.c
+-                 g_memStageDeadline -= 15000;
++                 g_memStageDeadline -= 10000;
+expect: stages_memory_lose_time_card_works_alone
+
+== stages: memory lose time countdown reset
+file: src/game/stages/memorystation.c
+-                 g_memStageDeadline -= 15000;
+-                 g_memCountdownStage = 11;
++                 g_memStageDeadline -= 15000;
+expect: stages_memory_lose_time_card_works_alone
+
+== stages: memory extra time not single
+file: src/game/stages/memorystation.c
+-                     PICK(11, 450, )
++
+expect: stages_memory_extra_time_card_works_alone
+
+== stages: memory extra time amount
+file: src/game/stages/memorystation.c
+-                 g_memStageDeadline += 10000;
++                 g_memStageDeadline += 5000;
+expect: stages_memory_extra_time_card_works_alone
+
+== stages: memory single second pick costs a try
+file: src/game/stages/memorystation.c
+-                 PICK(11, 450, CUR.tries--;)
++                 PICK(11, 450, )
+expect: stages_memory_single_card_as_second_pick_costs_no_try
+
+== stages: memory cursor right does nothing
+file: src/game/stages/memorystation.c
+-             MOVE(InputRight, g_keyLatch[K_VK_RIGHT], g_memSelRow < CUR.rows - 1, g_memSelRow++)
++             MOVE(InputRight, g_keyLatch[K_VK_RIGHT], g_memSelRow < CUR.rows - 1, )
+expect: stages_memory_cursor_moves_one_card_per_press
+
+== stages: memory cursor repeats while held
+file: src/game/stages/memorystation.c
+-         if (flag != 0) {                                                                        \
+-             flag = 0;                                                                           \
++         if (flag != 0) {                                                                        \
+expect: stages_memory_cursor_moves_one_card_per_press
+
+== stages: memory cursor down moves the row
+file: src/game/stages/memorystation.c
+-             MOVE(InputDown, g_keyLatch[K_VK_DOWN], g_memSelCol < CUR.cols - 1, g_memSelCol++)
++             MOVE(InputDown, g_keyLatch[K_VK_DOWN], g_memSelCol < CUR.cols - 1, g_memSelRow++)
+expect: stages_memory_cursor_moves_one_card_per_press
+
+== stages: memory cursor off the right edge
+file: src/game/stages/memorystation.c
+-             MOVE(InputRight, g_keyLatch[K_VK_RIGHT], g_memSelRow < CUR.rows - 1, g_memSelRow++)
++             MOVE(InputRight, g_keyLatch[K_VK_RIGHT], g_memSelRow < CUR.rows, g_memSelRow++)
+expect: stages_memory_cursor_stays_on_the_grid
+
+== stages: memory cursor off the top
+file: src/game/stages/memorystation.c
+-             MOVE(InputUp, g_keyLatch[K_VK_UP], g_memSelCol > 0, g_memSelCol--)
++             MOVE(InputUp, g_keyLatch[K_VK_UP], g_memSelCol > -1, g_memSelCol--)
+expect: stages_memory_cursor_stays_on_the_grid
+
+== stages: memory mouse card size
+file: src/game/stages/memorystation.c
+-                     g_mouseY > g_cards[j][i].y && g_mouseY < g_cards[j][i].y + 64) {
++                     g_mouseY > g_cards[j][i].y && g_mouseY < g_cards[j][i].y + 60) {
+expect: stages_memory_mouse_selects_the_card_under_it
+
+== stages: memory mouse border inclusive
+file: src/game/stages/memorystation.c
+-                 if (g_mouseX > g_cards[j][i].x && g_mouseX < g_cards[j][i].x + 64 &&
++                 if (g_mouseX >= g_cards[j][i].x && g_mouseX < g_cards[j][i].x + 64 &&
+expect: stages_memory_mouse_selects_the_card_under_it
+
+== stages: memory score 100 card
+file: src/game/stages/memorystation.c
+-     SCORE_100 = 100,              // duplicate-letter pick / CARD_SCORE_100
++     SCORE_100 = 200,
+expect: stages_memory_score_cards
+
+== stages: memory score 10000 card ignores multiplier
+file: src/game/stages/memorystation.c
+-             case CARD_SCORE_10000:
+-                 AWARD(SCORE_10000)
++             case CARD_SCORE_10000:
++                 CUR.score += SCORE_10000;
+expect: stages_memory_score_cards
+
+== stages: memory times two timer
+file: src/game/stages/memorystation.c
+-                 CUR.scoreMult2Timer = CUR.buffDuration * 1000 + g_time;
++                 CUR.scoreMult2Timer = CUR.buffDuration * 100 + g_time;
+expect: stages_memory_times_two_card
+
+== stages: memory times two keeps x5
+file: src/game/stages/memorystation.c
+-                 CUR.scoreMult5Timer = 0;
+-                 g_scoreMul[g_curPlayer] = 2;
++                 g_scoreMul[g_curPlayer] = 2;
+expect: stages_memory_times_two_card
+
+== stages: memory times five factor
+file: src/game/stages/memorystation.c
+-                 g_scoreMul[g_curPlayer] = 5;
++                 g_scoreMul[g_curPlayer] = 4;
+expect: stages_memory_times_five_card
+
+== stages: memory money 100 card
+file: src/game/stages/memorystation.c
+-                 MONEY_ADD(MONEY_100)
++                 MONEY_ADD(MONEY_50)
+expect: stages_memory_money_cards
+
+== stages: memory money card silent
+file: src/game/stages/memorystation.c
+-     SoundPlay(g_sfxCoin, -1, 200, 0.0f, 127, g_sndFlags);                                  \
++     \
+expect: stages_memory_money_cards
+
+== stages: memory money cap not applied
+file: src/game/stages/memorystation.c
+-     if (CUR.money > CUR.moneyMax) {                                                                  \
+-         CUR.money = CUR.moneyMax;                                                                    \
++     if (CUR.money > CUR.moneyMax) {                                                                  \
+expect: stages_memory_money_card_over_the_cap_pays_score
+
+== stages: memory money cap no score
+file: src/game/stages/memorystation.c
+-         AWARD(val)                                                                         \
++         \
+expect: stages_memory_money_card_over_the_cap_pays_score
+
+== stages: memory money doubler triples
+file: src/game/stages/memorystation.c
+-                     CUR.money *= 2;
++                     CUR.money *= 3;
+expect: stages_memory_money_doubler
+
+== stages: memory money doubler cap score
+file: src/game/stages/memorystation.c
+-                         CUR.score += CUR.moneyMax * 2 * g_scoreMul[g_curPlayer];
++                         CUR.score += CUR.moneyMax * g_scoreMul[g_curPlayer];
+expect: stages_memory_money_doubler_over_the_cap_pays_score
+
+== stages: memory money doubler limit
+file: src/game/stages/memorystation.c
+-                 if (CUR.money < MONEY_DOUBLER_CAP) {
++                 if (CUR.money <= MONEY_DOUBLER_CAP) {
+expect: stages_memory_money_doubler_malfunctions_when_rich
+
+== stages: memory extra life amount
+file: src/game/stages/memorystation.c
+-                     CUR.lives += STATS->cost;
+-                     SoundQueueAdd(g_sfxExtraLife, 50, 0);
++                     CUR.lives += 1;
++                     SoundQueueAdd(g_sfxExtraLife, 50, 0);
+expect: stages_memory_extra_life_card
+
+== stages: memory extra life clamp
+file: src/game/stages/memorystation.c
+-                 if (CUR.lives >= STATS->minEnergy + STATS->maxEnergy)
+-                     CUR.lives = STATS->minEnergy + STATS->maxEnergy;
++
+expect: stages_memory_extra_life_card_clamps_to_the_hangar
+
+== stages: memory armour step
+file: src/game/stages/memorystation.c
+-     CUR.armour += STATS->armourStep;                                                                       \
++     CUR.armour += 1;                                                                                       \
+expect: stages_memory_extra_life_card_gives_armour_with_a_full_hangar
+
+== stages: memory armour message
+file: src/game/stages/memorystation.c
+-     sprintf(g_alertMsg, "ARMOUR");                                                            \
++     \
+expect: stages_memory_extra_life_card_gives_armour_with_a_full_hangar
+
+== stages: memory armour over the cap
+file: src/game/stages/memorystation.c
+-                 } else if (CUR.armour < STATS->baseArmour + STATS->maxArmourBonus) {
++                 } else if (CUR.armour <= STATS->baseArmour + STATS->maxArmourBonus) {
+expect: stages_memory_extra_life_card_pays_a_million_when_maxed
+
+== stages: memory extra complete bonus
+file: src/game/stages/memorystation.c
+-     EXTRA_COMPLETE_BONUS = 1000000, // all 5 EXTRA letters collected, lives and armour already maxed
++     EXTRA_COMPLETE_BONUS = 100000,
+expect: stages_memory_extra_life_card_pays_a_million_when_maxed
+
+== stages: memory mark card swap
+file: src/game/stages/memorystation.c
+-                 LETTER(MARK_4)
++                 LETTER(MARK_3)
+expect: stages_memory_mark_cards_set_their_mark
+
+== stages: memory mark card score
+file: src/game/stages/memorystation.c
+-     SCORE_5000 = 5000,            // CARD_MARK_* (LETTER macro)
++     SCORE_5000 = 500,
+expect: stages_memory_mark_cards_set_their_mark
+
+== stages: memory bullets cap
+file: src/game/stages/memorystation.c
+-                 if (CUR.bullets < MAX_BULLETS) {
++                 if (CUR.bullets <= MAX_BULLETS) {
+expect: stages_memory_extra_bullet_card_when_full_pays_score
+
+== stages: memory bullet card adds two
+file: src/game/stages/memorystation.c
+-                     CUR.bullets++;
++                     CUR.bullets += 2;
+expect: stages_memory_extra_bullet_card
+
+== stages: memory maxed stat bonus
+file: src/game/stages/memorystation.c
+-     MAXED_STAT_BONUS = 25000,     // consolation score once a capped stat (bullets/speed/buff time) is maxed
++     MAXED_STAT_BONUS = 20000,
+expect: stages_memory_extra_bullet_card_when_full_pays_score
+expect: stages_memory_extra_speed_card_at_top_speed_pays_score
+expect: stages_memory_extra_buff_time_card_at_maximum_pays_score
+
+== stages: memory speed card amount
+file: src/game/stages/memorystation.c
+-                 CUR.speed += g_speedStep;
++                 CUR.speed += g_speedStep * 2;
+expect: stages_memory_extra_speed_card
+
+== stages: memory speed card not clamped
+file: src/game/stages/memorystation.c
+-                     CUR.speed = g_speedStep * g_maxSpeedMul + g_speedBase;
+-                     AWARD(MAXED_STAT_BONUS)
++                     AWARD(MAXED_STAT_BONUS)
+expect: stages_memory_extra_speed_card_at_top_speed_pays_score
+
+== stages: memory buff time amount
+file: src/game/stages/memorystation.c
+-                     CUR.buffDuration += 5;
++                     CUR.buffDuration += 3;
+expect: stages_memory_extra_buff_time_card
+
+== stages: memory buff time not clamped
+file: src/game/stages/memorystation.c
+-                     CUR.buffDuration = g_timeMax;
++
+expect: stages_memory_extra_buff_time_card_at_maximum_pays_score
+
+== stages: memory gem card adds one gem
+file: src/game/stages/memorystation.c
+-                 for (gemAddIter = 0; gemAddIter < 2; gemAddIter++) {
++                 for (gemAddIter = 0; gemAddIter < 1; gemAddIter++) {
+expect: stages_memory_gem_card_adds_two_gems
+
+== stages: memory gem card score
+file: src/game/stages/memorystation.c
+-     SCORE_500 = 500,              // non-milestone gem card
++     SCORE_500 = 50,
+expect: stages_memory_gem_card_adds_two_gems
+
+== stages: memory gem drop missed
+file: src/game/stages/memorystation.c
+-                     if ((CUR.gems - STATS->gemBase) / STATS->gemStep % 100 == 0)
++                     if ((CUR.gems - STATS->gemBase) / STATS->gemStep % 100 == 1)
+expect: stages_memory_hundredth_gem_starts_a_gem_drop
+
+== stages: memory gem drop intro time
+file: src/game/stages/memorystation.c
+-                     g_gemDropIntroTimer = g_time + 4000;
++                     g_gemDropIntroTimer = g_time + 3000;
+expect: stages_memory_hundredth_gem_starts_a_gem_drop
+
+== stages: memory super gem drop keeps gems
+file: src/game/stages/memorystation.c
+-                         CUR.gems -= STATS->gemStep * 1000;
++                         CUR.gems -= STATS->gemStep * 100;
+expect: stages_memory_thousandth_gem_starts_a_super_gem_drop
+
+== stages: memory super gem drop never
+file: src/game/stages/memorystation.c
+-                     if ((CUR.gems - STATS->gemBase) / STATS->gemStep >= 1000) {
++                     if ((CUR.gems - STATS->gemBase) / STATS->gemStep >= 1001) {
+expect: stages_memory_thousandth_gem_starts_a_super_gem_drop
+
+== stages: memory letter not set
+file: src/game/stages/memorystation.c
+-     CUR.flag = 1;                                                                               \
++     \
+expect: stages_memory_letter_card_sets_its_letter
+
+== stages: memory letter R sets T
+file: src/game/stages/memorystation.c
+-                 PART(extraLetterR)
++                 PART(extraLetterT)
+expect: stages_memory_letter_card_sets_its_letter
+
+== stages: memory duplicate letter free
+file: src/game/stages/memorystation.c
+-     if (CUR.flag != 0) {                                                                        \
+-         AWARD(SCORE_100)                                                                   \
++     if (CUR.flag != 0) {                                                                        \
+expect: stages_memory_duplicate_letter_pays_100
+
+== stages: memory EXTRA ignores A
+file: src/game/stages/memorystation.c
+-         CUR.extraLetterR != 0 && CUR.extraLetterA != 0) {                                       \
++         CUR.extraLetterR != 0) {                                                                \
+expect: stages_memory_spelling_EXTRA_requires_A
+
+== stages: memory EXTRA life amount
+file: src/game/stages/memorystation.c
+-             CUR.lives += STATS->cost;                                                          \
++             CUR.lives += 2;                                                                    \
+expect: stages_memory_spelling_EXTRA_gives_a_life
+
+== stages: memory EXTRA letters kept
+file: src/game/stages/memorystation.c
+-         CUR.extraLetterE = 0;                                                                           \
++         \
+expect: stages_memory_spelling_EXTRA_gives_a_life
+
+== stages: memory EXTRA armour skipped
+file: src/game/stages/memorystation.c
+-         } else if (CUR.armour < STATS->baseArmour + STATS->maxArmourBonus) {                    \
++         } else if (0) {                                                                         \
+expect: stages_memory_spelling_EXTRA_with_full_hangar_gives_armour_or_score
+
+== stages: memory bird hit limit
+file: src/game/stages/memorystation.c
+-                 if (CUR.secretBirdHits < 10) {
++                 if (CUR.secretBirdHits < 11) {
+expect: stages_memory_secret_bird_after_ten_does_nothing
+
+== stages: memory bird counter not lowered
+file: src/game/stages/memorystation.c
+-                     CUR.secretBirdCounter--;
++
+expect: stages_memory_secret_bird_card_counts_hits
+
+== stages: memory bird counter floor
+file: src/game/stages/memorystation.c
+-                     if (CUR.secretBirdCounter < 20)
+-                         CUR.secretBirdCounter = 20;
++                     if (CUR.secretBirdCounter < 19)
++                         CUR.secretBirdCounter = 19;
+expect: stages_memory_secret_bird_counter_floor_is_20
+
+== stages: memory bird tenth hit at 9
+file: src/game/stages/memorystation.c
+-                     if (CUR.secretBirdHits >= 10) {
++                     if (CUR.secretBirdHits >= 11) {
+expect: stages_memory_tenth_secret_bird_raises_the_money_cap
+
+== stages: memory bird money cap
+file: src/game/stages/memorystation.c
+-     SECRET_BIRD_MONEY_MAX = 999990, // money set after completing the secret-bird secret
++     SECRET_BIRD_MONEY_MAX = 99990,
+expect: stages_memory_tenth_secret_bird_raises_the_money_cap
+
+== stages: memory clear bonus delay
+file: src/game/stages/memorystation.c
+-                 g_memoryStationDeadline = g_time + 3000;
++                 g_memoryStationDeadline = g_time + 2000;
+expect: stages_memory_last_pair_sets_up_the_bonus
+
+== stages: memory clear bonus with pairs left
+file: src/game/stages/memorystation.c
+-             if (AllTypesUnique() != 0) {
++             if (1) {
+expect: stages_memory_pairs_left_means_no_bonus_yet
+
+== stages: memory finish early
+file: src/game/stages/memorystation.c
+-     if (g_time > g_memoryStationDeadline) {
++     if (g_time >= g_memoryStationDeadline) {
+expect: stages_memory_FinishMemoryStation_waits_for_its_deadline
+
+== stages: memory finish bonus amount
+file: src/game/stages/memorystation.c
+-     MEMORY_STATION_BONUS = 25000, // awarded for clearing the whole grid
++     MEMORY_STATION_BONUS = 20000,
+expect: stages_memory_FinishMemoryStation_pays_the_bonus_and_leaves
+
+== stages: memory finish state
+file: src/game/stages/memorystation.c
+-             CLEAR_DRAW_COUNTERS()
+-             g_state = STATE_PLAYING;
++             CLEAR_DRAW_COUNTERS()
+expect: stages_memory_FinishMemoryStation_pays_the_bonus_and_leaves
+
+== stages: memory finish hyperspace
+file: src/game/stages/memorystation.c
+-                 RESTORE_HYPERSPACE(g_save.players[g_curPlayer], g_save.players[g_curPlayer])
+-             }
+-
+-             CLEAR_DRAW_COUNTERS()
++             }
++
++             CLEAR_DRAW_COUNTERS()
+expect: stages_memory_FinishMemoryStation_pays_the_bonus_and_leaves
+
+== stages: memory grid grows every clear
+file: src/game/stages/memorystation.c
+-             if (g_save.players[g_curPlayer].memoryGridUpgradeStreak == 2) {
++             if (g_save.players[g_curPlayer].memoryGridUpgradeStreak >= 1) {
+expect: stages_memory_FinishMemoryStation_pays_the_bonus_and_leaves
+
+== stages: memory grid grows only rows
+file: src/game/stages/memorystation.c
+-                     g_save.players[g_curPlayer].rows++;
+-                     g_save.players[g_curPlayer].cols++;
++                     g_save.players[g_curPlayer].rows++;
+expect: stages_memory_every_second_clear_grows_the_grid
+
+== stages: memory grid grows to 9
+file: src/game/stages/memorystation.c
+-                 if (g_save.players[g_curPlayer].rows < 8) {
++                 if (g_save.players[g_curPlayer].rows < 9) {
+expect: stages_memory_grid_stops_growing_at_8
+
+== stages: memory finish without bonus
+file: src/game/stages/memorystation.c
+-         if (g_memoryBonusPending != 0) {
++         if (1) {
+expect: stages_memory_FinishMemoryStation_without_bonus_stays
+
+== stages: memory timeout on the deadline
+file: src/game/stages/memorystation.c
+-     if (g_time > g_memStageDeadline) {
++     if (g_time >= g_memStageDeadline) {
+expect: stages_memory_no_timeout_on_the_deadline
+
+== stages: memory timeout kills not counted
+file: src/game/stages/memorystation.c
+-             CUR.killed = CUR.totalEnemies;
++             CUR.killed = 0;
+expect: stages_memory_timeout_ends_the_stage
+
+== stages: memory timeout keeps the stage
+file: src/game/stages/memorystation.c
+-         HidePointer();
+-         g_state = STATE_PLAYING;
++         HidePointer();
+expect: stages_memory_timeout_ends_the_stage
+
+== stages: memory countdown ten early
+file: src/game/stages/memorystation.c
+-     COUNTDOWN(10000, 11000, 11, g_sfxVoiceTen)
++     COUNTDOWN(10000, 11000, 11, g_sfxVoiceNine)
+expect: stages_memory_countdown_voices
+
+== stages: memory countdown eight boundary
+file: src/game/stages/memorystation.c
+-     COUNTDOWN(8000, 9000, 9, g_sfxVoiceEight)
++     COUNTDOWN(8000, 9001, 9, g_sfxVoiceEight)
+expect: stages_memory_countdown_voices
+
+== stages: memory countdown restart
+file: src/game/stages/memorystation.c
+-         g_memCountdownStage = 11;
+-
+-     // rocket-boost
++         g_memCountdownStage = 10;
++
++     // rocket-boost
+expect: stages_memory_countdown_voices
+
+== stages: memory countdown stage step
+file: src/game/stages/memorystation.c
+-         g_memCountdownStage = st - 1;                                                                      \
++         g_memCountdownStage = st - 2;                                                                      \
+expect: stages_memory_countdown_voices
+
+== stages: memory rocket skips 2 seconds
+file: src/game/stages/memorystation.c
+-             g_memStageDeadline -= 1000;
++             g_memStageDeadline -= 2000;
+expect: stages_memory_rocket_kills_time_for_score
+
+== stages: memory rocket repeat delay
+file: src/game/stages/memorystation.c
+-         g_rocketRepeatTimer = g_time + 25;
++         g_rocketRepeatTimer = g_time + 30;
+expect: stages_memory_rocket_kills_time_for_score
+
+== stages: memory rocket score range
+file: src/game/stages/memorystation.c
+-             bonus = RandRange(1, 11) * 100;
++             bonus = RandRange(1, 11) * 150;
+expect: stages_memory_rocket_kills_time_for_score
+
+== stages: memory rocket past the deadline
+file: src/game/stages/memorystation.c
+-         if (g_memStageDeadline - g_time > 0) {
++         if (1) {
+expect: stages_memory_rocket_does_nothing_on_the_deadline
+
+== stages: memory rocket clamp works
+file: src/game/stages/memorystation.c
+-             if (g_memStageDeadline - g_time < 0)
++             if ((int)(g_memStageDeadline - g_time) < 0)
+expect: stages_memory_rocket_can_push_the_deadline_into_the_past
+
+== stages: memory intro gate inclusive
+file: src/game/stages/memorystation.c
+-     if (g_time < g_memoryIntroTimer) {
++     if (g_time <= g_memoryIntroTimer) {
+expect: stages_memory_intro_gate
+
+== stages: memory grid text
+file: src/game/stages/memorystation.c
+-     sprintf(g_logBuf, "PAIR LEFT :%d   TRIES :%d", CountTypePairs(), g_save.players[g_curPlayer].tries);
++     sprintf(g_logBuf, "PAIR LEFT :%d   TRIES :%d", CountTypePairs() + 1, g_save.players[g_curPlayer].tries);
+expect: stages_memory_grid_shows_pairs_and_tries
+
+== stages: memory grid tick every frame
+file: src/game/stages/memorystation.c
+-         g_pairsTickTime = g_time + 1000;
++         g_pairsTickTime = g_time;
+expect: stages_memory_grid_shows_pairs_and_tries
+
+== stages: memory cursor frames
+file: src/game/stages/memorystation.c
+-         if (g_memCursorFrame > 5)
++         if (g_memCursorFrame > 6)
+expect: stages_memory_cursor_blinks_through_six_frames
+
+== stages: memory cursor speed
+file: src/game/stages/memorystation.c
+-         g_gridAnimTime = g_time + 0x32;
++         g_gridAnimTime = g_time + 0x40;
+expect: stages_memory_cursor_blinks_through_six_frames
+
+== stages: memory congratulations text
+file: src/game/stages/memorystation.c
+-         sprintf(g_logBuf, "%lld POINTS BONUS", g_save.players[g_curPlayer].memoryBonus);
++         sprintf(g_logBuf, "%lld POINTS BONUS", g_save.players[g_curPlayer].memoryBonus / 2);
+expect: stages_memory_congratulations_show_the_bonus
+
+== stages: memory congratulations keep the pointer
+file: src/game/stages/memorystation.c
+-     if (g_memoryDone != 0) {
+-         g_buttonsOn = 0;
++     if (g_memoryDone != 0) {
+expect: stages_memory_congratulations_show_the_bonus
+
+== stages: memory bonus truncates to 32 bits
+file: src/game/stages/memorystation.c
+-         sprintf(g_logBuf, "%lld POINTS BONUS", g_save.players[g_curPlayer].memoryBonus);
++         sprintf(g_logBuf, "%d POINTS BONUS", (int)g_save.players[g_curPlayer].memoryBonus);
+expect: stages_memory_congratulations_show_the_bonus

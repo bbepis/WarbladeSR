@@ -1,0 +1,3743 @@
+# src/game/player.c, items.c, collide.c, cheats.c, input.c (tests/test_play_*.c)
+
+# ---------------------------------------------------------------- player.c: InitPlayer / PlacePlayer
+
+== play: InitPlayer lives without extra lives
+file: src/game/player.c
+- g_shipDefs[g_save.players[p].ship]->minEnergy + g_shipDefs[g_save.players[p].ship]->extraLives;
++ g_shipDefs[g_save.players[p].ship]->minEnergy + g_shipDefs[g_save.players[p].ship]->cost;
+expect: Play_InitPlayer_sets_start_of_game_defaults
+expect: Play_InitPlayer_uses_the_ships_stats
+
+== play: InitPlayer starting bullets
+file: src/game/player.c
+- STARTING_BULLETS            = 8,
++ STARTING_BULLETS            = 7,
+expect: Play_InitPlayer_sets_start_of_game_defaults
+
+== play: InitPlayer armour from the wrong field
+file: src/game/player.c
+- g_save.players[p].armour = g_shipDefs[g_save.players[p].ship]->baseArmour;
++ g_save.players[p].armour = g_shipDefs[g_save.players[p].ship]->baseArmour + g_shipDefs[g_save.players[p].ship]->armourStep;
+expect: Play_InitPlayer_sets_start_of_game_defaults
+expect: Play_InitPlayer_uses_the_ships_stats
+
+== play: InitPlayer gems from ship 0
+file: src/game/player.c
+- g_save.players[p].gems = g_shipDefs[g_save.players[p].ship]->gemBase;
++ g_save.players[p].gems = g_shipDefs[0]->gemBase;
+expect: Play_InitPlayer_uses_the_ships_stats
+
+== play: InitPlayer money cap
+file: src/game/player.c
+- STARTING_MONEY_MAX          = 99990,
++ STARTING_MONEY_MAX          = 99999,
+expect: Play_InitPlayer_sets_start_of_game_defaults
+
+== play: InitPlayer keeps the score
+file: src/game/player.c
+- g_save.players[p].score = 0;
++
+expect: Play_InitPlayer_sets_start_of_game_defaults
+
+== play: InitPlayer buff duration
+file: src/game/player.c
+- g_save.players[p].buffDuration = 20;
++ g_save.players[p].buffDuration = 25;
+expect: Play_InitPlayer_sets_start_of_game_defaults
+
+== play: InitPlayer autofire interval
+file: src/game/player.c
+- g_save.players[p].turretTrackingReduction = 0;
+-     g_save.players[p].superAuto = 0;
+-     g_save.players[p].autofireInterval = 100;
++ g_save.players[p].turretTrackingReduction = 0;
++     g_save.players[p].superAuto = 0;
++     g_save.players[p].autofireInterval = 50;
+expect: Play_InitPlayer_sets_start_of_game_defaults
+
+== play: InitPlayer keeps gemSeqA
+file: src/game/player.c
+- g_save.players[p].gemSeqA = -1;
++
+expect: Play_InitPlayer_sets_start_of_game_defaults
+
+== play: InitPlayer enemy hp roll
+file: src/game/player.c
+- g_save.players[p].enemyHpBonusRoll = 8;
++ g_save.players[p].enemyHpBonusRoll = 0;
+expect: Play_InitPlayer_sets_start_of_game_defaults
+
+== play: InitPlayer keeps the score multiplier
+file: src/game/player.c
+- g_scoreMul[p] = 1;
++
+expect: Play_InitPlayer_sets_start_of_game_defaults
+
+== play: InitPlayer keeps the shield timer
+file: src/game/player.c
+-     g_save.players[p].scoopTimer = 0;
+-     g_save.players[p].shieldTimer = 0;
+-     g_save.players[p].blueMoneyActive = 0;
++     g_save.players[p].scoopTimer = 0;
++     g_save.players[p].blueMoneyActive = 0;
+expect: Play_InitPlayer_sets_start_of_game_defaults
+
+== play: InitPlayer keeps the bullet speed
+file: src/game/player.c
+-     g_save.players[p].maxRankReached = RANK_ENSIGN;
+-     g_save.players[p].bulletSpeedMult = 1.0f;
++     g_save.players[p].maxRankReached = RANK_ENSIGN;
+expect: Play_InitPlayer_sets_start_of_game_defaults
+
+== play: InitPlayer demo level range
+file: src/game/player.c
+- g_save.players[p].level = RandRange(1, 8);
++ g_save.players[p].level = RandRange(1, 9);
+expect: Play_InitPlayer_demo_rolls_level_then_weapon
+
+== play: InitPlayer demo weapon range
+file: src/game/player.c
+- g_save.players[p].weapon = RandRange(0, 3);
++ g_save.players[p].weapon = RandRange(0, 4);
+expect: Play_InitPlayer_demo_rolls_level_then_weapon
+
+== play: InitPlayer time trial weapon
+file: src/game/player.c
+- g_save.players[p].weapon = 9;
++ g_save.players[p].weapon = 8;
+expect: Play_InitPlayer_time_trial_starts_with_weapon_9_and_10_bullets
+
+== play: InitPlayer time trial bullets
+file: src/game/player.c
+- g_save.players[p].bullets = 10;
++ g_save.players[p].bullets = STARTING_BULLETS;
+expect: Play_InitPlayer_time_trial_starts_with_weapon_9_and_10_bullets
+
+== play: PlacePlayer center off by one
+file: src/game/player.c
+- g_save.players[p].x = (float)(g_screenW / 2 - 20);
++ g_save.players[p].x = (float)(g_screenW / 2 - 21);
+expect: Play_InitPlayer_sets_start_of_game_defaults
+
+== play: PlacePlayer dual swaps thirds
+file: src/game/player.c
+-         if (p == 0)
+-             g_save.players[p].x = (float)(g_screenW / 6 * 2 - 20);
++         if (p == 1)
++             g_save.players[p].x = (float)(g_screenW / 6 * 2 - 20);
+expect: Play_PlacePlayer_puts_dual_players_at_thirds
+
+== play: PlacePlayer both fighters the same
+file: src/game/player.c
+-         g_save.players[p].gfx = g_gfxFighter2;
++         g_save.players[p].gfx = g_gfxFighter1;
+expect: Play_PlacePlayer_puts_dual_players_at_thirds
+
+== play: PlacePlayer bank
+file: src/game/player.c
+- g_save.players[p].bank = 5.0f;
++ g_save.players[p].bank = 0.0f;
+expect: Play_InitPlayer_sets_start_of_game_defaults
+
+== play: PlayerHasAllMarks wrong mask
+file: src/game/player.c
+- if ((short)g_save.players[idx].marks == MARKS_ALL)
++ if ((short)g_save.players[idx].marks >= 0x1f)
+expect: Play_PlayerHasAllMarks_needs_all_six
+
+== play: ResetPlayerTimers skips player 2 shield
+file: src/game/player.c
+- g_save.players[1].shieldTimer = 0;
++
+expect: Play_ResetPlayerTimers_clears_both_players_shield_and_scoop
+
+# ---------------------------------------------------------------- player.c: PlayerHit
+
+== play: PlayerHit keeps autofire interval
+file: src/game/player.c
+-     g_save.players[p].superAuto = 0;
+-     g_save.players[p].autofireInterval = 100;
+-     if (g_save.players[p].bullets > 5)
++     g_save.players[p].superAuto = 0;
++     if (g_save.players[p].bullets > 5)
+expect: Play_PlayerHit_steps_every_upgrade_down
+
+== play: PlayerHit bullet floor off by one
+file: src/game/player.c
+- if (g_save.players[p].bullets > 5)
++ if (g_save.players[p].bullets >= 5)
+expect: Play_PlayerHit_stops_at_the_minimums
+
+== play: PlayerHit weapon goes negative
+file: src/game/player.c
+-         if (g_save.players[p].weapon > 0)
+-             g_save.players[p].weapon--;
+-     }
++         g_save.players[p].weapon--;
++     }
+expect: Play_PlayerHit_stops_at_the_minimums
+
+== play: PlayerHit ignores the weapon floor
+file: src/game/player.c
+- if (g_save.players[p].weaponFloorAtOne == 0)
++ if (1)
+expect: Play_PlayerHit_weapon_floor_at_one_keeps_double_shot
+
+== play: PlayerHit speed not clamped
+file: src/game/player.c
+-     if (g_save.players[p].speed < g_speedBase)
+-         g_save.players[p].speed = g_speedBase;
+-     g_save.players[p].buffDuration = g_save.players[p].buffDuration - 5;
++     g_save.players[p].buffDuration = g_save.players[p].buffDuration - 5;
+expect: Play_PlayerHit_stops_at_the_minimums
+
+== play: PlayerHit buff step
+file: src/game/player.c
+- g_save.players[p].buffDuration = g_save.players[p].buffDuration - 5;
++ g_save.players[p].buffDuration = g_save.players[p].buffDuration - 4;
+expect: Play_PlayerHit_steps_every_upgrade_down
+
+== play: PlayerHit buff floor
+file: src/game/player.c
+-     if (g_save.players[p].buffDuration < g_speedMin)
+-         g_save.players[p].buffDuration = g_speedMin;
++     if (g_save.players[p].buffDuration < g_speedMin)
++         g_save.players[p].buffDuration = g_speedMin - 5;
+expect: Play_PlayerHit_stops_at_the_minimums
+
+== play: PlayerHit bullet speed halving
+file: src/game/player.c
+- g_save.players[p].bulletSpeedMult = (g_save.players[p].bulletSpeedMult - 1.0f) * 0.5f + 1.0f;
++ g_save.players[p].bulletSpeedMult = g_save.players[p].bulletSpeedMult * 0.5f + 1.0f;
+expect: Play_PlayerHit_steps_every_upgrade_down
+
+== play: PlayerHit keeps alien lock
+file: src/game/player.c
+- g_save.players[p].alienLock = 0;
+-     g_save.players[p].superAuto = 0;
++     g_save.players[p].superAuto = 0;
+expect: Play_PlayerHit_steps_every_upgrade_down
+
+== play: PlayerHit time trial check after the penalty
+file: src/game/player.c
+-     if (g_gameMode == MODE_TIME_TRIAL)
+-         return;
+-     g_save.players[p].alienLock = 0;
++     g_save.players[p].alienLock = 0;
+expect: Play_PlayerHit_in_time_trial_only_drops_autofire
+
+== play: PlayerHit keeps autofire in time trial
+file: src/game/player.c
+-     g_save.players[p].autofire = 0;
+-     if (g_gameMode == MODE_TIME_TRIAL)
++     if (g_gameMode == MODE_TIME_TRIAL)
+expect: Play_PlayerHit_in_time_trial_only_drops_autofire
+expect: Play_PlayerHit_steps_every_upgrade_down
+
+# ---------------------------------------------------------------- player.c: movement
+
+== play: UpdatePlayer left moves right
+file: src/game/player.c
+-             P.x = P.x - speed * g_frameDt;
++             P.x = P.x + speed * g_frameDt;
+expect: Play_UpdatePlayer_left_key_moves_and_banks_left
+
+== play: UpdatePlayer ignores frame time
+file: src/game/player.c
+-             P.x = P.x + speed * g_frameDt;
++             P.x = P.x + speed;
+expect: Play_UpdatePlayer_movement_scales_with_frame_time
+
+== play: UpdatePlayer left speed cap
+file: src/game/player.c
+- speed = (P.speed * g_joystickSpeedMul > 14.0) ? 14.0 : P.speed * g_joystickSpeedMul;
+-         if (!g_autoplay && P.drunkModeTimer > 0)
+-             speed = 0 - speed;
+-         moved = 1;
+-         P.bank = P.bank - g_tiltStep;
++ speed = (P.speed * g_joystickSpeedMul > 15.0) ? 15.0 : P.speed * g_joystickSpeedMul;
++         if (!g_autoplay && P.drunkModeTimer > 0)
++             speed = 0 - speed;
++         moved = 1;
++         P.bank = P.bank - g_tiltStep;
+expect: Play_UpdatePlayer_speed_is_capped_at_14
+
+== play: UpdatePlayer right ignores the cap
+file: src/game/player.c
+-         speed = P.speed * g_joystickSpeedMul;
+-         speed = (P.speed * g_joystickSpeedMul > 14.0) ? 14.0 : P.speed * g_joystickSpeedMul;
++         speed = P.speed * g_joystickSpeedMul;
+expect: Play_UpdatePlayer_speed_is_capped_at_14
+
+== play: UpdatePlayer left edge
+file: src/game/player.c
+-             P.x = P.x - speed * g_frameDt;
+-             if (P.x < 64.0)
+-                 P.x = 64;
++             P.x = P.x - speed * g_frameDt;
++             if (P.x < 60.0)
++                 P.x = 60;
+expect: Play_UpdatePlayer_keeps_the_ship_inside_64_to_screen_minus_104
+
+== play: UpdatePlayer right edge
+file: src/game/player.c
+-             P.x = P.x + speed * g_frameDt;
+-             if (P.x > g_screenW - 104)
+-                 P.x = g_screenW - 104;
++             P.x = P.x + speed * g_frameDt;
++             if (P.x > g_screenW - 100)
++                 P.x = g_screenW - 100;
+expect: Play_UpdatePlayer_keeps_the_ship_inside_64_to_screen_minus_104
+
+== play: UpdatePlayer right checked first
+file: src/game/player.c
+-     if (InputLeft(g_curPlayer)) {
+-         speed = (P.speed
++     if (InputLeft(g_curPlayer) && !InputRight(g_curPlayer)) {
++         speed = (P.speed
+expect: Play_UpdatePlayer_left_wins_when_both_are_held
+
+== play: UpdatePlayer bank floor
+file: src/game/player.c
+-         if (P.bank < 0.0)
+-             P.bank = 0;
+-
+-         if (P.mirrorTime != 0) {
+-             P.mirrorX = P.mirrorX - speed * g_frameDt;
++         if (P.bank < -1.0)
++             P.bank = -1;
++
++         if (P.mirrorTime != 0) {
++             P.mirrorX = P.mirrorX - speed * g_frameDt;
+expect: Play_UpdatePlayer_bank_is_limited_to_0_and_10
+
+== play: UpdatePlayer bank ceiling
+file: src/game/player.c
+-         if (!(P.bank < 11.0))
+-             P.bank = 10;
+-
+-         if (P.mirrorTime != 0) {
+-             P.mirrorX = P.mirrorX + speed * g_frameDt;
++         if (!(P.bank < 10.0))
++             P.bank = 10;
++
++         if (P.mirrorTime != 0) {
++             P.mirrorX = P.mirrorX + speed * g_frameDt;
+expect: Play_UpdatePlayer_bank_is_limited_to_0_and_10
+
+== play: UpdatePlayer right banks left
+file: src/game/player.c
+-         P.bank = P.bank + g_tiltStep;
+-         if (!(P.bank < 11.0))
+-             P.bank = 10;
+-
+-         if (P.mirrorTime != 0) {
+-             P.mirrorX = P.mirrorX + speed * g_frameDt;
++         P.bank = P.bank - g_tiltStep;
++         if (!(P.bank < 11.0))
++             P.bank = 10;
++
++         if (P.mirrorTime != 0) {
++             P.mirrorX = P.mirrorX + speed * g_frameDt;
+expect: Play_UpdatePlayer_right_key_moves_and_banks_right
+
+== play: UpdatePlayer idle bank only one way
+file: src/game/player.c
+-     if (moved == 0) {
+-         if (P.bank > 5.0)
+-             P.bank = P.bank - g_tiltStep;
+-         if (P.bank < 5.0)
+-             P.bank = P.bank + g_tiltStep;
+-     }
++     if (moved == 0) {
++         if (P.bank > 5.0)
++             P.bank = P.bank - g_tiltStep;
++     }
+expect: Play_UpdatePlayer_bank_returns_toward_5_when_idle
+
+== play: UpdatePlayer drunk mode ignored on left
+file: src/game/player.c
+-         if (!g_autoplay && P.drunkModeTimer > 0)
+-             speed = 0 - speed;
+-         moved = 1;
+-         P.bank = P.bank - g_tiltStep;
++         moved = 1;
++         P.bank = P.bank - g_tiltStep;
+expect: Play_UpdatePlayer_drunk_mode_reverses_controls_until_it_expires
+
+== play: UpdatePlayer drunk timer never expires
+file: src/game/player.c
+-     if (g_time > P.drunkModeTimer)
+-         P.drunkModeTimer = 0;
+-
+-     // ---- horizontal movement
++     // ---- horizontal movement
+expect: Play_UpdatePlayer_drunk_mode_reverses_controls_until_it_expires
+
+== play: UpdatePlayer mirror mode moves x directly
+file: src/game/player.c
+-             P.mirrorX = P.mirrorX - speed * g_frameDt;
+-             if (P.mirrorX < 64.0)
++             P.mirrorX = P.x - speed * g_frameDt;
++             if (P.mirrorX < 64.0)
+expect: Play_UpdatePlayer_mirror_mode_moves_the_mirror_position
+
+== play: UpdatePlayer mirror right edge
+file: src/game/player.c
+-             P.mirrorX = P.mirrorX + speed * g_frameDt;
+-             if (P.mirrorX > g_screenW - 104)
+-                 P.mirrorX = g_screenW - 104;
++             P.mirrorX = P.mirrorX + speed * g_frameDt;
++             if (P.mirrorX > g_screenW - 100)
++                 P.mirrorX = g_screenW - 100;
+expect: Play_UpdatePlayer_mirror_mode_moves_the_mirror_position
+
+# ---------------------------------------------------------------- player.c: firing
+
+== play: UpdatePlayer fire latch never cleared
+file: src/game/player.c
+-                 P.keyLatchFire = 0;
+-             }
+-
+-             if (P.autofire != 0
++             }
++
++             if (P.autofire != 0
+expect: Play_UpdatePlayer_fire_key_shoots_once_per_press
+
+== play: UpdatePlayer fire latch not rearmed
+file: src/game/player.c
+-         P.keyLatchFire = 1;
+-     }
+-
+-     if (moved == 0) {
++     }
++
++     if (moved == 0) {
+expect: Play_UpdatePlayer_fire_key_shoots_once_per_press
+
+== play: UpdatePlayer fires with no lives
+file: src/game/player.c
+-                 if (P.dead == 0 && P.lives > g_shipDefs[P.ship]->minEnergy &&
++                 if (P.dead == 0 && P.lives >= g_shipDefs[P.ship]->minEnergy &&
+expect: Play_UpdatePlayer_does_not_fire_when_dead_or_out_of_lives
+
+== play: UpdatePlayer fires while dead
+file: src/game/player.c
+-                 if (P.dead == 0 && P.lives > g_shipDefs[P.ship]->minEnergy &&
++                 if (P.lives > g_shipDefs[P.ship]->minEnergy &&
+expect: Play_UpdatePlayer_does_not_fire_when_dead_or_out_of_lives
+
+== play: UpdatePlayer fires during transitions
+file: src/game/player.c
+- if (InputFire(g_curPlayer) && g_transitionLock == 0 && g_state != STATE_SHOP && g_state != STATE_SHOP_GATE &&
++ if (InputFire(g_curPlayer) && g_state != STATE_SHOP && g_state != STATE_SHOP_GATE &&
+expect: Play_UpdatePlayer_does_not_fire_during_a_transition_or_in_the_shop
+
+== play: UpdatePlayer fires in the shop
+file: src/game/player.c
+- if (InputFire(g_curPlayer) && g_transitionLock == 0 && g_state != STATE_SHOP && g_state != STATE_SHOP_GATE &&
++ if (InputFire(g_curPlayer) && g_transitionLock == 0 && g_state != STATE_SHOP_GATE &&
+expect: Play_UpdatePlayer_does_not_fire_during_a_transition_or_in_the_shop
+
+== play: UpdatePlayer fires during bonus results
+file: src/game/player.c
+-         g_state != STATE_METEOR_STORM && g_state != STATE_MALFUNCTION_DEATH && g_bonusResultsTime == 0) {
++         g_state != STATE_METEOR_STORM && g_state != STATE_MALFUNCTION_DEATH) {
+expect: Play_UpdatePlayer_does_not_fire_during_a_transition_or_in_the_shop
+
+== play: FirePlayer shot limit off by one
+file: src/game/player.c
+- if (g_save.players[g_curPlayer].energy < level) {
++ if (g_save.players[g_curPlayer].energy <= level) {
+expect: Play_FirePlayer_keeps_at_most_bullets_shots_in_flight
+
+== play: FirePlayer wrong shot table
+file: src/game/player.c
+-                         g_curPlayer, g_shotType[weapon], g_shotSpeed[weapon], countsAsShot,
++                         g_curPlayer, g_shotType[weapon + 1], g_shotSpeed[weapon], countsAsShot,
+expect: Play_FirePlayer_shoots_the_weapons_shot_type_and_damage
+expect: Play_UpdatePlayer_fire_key_shoots_once_per_press
+
+== play: FirePlayer damage from the wrong table
+file: src/game/player.c
+-                         g_curPlayer, g_shotType[weapon], g_shotSpeed[weapon], countsAsShot,
++                         g_curPlayer, g_shotType[weapon], g_shotSpeed[0], countsAsShot,
+expect: Play_FirePlayer_shoots_the_weapons_shot_type_and_damage
+
+== play: FirePlayer sound every shot
+file: src/game/player.c
+- if (g_debrisSpawnedCount > 0 && g_save.players[g_curPlayer].nextShotSnd < g_time) {
++ if (g_debrisSpawnedCount > 0) {
+expect: Play_FirePlayer_plays_the_weapon_sound_at_most_every_50ms
+
+== play: FirePlayer sound gap
+file: src/game/player.c
+-             played = true;
+-             g_save.players[g_curPlayer].nextShotSnd = g_time + 50;
++             played = true;
++             g_save.players[g_curPlayer].nextShotSnd = g_time + 100;
+expect: Play_FirePlayer_plays_the_weapon_sound_at_most_every_50ms
+
+== play: FirePlayer side shots count
+file: src/game/player.c
+-             SpawnDebris(g_save.players[g_curPlayer].x - 36.0, g_save.players[g_curPlayer].y,
+-                             g_curPlayer, g_shotType[transveapon[weapon]], g_shotSpeed[transveapon[weapon]], 0,
++             SpawnDebris(g_save.players[g_curPlayer].x - 36.0, g_save.players[g_curPlayer].y,
++                             g_curPlayer, g_shotType[transveapon[weapon]], g_shotSpeed[transveapon[weapon]], 1,
+expect: Play_FirePlayer_captured_shields_fire_side_shots
+
+== play: FirePlayer right shield ignores settled
+file: src/game/player.c
+-             g_enemies[pl][g_save.players[g_curPlayer].shieldRIdx].settled != 0) {
++             g_enemies[pl][g_save.players[g_curPlayer].shieldRIdx].active == 0) {
+expect: Play_FirePlayer_captured_shields_fire_side_shots
+
+== play: FirePlayer side shot weapon map
+file: src/game/player.c
+- transveapon[0] = 16;
++ transveapon[0] = 15;
+expect: Play_FirePlayer_captured_shields_fire_side_shots
+
+== play: FirePlayer right side shot on the left
+file: src/game/player.c
+- SpawnDebris(g_save.players[g_curPlayer].x + 36.0, g_save.players[g_curPlayer].y,
++ SpawnDebris(g_save.players[g_curPlayer].x - 36.0, g_save.players[g_curPlayer].y,
+expect: Play_FirePlayer_captured_shields_fire_side_shots
+
+== play: UpdatePlayer autofire timer not set
+file: src/game/player.c
+-                 P.autofireTimer = g_time + P.autofireInterval;
++                 P.autofireTimer = g_time;
+expect: Play_UpdatePlayer_autofire_repeats_at_its_interval_while_fire_is_held
+
+== play: UpdatePlayer autofire ignores the timer
+file: src/game/player.c
+-                 g_state != STATE_BONUS_RACE && g_time > P.autofireTimer) {
++                 g_state != STATE_BONUS_RACE && g_time >= P.autofireTimer) {
+expect: Play_UpdatePlayer_autofire_repeats_at_its_interval_while_fire_is_held
+
+== play: UpdatePlayer autofire without the pickup
+file: src/game/player.c
+-             if (P.autofire != 0 && P.dead == 0 &&
++             if (P.dead == 0 &&
+expect: Play_UpdatePlayer_autofire_repeats_at_its_interval_while_fire_is_held
+
+== play: UpdatePlayer mirror fire keeps the mirrored x
+file: src/game/player.c
+-                     if (P.mirrorTime != 0) {
+-                         FirePlayer(100, 0);
+-                         P.x = (g_screenW - 40) - P.x;
+-                         FirePlayer(100, 0);
+-                         P.x = (g_screenW - 40) - P.x;
+-                     }
+-                 }
+-                 P.keyLatchFire = 0;
++                     if (P.mirrorTime != 0) {
++                         FirePlayer(100, 0);
++                         P.x = (g_screenW - 40) - P.x;
++                         FirePlayer(100, 0);
++                     }
++                 }
++                 P.keyLatchFire = 0;
+expect: Play_UpdatePlayer_mirror_mode_fires_from_both_ships
+
+== play: UpdatePlayer mirror fire mirrors around the wrong axis
+file: src/game/player.c
+-                         FirePlayer(100, 0);
+-                         P.x = (g_screenW - 40) - P.x;
+-                         FirePlayer(100, 0);
+-                         P.x = (g_screenW - 40) - P.x;
+-                     }
+-                 }
+-                 P.keyLatchFire = 0;
++                         FirePlayer(100, 0);
++                         P.x = g_screenW - P.x;
++                         FirePlayer(100, 0);
++                         P.x = g_screenW - P.x;
++                     }
++                 }
++                 P.keyLatchFire = 0;
+expect: Play_UpdatePlayer_mirror_mode_fires_from_both_ships
+
+# ---------------------------------------------------------------- player.c: rockets
+
+== play: UpdatePlayer rocket not spent
+file: src/game/player.c
+- P.rockets = P.rockets - 1;
++ P.rockets = P.rockets - 0;
+expect: Play_UpdatePlayer_rocket_locks_an_enemy_and_uses_a_rocket
+
+== play: UpdatePlayer rocket latch not cleared
+file: src/game/player.c
+- P.keyLatchRocket = 0;
++ P.keyLatchRocket = 1;
+expect: Play_UpdatePlayer_rocket_locks_an_enemy_and_uses_a_rocket
+
+== play: UpdatePlayer rocket fired without rockets
+file: src/game/player.c
+- P.keyLatchRocket != 0 && P.rockets > 0) {
++ P.keyLatchRocket != 0 && P.rockets >= 0) {
+expect: Play_UpdatePlayer_rocket_needs_a_target_and_rockets
+
+== play: UpdatePlayer rocket with no target
+file: src/game/player.c
+-                     if (count < 1)
+-                         break;
++                     if (count < 0)
++                         break;
+expect: Play_UpdatePlayer_rocket_needs_a_target_and_rockets
+
+== play: UpdatePlayer rocket targets locked enemies
+file: src/game/player.c
+-                             !E.locked && E.type != ENEMY_DEBRIS) {
++                             E.type != ENEMY_DEBRIS) {
+expect: Play_UpdatePlayer_rocket_skips_ineligible_enemies
+
+== play: UpdatePlayer rocket targets staggered enemies
+file: src/game/player.c
+- if (E.active != 0 && E.attackStaggerTimer < 1.0 && E.type != ENEMY_CAPTURED &&
++ if (E.active != 0 && E.type != ENEMY_CAPTURED &&
+expect: Play_UpdatePlayer_rocket_skips_ineligible_enemies
+
+== play: UpdatePlayer rocket locks bosses
+file: src/game/player.c
+-                     case ENEMY_BOSS:
+-                     case ENEMY_GUARD:
+-                         E.locked = 0;
++                     case ENEMY_BOSS:
++                     case ENEMY_GUARD:
++                         E.locked = 1;
+expect: Play_UpdatePlayer_rocket_leaves_bosses_unlocked
+
+== play: UpdatePlayer rocket allowed in the shop
+file: src/game/player.c
+- if (g_state != STATE_SHOP && g_state != STATE_BONUS_RACE && g_state != STATE_MEMORY_STATION &&
++ if (g_state != STATE_BONUS_RACE && g_state != STATE_MEMORY_STATION &&
+expect: Play_UpdatePlayer_no_rockets_in_the_shop_or_when_dead
+
+== play: UpdatePlayer rocket while dead
+file: src/game/player.c
+-             g_state != STATE_SHOP_GATE && g_state != STATE_METEOR_STORM && P.dead == 0 &&
++             g_state != STATE_SHOP_GATE && g_state != STATE_METEOR_STORM &&
+expect: Play_UpdatePlayer_no_rockets_in_the_shop_or_when_dead
+
+== play: UpdatePlayer rocket position
+file: src/game/player.c
+- C.x = P.x + 9.0f;
++ C.x = P.x + 20.0f;
+expect: Play_UpdatePlayer_rocket_locks_an_enemy_and_uses_a_rocket
+
+== play: UpdatePlayer rocket damage
+file: src/game/player.c
+- C.dmg = 200;
++ C.dmg = 100;
+expect: Play_UpdatePlayer_rocket_locks_an_enemy_and_uses_a_rocket
+
+== play: UpdatePlayer rocket transition lock time
+file: src/game/player.c
+- g_transitionLockUntil = g_time + 500;
++ g_transitionLockUntil = g_time + 50;
+expect: Play_UpdatePlayer_rocket_locks_an_enemy_and_uses_a_rocket
+
+== play: UpdatePlayer rocket silent
+file: src/game/player.c
+- SoundPlay(g_sfxRocket, 32000, 255, g_panTable[ClampX((int)C.x)], 127, g_sndFlags);
++
+expect: Play_UpdatePlayer_rocket_locks_an_enemy_and_uses_a_rocket
+
+# ---------------------------------------------------------------- player.c: timers, death, respawn
+
+== play: UpdatePlayer shield ends a frame early
+file: src/game/player.c
+-     if (P.shieldTimer != 0) {
+-         if (g_time > P.shieldTimer) {
++     if (P.shieldTimer != 0) {
++         if (g_time >= P.shieldTimer) {
+expect: Play_UpdatePlayer_ends_the_shield_and_scoop_when_their_time_is_up
+
+== play: UpdatePlayer scoop never ends
+file: src/game/player.c
+-         if (g_time > P.scoopTimer) {
+-             P.scoopTimer = 0;
++         if (g_time > P.scoopTimer) {
+expect: Play_UpdatePlayer_ends_the_shield_and_scoop_when_their_time_is_up
+
+== play: UpdatePlayer scoop range cap
+file: src/game/player.c
+-         if (g_scoopRange < 45.0)
+-             g_scoopRange = g_scoopRange + 1.0;
+-     }
+-
+-     if (P.shieldTimer != 0) {
++         if (g_scoopRange < 46.0)
++             g_scoopRange = g_scoopRange + 1.0;
++     }
++
++     if (P.shieldTimer != 0) {
+expect: Play_UpdatePlayer_scoop_beam_grows_to_45
+
+== play: UpdatePlayer respawns early
+file: src/game/player.c
+- if (P.dead != 0 && g_time > P.respawnTime) {
++ if (P.dead != 0 && g_time + 10 > P.respawnTime) {
+expect: Play_UpdatePlayer_respawns_single_player_after_the_timer
+
+== play: UpdatePlayer single respawn costs nothing
+file: src/game/player.c
+-             case MODE_SINGLE:
+-                 P.x = (g_screenW >> 1) - 20;
+-                 P.y = g_floorY;
+-                 P.dead = 0;
+-                 P.lives = P.lives - g_shipDefs[P.ship]->cost;
++             case MODE_SINGLE:
++                 P.x = (g_screenW >> 1) - 20;
++                 P.y = g_floorY;
++                 P.dead = 0;
+expect: Play_UpdatePlayer_respawns_single_player_after_the_timer
+
+== play: UpdatePlayer single respawn without penalty
+file: src/game/player.c
+-                 P.lives = P.lives - g_shipDefs[P.ship]->cost;
+-                 PlayerHit(g_curPlayer);
+-                 break;
+-
+-             case MODE_TWO_PLAYER:
++                 P.lives = P.lives - g_shipDefs[P.ship]->cost;
++                 break;
++
++             case MODE_TWO_PLAYER:
+expect: Play_UpdatePlayer_respawns_single_player_after_the_timer
+
+== play: UpdatePlayer single respawn position
+file: src/game/player.c
+-             case MODE_SINGLE:
+-                 P.x = (g_screenW >> 1) - 20;
++             case MODE_SINGLE:
++                 P.x = (g_screenW >> 1);
+expect: Play_UpdatePlayer_respawns_single_player_after_the_timer
+
+== play: UpdatePlayer single respawn shield
+file: src/game/player.c
+-                 case MODE_SINGLE:
+-                     P.shieldTimer = g_time + 3000;
++                 case MODE_SINGLE:
++                     P.shieldTimer = g_time + 5000;
+expect: Play_UpdatePlayer_respawns_single_player_after_the_timer
+
+== play: UpdatePlayer time trial respawn shield
+file: src/game/player.c
+-                 case MODE_TIME_TRIAL:
+-                     P.shieldTimer = g_time + 1500;
++                 case MODE_TIME_TRIAL:
++                     P.shieldTimer = g_time + 3000;
+expect: Play_UpdatePlayer_respawn_shield_time_depends_on_the_mode
+
+== play: UpdatePlayer time trial no respawn
+file: src/game/player.c
+-             case MODE_TIME_TRIAL:
+-                 P.x = (g_screenW >> 1) - 20;
+-                 P.y = g_floorY;
+-                 P.dead = 0;
++             case MODE_TIME_TRIAL:
++                 P.x = (g_screenW >> 1) - 20;
++                 P.y = g_floorY;
+expect: Play_UpdatePlayer_respawn_shield_time_depends_on_the_mode
+
+== play: UpdatePlayer shield after the last life
+file: src/game/player.c
+-             if (P.lives > g_shipDefs[P.ship]->minEnergy) {
+-                 switch (g_gameMode) {
++             if (P.lives >= g_shipDefs[P.ship]->minEnergy) {
++                 switch (g_gameMode) {
+expect: Play_UpdatePlayer_losing_the_last_life_shows_the_hiscore_table
+
+== play: UpdatePlayer no hiscore table at game over
+file: src/game/player.c
+-             if (IsGameOver())
+-                 ShowHiscoreTable();
+-
+-             if (P.lives
++             if (P.lives
+expect: Play_UpdatePlayer_losing_the_last_life_shows_the_hiscore_table
+
+== play: UpdatePlayer respawn bonus weights
+file: src/game/player.c
+-             g_bonusWeight[33] = 8;
+-             g_bonusWeight[26] = 25;
+-             g_bonusWeight[19] = 35;
+-
+-             if (IsGameOver())
+-                 ShowHiscoreTable();
+-
+-             if (P.lives
++             g_bonusWeight[33] = 8;
++             g_bonusWeight[26] = 25;
++
++             if (IsGameOver())
++                 ShowHiscoreTable();
++
++             if (P.lives
+expect: Play_UpdatePlayer_respawns_single_player_after_the_timer
+
+== play: UpdatePlayer dual respawn swaps sides
+file: src/game/player.c
+-                 if (g_curPlayer == 0)
+-                     P.x = (g_screenW / 6) * 2 - 20;
++                 if (g_curPlayer == 1)
++                     P.x = (g_screenW / 6) * 2 - 20;
+expect: Play_UpdatePlayer_dual_mode_respawns_each_player_in_its_third
+
+== play: UpdatePlayer dual respawn shield
+file: src/game/player.c
+-                 case MODE_DUAL:
+-                     P.shieldTimer = g_time + 3000;
++                 case MODE_DUAL:
++                     P.shieldTimer = g_time + 5000;
+expect: Play_UpdatePlayer_dual_mode_respawns_each_player_in_its_third
+
+== play: UpdatePlayers skips player 2
+file: src/game/player.c
+-         g_curPlayer = 1;
+-         UpdatePlayer();
+-         g_curPlayer = 0;
+-         UpdatePlayer();
+-     }
+- }
++         g_curPlayer = 0;
++         UpdatePlayer();
++     }
++ }
+expect: Play_UpdatePlayers_updates_player_2_then_player_1
+
+== play: UpdatePlayers race turn ignored
+file: src/game/player.c
+-         if (g_vsTurnPlayer == 0) {
+-             g_curPlayer = 0;
+-             UpdatePlayer();
++         if (g_vsTurnPlayer == 0) {
++             g_curPlayer = 1;
++             UpdatePlayer();
+expect: Play_UpdatePlayers_in_a_race_only_updates_the_turn_player
+
+== play: StateDemo left edge
+file: src/game/player.c
+-         if (g_save.players[g_curPlayer].x < 130.0)
+-             g_demoSteer = 90;
++         if (g_save.players[g_curPlayer].x < 90.0)
++             g_demoSteer = 90;
+expect: Play_StateDemo_steers_away_from_the_edges
+
+== play: StateDemo right edge steers right
+file: src/game/player.c
+-             g_demoSteer = 10;
++             g_demoSteer = 50;
+expect: Play_StateDemo_steers_away_from_the_edges
+
+== play: StateDemo ignores space
+file: src/game/player.c
+-     if (KeyDown(K_VK_SPACE) == true || KeyDown(K_VK_ESCAPE) == true ||
++     if (KeyDown(K_VK_ESCAPE) == true ||
+expect: Play_StateDemo_any_key_returns_to_the_title
+
+== play: StateDemo cooldown
+file: src/game/player.c
+-         InputFire(0) || InputFire(1)) {
+-         ResetToTitle();
+-         g_inputCooldown = 100;
++         InputFire(0) || InputFire(1)) {
++         ResetToTitle();
++         g_inputCooldown = 10;
+expect: Play_StateDemo_any_key_returns_to_the_title
+
+# ---------------------------------------------------------------- items.c: Pickup
+
+== play: Pickup does not count
+file: src/game/items.c
+- PL.pickupCount++;
++
+expect: Play_Pickup_counts_every_pickup
+
+== play: Pickup freeze length
+file: src/game/items.c
+-             PL.freezeTimer = g_time + 10000;
++             PL.freezeTimer = g_time + 1000;
+expect: Play_Pickup_freeze_freezes_for_10_seconds
+
+== play: Pickup freeze dual only player 1
+file: src/game/items.c
+-             g_save.players[1].freezeTimer = g_time + 10000;
++
+expect: Play_Pickup_freeze_in_dual_mode_freezes_both_players
+
+== play: Pickup times2 keeps times5
+file: src/game/items.c
+-         PL.scoreMult2Timer = PL.buffDuration * 1000 + g_time;
+-         PL.scoreMult5Timer = 0;
++         PL.scoreMult2Timer = PL.buffDuration * 1000 + g_time;
+expect: Play_Pickup_times2_and_times5_set_the_score_multiplier
+
+== play: Pickup times5 multiplier
+file: src/game/items.c
+- g_scoreMul[g_curPlayer] = 5;
++ g_scoreMul[g_curPlayer] = 4;
+expect: Play_Pickup_times2_and_times5_set_the_score_multiplier
+
+== play: Pickup times5 length
+file: src/game/items.c
+- PL.scoreMult5Timer = PL.buffDuration * 1000 + g_time;
++ PL.scoreMult5Timer = PL.buffDuration * 100 + g_time;
+expect: Play_Pickup_times2_and_times5_set_the_score_multiplier
+
+== play: Pickup extra bullet cap
+file: src/game/items.c
+-         SoundQueueAdd(g_sfxExtraBullet, 50, 0);
+-         if (PL.bullets < 0x32) {
++         SoundQueueAdd(g_sfxExtraBullet, 50, 0);
++         if (PL.bullets <= 0x32) {
+expect: Play_Pickup_extra_bullet_adds_one_up_to_50
+
+== play: Pickup extra bullet no score when full
+file: src/game/items.c
+-         if (PL.bullets < 0x32) {
+-             PL.bullets++;
+-         } else {
+-             ADD_SCORE(SECRET_ITEM_SCORE);
++         if (PL.bullets < 0x32) {
++             PL.bullets++;
++         } else {
+expect: Play_Pickup_extra_bullet_adds_one_up_to_50
+
+== play: Pickup extra speed cap
+file: src/game/items.c
+-         if (PL.speed > g_speedStep * g_maxSpeedMul + g_speedBase) {
+-             PL.speed = g_speedStep * g_maxSpeedMul + g_speedBase;
++         if (PL.speed > g_speedStep * g_maxSpeedMul + g_speedBase) {
++             PL.speed = g_speedStep * g_maxSpeedMul;
+expect: Play_Pickup_extra_speed_is_capped
+
+== play: Pickup extra speed step
+file: src/game/items.c
+- PL.speed += g_speedStep;
++ PL.speed += g_speedStep * 2;
+expect: Play_Pickup_extra_speed_is_capped
+
+== play: Pickup shield length
+file: src/game/items.c
+- PL.shieldTimer = PL.buffDuration * 1000 + g_time;
++ PL.shieldTimer = 20 * 1000 + g_time;
+expect: Play_Pickup_shield_lasts_the_buff_duration
+
+== play: Pickup shield no hum
+file: src/game/items.c
+- g_chanShieldHum = SoundPlayChannel(g_chanShieldHum, g_sfxShieldHum, -1, 0xb4, 0.0f, 0xdf);
++
+expect: Play_Pickup_shield_lasts_the_buff_duration
+
+== play: Pickup mirror keeps old mirror x
+file: src/game/items.c
+- PL.mirrorX = PL.x;
++
+expect: Play_Pickup_mirror_and_drunk_modes_last_the_buff_duration
+
+== play: Pickup drunk length
+file: src/game/items.c
+- PL.drunkModeTimer = PL.buffDuration * 1000 + g_time;
++ PL.drunkModeTimer = PL.buffDuration * 1000;
+expect: Play_Pickup_mirror_and_drunk_modes_last_the_buff_duration
+
+== play: Pickup scoop spawn delay
+file: src/game/items.c
+- g_scoop[i].spawnDelay = i + 5;
++ g_scoop[i].spawnDelay = 5;
+expect: Play_Pickup_scoop_arms_the_scoop_trail
+
+== play: Pickup scoop range not reset
+file: src/game/items.c
+-         g_scoopRange = 0;
+-         g_chanScopeHum
++         g_chanScopeHum
+expect: Play_Pickup_scoop_arms_the_scoop_trail
+
+== play: Pickup extra time step
+file: src/game/items.c
+-         if (PL.buffDuration < g_timeMax) {
+-             PL.buffDuration = PL.buffDuration + 5;
++         if (PL.buffDuration < g_timeMax) {
++             PL.buffDuration = PL.buffDuration + 6;
+expect: Play_Pickup_extra_time_adds_5_seconds_up_to_the_max
+
+== play: Pickup extra time no clamp
+file: src/game/items.c
+-         } else {
+-             PL.buffDuration = g_timeMax;
+-             ADD_SCORE(SECRET_ITEM_SCORE);
++         } else {
++             ADD_SCORE(SECRET_ITEM_SCORE);
+expect: Play_Pickup_extra_time_adds_5_seconds_up_to_the_max
+
+== play: Pickup bullet speed step
+file: src/game/items.c
+- PL.bulletSpeedMult += (double)0.1f;
++ PL.bulletSpeedMult += (double)0.2f;
+expect: Play_Pickup_extra_bullet_speed_adds_a_tenth_up_to_the_max
+
+== play: Pickup bullet speed no score at max
+file: src/game/items.c
+-             PL.bulletSpeedMult = g_bulletSpeedMax;
+-             ADD_SCORE(SECRET_ITEM_SCORE);
++             PL.bulletSpeedMult = g_bulletSpeedMax;
+expect: Play_Pickup_extra_bullet_speed_adds_a_tenth_up_to_the_max
+
+== play: Pickup double shot gives triple
+file: src/game/items.c
+- WEAPON_NEW(1, g_sfxDoubleShot, "DOUBLE SHOT");
++ WEAPON_NEW(2, g_sfxDoubleShot, "DOUBLE SHOT");
+expect: Play_Pickup_weapons_switch_to_that_weapon
+
+== play: Pickup quad shot check
+file: src/game/items.c
+-         if (PL.weapon == 3) {
++         if (PL.weapon == 2) {
+expect: Play_Pickup_the_weapon_you_have_gives_an_extra_bullet
+
+== play: Pickup triple shot always new
+file: src/game/items.c
+-         if (PL.weapon == 2) {
+-             WEAPON_HAVE();
++         if (0) {
++             WEAPON_HAVE();
+expect: Play_Pickup_the_weapon_you_have_gives_an_extra_bullet
+
+== play: Pickup weapon have cap
+file: src/game/items.c
+-             if (PL.bullets < 0x32) { \
++             if (PL.bullets < 0x33) { \
+expect: Play_Pickup_the_weapon_you_have_gives_an_extra_bullet
+
+== play: Pickup single shot laughs at quad once
+file: src/game/items.c
+- if (PL.weapon >= 3 && PL.weapon <= 6)
++ if (PL.weapon >= 4 && PL.weapon <= 6)
+expect: Play_Pickup_single_shot_laughs_at_a_big_weapon
+
+== play: Pickup single shot laughs once at laser
+file: src/game/items.c
+-                 SoundPlay2(g_sfxHahaha, -1, 0xc8, 0.0f, 0xff, g_sndFlags);
+-                 SoundPlay2(g_sfxHahaha, -1, 0xff, 0.0f, 0xff, g_sndFlags);
++                 SoundPlay2(g_sfxHahaha, -1, 0xc8, 0.0f, 0xff, g_sndFlags);
+expect: Play_Pickup_single_shot_laughs_at_a_big_weapon
+
+== play: Pickup autofire timer not reset
+file: src/game/items.c
+-             PL.autofireTimer = g_time;
++             PL.autofireTimer = PL.autofireTimer;
+expect: Play_Pickup_autofire_turns_it_on_then_scores
+
+== play: Pickup autofire overrides super autofire
+file: src/game/items.c
+-         if (PL.superAuto == 0) {
+-             PL.autofireTimer = g_time;
++         if (1) {
++             PL.autofireTimer = g_time;
+expect: Play_Pickup_autofire_leaves_super_autofire_alone
+
+== play: Pickup autofire scores only with autofire
+file: src/game/items.c
+- if (PL.superAuto != 0 || PL.autofire != 0) {
++ if (PL.autofire != 0) {
+expect: Play_Pickup_autofire_leaves_super_autofire_alone
+
+== play: Pickup armour step
+file: src/game/items.c
+-     case ITEM_ARMOUR:  // ARMOUR
+-         if (PL.armour < SHIP->baseArmour + SHIP->maxArmourBonus) {
+-             PL.armour = PL.armour + SHIP->armourStep;
++     case ITEM_ARMOUR:  // ARMOUR
++         if (PL.armour < SHIP->baseArmour + SHIP->maxArmourBonus) {
++             PL.armour = PL.armour + SHIP->maxArmourBonus;
+expect: Play_Pickup_armour_adds_a_step_up_to_the_max
+
+== play: Pickup armour not clamped
+file: src/game/items.c
+-             VOICE(secretFound28, 0x1c);
+-         }
+-         if (PL.armour > SHIP->baseArmour + SHIP->maxArmourBonus)
+-             PL.armour = SHIP->baseArmour + SHIP->maxArmourBonus;
+-         break;
+-
+-     case ITEM_SUCKER_BLUE_MONEY:
++             VOICE(secretFound28, 0x1c);
++         }
++         break;
++
++     case ITEM_SUCKER_BLUE_MONEY:
+expect: Play_Pickup_armour_adds_a_step_up_to_the_max
+
+== play: Pickup armour full gives no score
+file: src/game/items.c
+-             g_armourAddedCount = g_armourAddedCount + 5;
+-         } else {
+-             ADD_SCORE(SECRET_ITEM_SCORE);
+-             AddScorePopup((int)PL.x, (int)(PL.y - 30.0), SECRET_ITEM_SCORE, 0);
+-             VOICE(secretFound28, 0x1c);
+-         }
+-         if (PL.armour > SHIP->baseArmour + SHIP->maxArmourBonus)
++             g_armourAddedCount = g_armourAddedCount + 5;
++         } else {
++             AddScorePopup((int)PL.x, (int)(PL.y - 30.0), SECRET_ITEM_SCORE, 0);
++             VOICE(secretFound28, 0x1c);
++         }
++         if (PL.armour > SHIP->baseArmour + SHIP->maxArmourBonus)
+expect: Play_Pickup_armour_adds_a_step_up_to_the_max
+
+== play: Pickup extra life cost
+file: src/game/items.c
+-     case ITEM_EXTRA_LIFE:  // EXTRA LIFE (falls back to armour, then score, once maxed)
+-         if (PL.lives < SHIP->minEnergy + SHIP->maxEnergy) {
+-             PL.lives = PL.lives + SHIP->cost;
++     case ITEM_EXTRA_LIFE:  // EXTRA LIFE (falls back to armour, then score, once maxed)
++         if (PL.lives < SHIP->minEnergy + SHIP->maxEnergy) {
++             PL.lives = PL.lives + 1;
+expect: Play_Pickup_extra_life_adds_a_life_then_armour_then_score
+
+== play: Pickup extra life not clamped
+file: src/game/items.c
+-             AddScorePopup(g_screenW >> 1, g_screenH >> 1, MAXED_REWARD_SCORE, 1);
+-         }
+-         if (PL.lives > SHIP->minEnergy + SHIP->maxEnergy)
+-             PL.lives = SHIP->minEnergy + SHIP->maxEnergy;
+-         sprintf(g_alertMsg, "EXTRA LIFE");
++             AddScorePopup(g_screenW >> 1, g_screenH >> 1, MAXED_REWARD_SCORE, 1);
++         }
++         sprintf(g_alertMsg, "EXTRA LIFE");
+expect: Play_Pickup_extra_life_adds_a_life_then_armour_then_score
+
+== play: Pickup extra life skips armour
+file: src/game/items.c
+-             g_livesGainedCount = g_livesGainedCount + 10;
+-         } else if (PL.armour < SHIP->baseArmour + SHIP->maxArmourBonus) {
+-             PL.armour = PL.armour + SHIP->armourStep;
+-             sprintf(g_alertMsg, "ARMOUR");
+-             MSG_COLOR();
+-             g_msgTimer = g_time + 1000;
+-             SoundQueueAdd(g_sfxArmour, 50, 0);
+-             g_armourAddedCount = g_armourAddedCount + 5;
+-         } else {
+-             ADD_SCORE(MAXED_REWARD_SCORE);
+-             AddScorePopup(g_screenW >> 1, g_screenH >> 1, MAXED_REWARD_SCORE, 1);
+-         }
+-         if (PL.lives > SHIP->minEnergy + SHIP->maxEnergy)
+-             PL.lives = SHIP->minEnergy + SHIP->maxEnergy;
+-         sprintf(g_alertMsg, "EXTRA LIFE");
++             g_livesGainedCount = g_livesGainedCount + 10;
++         } else {
++             ADD_SCORE(MAXED_REWARD_SCORE);
++             AddScorePopup(g_screenW >> 1, g_screenH >> 1, MAXED_REWARD_SCORE, 1);
++         }
++         if (PL.lives > SHIP->minEnergy + SHIP->maxEnergy)
++             PL.lives = SHIP->minEnergy + SHIP->maxEnergy;
++         sprintf(g_alertMsg, "EXTRA LIFE");
+expect: Play_Pickup_extra_life_adds_a_life_then_armour_then_score
+
+== play: Pickup warp no level finish
+file: src/game/items.c
+-             PL.levelFinished = 1;
+-             PL.levelWarpPending = 1;
++             PL.levelWarpPending = 1;
+expect: Play_Pickup_warp_finishes_the_level_and_toughens_enemies
+
+== play: Pickup warp toughness step
+file: src/game/items.c
+- PL.enemyHpBonusRoll = PL.enemyHpBonusRoll + 2;
++ PL.enemyHpBonusRoll = PL.enemyHpBonusRoll + 1;
+expect: Play_Pickup_warp_finishes_the_level_and_toughens_enemies
+
+== play: Pickup warp toughness cap
+file: src/game/items.c
+-             if (PL.enemyHpBonusRoll > 0x4b)
+-                 PL.enemyHpBonusRoll = 0x4b;
++             if (PL.enemyHpBonusRoll > 0x4c)
++                 PL.enemyHpBonusRoll = 0x4c;
+expect: Play_Pickup_warp_finishes_the_level_and_toughens_enemies
+
+== play: Pickup warp flash cap
+file: src/game/items.c
+-             if (PL.shieldHitFlashSpeed > 8.0)
+-                 PL.shieldHitFlashSpeed = 8.0f;
++             if (PL.shieldHitFlashSpeed > 9.0)
++                 PL.shieldHitFlashSpeed = 9.0f;
+expect: Play_Pickup_warp_finishes_the_level_and_toughens_enemies
+
+== play: Pickup warp dual skips player 2
+file: src/game/items.c
+-             g_save.players[1].levelFinished = 1;
++
+expect: Play_Pickup_warp_in_dual_mode_warps_both_players
+
+== play: Pickup warp dual player 2 cap
+file: src/game/items.c
+-             if (g_save.players[1].enemyHpBonusRoll > 0x4b)
++             if (g_save.players[1].enemyHpBonusRoll > 0x4c)
+expect: Play_Pickup_warp_in_dual_mode_warps_both_players
+
+== play: Pickup EXTRA chain broken at T
+file: src/game/items.c
+-         if (PL.extraProgress == 'X')
+-             PL.extraProgress = 'T';
++         if (PL.extraProgress == 'E')
++             PL.extraProgress = 'T';
+expect: Play_Pickup_letters_in_order_spell_EXTRA
+
+== play: Pickup EXTRA word wrong final check
+file: src/game/items.c
+-         if (PL.extraProgress == 'R') {
++         if (PL.extraProgress == 'T') {
+expect: Play_Pickup_letters_in_order_spell_EXTRA
+
+== play: Pickup EXTRA doesnt fill armour
+file: src/game/items.c
+-                 PL.armour = SHIP->baseArmour + SHIP->maxArmourBonus;
+-                 if (g_profileIndex != -1 && g_gameMode == MODE_SINGLE && g_playerUpdateFn != StateDemo) {
+-                     PL.secretFound20 = 1;
++                 if (g_profileIndex != -1 && g_gameMode == MODE_SINGLE && g_playerUpdateFn != StateDemo) {
++                     PL.secretFound20 = 1;
+expect: Play_Pickup_letters_in_order_spell_EXTRA
+
+== play: Pickup super EXTRA bonus
+file: src/game/items.c
+- SUPER_WORD_BONUS_SCORE = 5000000,
++ SUPER_WORD_BONUS_SCORE = 500000,
+expect: Play_Pickup_super_EXTRA_when_already_full
+expect: Play_Pickup_super_ARTXE_when_already_full
+
+== play: Pickup super EXTRA popup offset
+file: src/game/items.c
+- sprintf(g_alertMsg, "*** S U P E R   E X T R A ***");
+-                 g_completePopupYOffset = 0x32;
++ sprintf(g_alertMsg, "*** S U P E R   E X T R A ***");
+expect: Play_Pickup_super_EXTRA_when_already_full
+
+== play: Pickup ARTXE chain broken at X
+file: src/game/items.c
+-         if (PL.artxeProgress == 'T')
+-             PL.artxeProgress = 'X';
++         if (PL.artxeProgress == 'R')
++             PL.artxeProgress = 'X';
+expect: Play_Pickup_letters_backwards_spell_ARTXE
+
+== play: Pickup ARTXE wrong final check
+file: src/game/items.c
+-         if (PL.artxeProgress == 'X') {
++         if (PL.artxeProgress == 'A') {
+expect: Play_Pickup_letters_backwards_spell_ARTXE
+
+== play: Pickup super ARTXE no bonus
+file: src/game/items.c
+-                 sprintf(g_alertMsg, "*** S U P E R   A R T X E ***");
+-                 ADD_SCORE(SUPER_WORD_BONUS_SCORE);
++                 sprintf(g_alertMsg, "*** S U P E R   A R T X E ***");
+expect: Play_Pickup_super_ARTXE_when_already_full
+
+== play: Pickup complete needs no A
+file: src/game/items.c
+-         if (PL.extraLetterE != 0 && PL.extraLetterX != 0 && PL.extraLetterT != 0 && PL.extraLetterR != 0 && \
+-             PL.extraLetterA != 0) { \
++         if (PL.extraLetterE != 0 && PL.extraLetterX != 0 && PL.extraLetterT != 0 && PL.extraLetterR != 0) { \
+expect: Play_Pickup_all_five_letters_out_of_order_give_a_life
+
+== play: Pickup complete keeps the letters
+file: src/game/items.c
+-             PL.extraLetterE = 0; \
+-             PL.extraLetterX = 0; \
++             PL.extraLetterX = 0; \
+expect: Play_Pickup_all_five_letters_out_of_order_give_a_life
+
+== play: Pickup complete gives no life
+file: src/game/items.c
+-                 PL.lives = PL.lives + SHIP->cost; \
++                 PL.lives = PL.lives; \
+expect: Play_Pickup_all_five_letters_out_of_order_give_a_life
+
+== play: Pickup complete armour fallback skipped
+file: src/game/items.c
+-             } else if (PL.armour < SHIP->baseArmour + SHIP->maxArmourBonus) { \
++             } else if (0) { \
+expect: Play_Pickup_complete_letters_with_full_lives_give_armour
+
+== play: Pickup complete maxed reward
+file: src/game/items.c
+- MAXED_REWARD_SCORE     = 1000000,
++ MAXED_REWARD_SCORE     = 100000,
+expect: Play_Pickup_letters_in_order_spell_EXTRA
+expect: Play_Pickup_extra_life_adds_a_life_then_armour_then_score
+
+== play: Pickup duplicate letter score
+file: src/game/items.c
+- DUPLICATE_LETTER_SCORE = 100,
++ DUPLICATE_LETTER_SCORE = 10,
+expect: Play_Pickup_a_letter_twice_scores_100
+
+== play: Pickup duplicate letter T always scores
+file: src/game/items.c
+-         if (PL.extraLetterT != 0) {
++         if (1) {
+expect: Play_Pickup_a_letter_twice_scores_100
+
+== play: Pickup score ignores multiplier
+file: include/macros.h
+- #define ADD_PLAYER_SCORE(score, pl, add) ((score) += (__int64)(add) * g_scoreMul[pl])
++ #define ADD_PLAYER_SCORE(score, pl, add) ((score) += (__int64)(add))
+expect: Play_Pickup_a_letter_twice_scores_100
+
+== play: Pickup R keeps the word after a wrong letter
+file: src/game/items.c
+-         if (PL.extraProgress == 'T')
+-             PL.extraProgress = 'R';
+-         else
+-             PL.extraProgress = ' ';
++         PL.extraProgress = 'R';
+expect: Play_Pickup_a_wrong_letter_breaks_the_word
+
+== play: Pickup money small value
+file: src/game/items.c
+- MONEY_SMALL_VALUE      = 10,
++ MONEY_SMALL_VALUE      = 20,
+expect: Play_Pickup_money_bags_add_their_value
+
+== play: Pickup money blue value
+file: src/game/items.c
+- MONEY_BLUE_VALUE       = 200,
++ MONEY_BLUE_VALUE       = 150,
+expect: Play_Pickup_money_bags_add_their_value
+
+== play: Pickup money large gives medium
+file: src/game/items.c
+- MONEY(MONEY_LARGE_VALUE, g_moneyBlinkTimer = 0;);
++ MONEY(MONEY_MEDIUM_VALUE, g_moneyBlinkTimer = 0;);
+expect: Play_Pickup_money_bags_add_their_value
+
+== play: Pickup money over cap kept
+file: src/game/items.c
+-         if (PL.money > PL.moneyMax) { \
+-             PL.money = PL.moneyMax; \
+-             ADD_PLAYER_SCORE(PL.score, g_curPlayer, (bonus) * 10); \
++         if (PL.money > PL.moneyMax) { \
++             ADD_PLAYER_SCORE(PL.score, g_curPlayer, (bonus) * 10); \
+expect: Play_Pickup_money_over_the_wallet_size_becomes_score
+
+== play: Pickup money overflow score
+file: src/game/items.c
+-             ADD_PLAYER_SCORE(PL.score, g_curPlayer, (bonus) * 10); \
++             ADD_PLAYER_SCORE(PL.score, g_curPlayer, (bonus)); \
+expect: Play_Pickup_money_over_the_wallet_size_becomes_score
+
+== play: Pickup money record not kept
+file: src/game/items.c
+-         if (PL.money > g_moneyMax) \
+-             g_moneyMax = PL.money;
++
+expect: Play_Pickup_money_raises_the_session_money_record
+
+== play: Pickup money no coin sound
+file: src/game/items.c
+-         SoundPlay(g_sfxCoin, -1, 200, 0.0f, 0x7f, g_sndFlags); \
++         \
+expect: Play_Pickup_money_bags_add_their_value
+
+== play: Pickup money doubler triples
+file: src/game/items.c
+- PL.money = PL.money * 2;
++ PL.money = PL.money * 3;
+expect: Play_Pickup_money_doubler_doubles_below_450000
+
+== play: Pickup money doubler cap off by one
+file: src/game/items.c
+- if (PL.money < MONEY_DOUBLER_CAP) {
++ if (PL.money <= MONEY_DOUBLER_CAP) {
+expect: Play_Pickup_money_doubler_malfunctions_from_450000
+
+== play: Pickup money doubler overflow not clamped
+file: src/game/items.c
+-             if (PL.money > PL.moneyMax) {
+-                 PL.money = PL.moneyMax;
+-                 ADD_PLAYER_SCORE(PL.score, g_curPlayer, PL.moneyMax * 2);
++             if (PL.money > PL.moneyMax) {
++                 ADD_PLAYER_SCORE(PL.score, g_curPlayer, PL.moneyMax * 2);
+expect: Play_Pickup_money_doubler_overflow_pays_double_the_wallet
+
+== play: Pickup money doubler overflow score
+file: src/game/items.c
+- ADD_PLAYER_SCORE(PL.score, g_curPlayer, PL.moneyMax * 2);
++ ADD_PLAYER_SCORE(PL.score, g_curPlayer, PL.moneyMax);
+expect: Play_Pickup_money_doubler_overflow_pays_double_the_wallet
+
+== play: Pickup money doubler zero time
+file: src/game/items.c
+-                         PL.buffDuration = PL.buffDuration + 0x1e;
++                         PL.buffDuration = PL.buffDuration + 0x14;
+expect: Play_Pickup_money_doubler_with_no_money_adds_time
+
+== play: Pickup money doubler zero time cap
+file: src/game/items.c
+-                     if (PL.buffDuration > g_timeMax)
+-                         PL.buffDuration = g_timeMax;
+-                     VOICE(secretFound16, 0x10);
++                     VOICE(secretFound16, 0x10);
+expect: Play_Pickup_money_doubler_with_no_money_adds_time
+
+== play: Pickup money doubler time for any money
+file: src/game/items.c
+-                 if (PL.money == 0) {
++                 if (PL.money <= 10) {
+expect: Play_Pickup_money_doubler_with_no_money_adds_time
+
+== play: Pickup sucker bullet floor
+file: src/game/items.c
+-         if (PL.bullets > 4) \
++         if (PL.bullets > 3) \
+expect: Play_Pickup_sucker_floors
+
+== play: Pickup sucker ignores weapon floor
+file: src/game/items.c
+-         if (PL.weaponFloorAtOne == 0) { \
++         if (1) { \
+expect: Play_Pickup_sucker_floors
+
+== play: Pickup sucker buff not floored
+file: src/game/items.c
+-         if (PL.buffDuration < g_speedMin) \
+-             PL.buffDuration = g_speedMin; \
++         \
+expect: Play_Pickup_sucker_floors
+
+== play: Pickup sucker no speed penalty
+file: src/game/items.c
+-         PL.speed -= g_speedStep; \
++         \
+expect: Play_Pickup_sucker_penalizes_like_a_hit
+
+== play: Pickup sucker weight clamp
+file: src/game/items.c
+-         if (g > n) \
+-             g = n;
++         if (g > n + 1) \
++             g = n;
+expect: Play_Pickup_sucker_penalizes_like_a_hit
+
+== play: Pickup sucker no message
+file: src/game/items.c
+-             sprintf(g_alertMsg, "SUCKER"); \
++             sprintf(g_alertMsg, "SUCK"); \
+expect: Play_Pickup_sucker_penalizes_like_a_hit
+
+== play: Pickup sucker counter needs 4
+file: src/game/items.c
+-         if (PL.cnt >= 3) { \
++         if (PL.cnt >= 4) { \
+expect: Play_Pickup_three_blue_money_suckers_unlock_blue_money
+expect: Play_Pickup_three_gem_suckers_unlock_the_gem_counter
+expect: Play_Pickup_three_multiplier_suckers_unlock_the_multiplier
+
+== play: Pickup sucker counter not reset
+file: src/game/items.c
+-             PL.cnt = 0; \
++             \
+expect: Play_Pickup_three_blue_money_suckers_unlock_blue_money
+
+== play: Pickup gem sucker unlocks blue money
+file: src/game/items.c
+-         COUNTER(gemCounterPicks, secretFound13, 0xd, gemCounterUnlocked, "** GEM COUNTER ACTIVATED **");
++         COUNTER(gemCounterPicks, secretFound13, 0xd, blueMoneyUnlocked, "** GEM COUNTER ACTIVATED **");
+expect: Play_Pickup_three_gem_suckers_unlock_the_gem_counter
+
+== play: Pickup multiplier sucker not flagged
+file: src/game/items.c
+-         PL.msMultiplierActive = 1;
+-         TRIPLE_CHECK();
++         TRIPLE_CHECK();
+expect: Play_Pickup_one_of_each_sucker_gives_super_triple_shot
+
+== play: Pickup super triple weapon
+file: src/game/items.c
+-                 PL.weapon = 4; \
++                 PL.weapon = 3; \
+expect: Play_Pickup_one_of_each_sucker_gives_super_triple_shot
+
+== play: Pickup super triple downgrades
+file: src/game/items.c
+-             if (PL.weapon < 4) { \
++             if (1) { \
+expect: Play_Pickup_super_triple_keeps_a_better_weapon
+
+== play: Pickup super triple bullets
+file: src/game/items.c
+-             if (PL.bullets < 0x19) \
+-                 PL.bullets = 0x19; \
++             if (PL.bullets < 0x14) \
++                 PL.bullets = 0x14; \
+expect: Play_Pickup_one_of_each_sucker_gives_super_triple_shot
+
+== play: Pickup super triple flags stay
+file: src/game/items.c
+-             PL.gemCounterCollected = 0; \
+-             PL.msMultiplierActive = 0; \
++             PL.msMultiplierActive = 0; \
+expect: Play_Pickup_one_of_each_sucker_gives_super_triple_shot
+
+== play: Pickup super triple speed
+file: src/game/items.c
+-                 PL.speed = g_speedStep * g_speedMax + g_speedBase; \
++                 PL.speed = g_speedStep * g_maxSpeedMul + g_speedBase; \
+expect: Play_Pickup_one_of_each_sucker_gives_super_triple_shot
+
+== play: Pickup gem step
+file: src/game/items.c
+- PL.gems = PL.gems + SHIP->gemStep;
++ PL.gems = PL.gems + 1;
+expect: Play_Pickup_gem_adds_a_gem_and_1000_points
+expect: Play_Pickup_every_100th_gem_starts_the_gem_drop
+
+== play: Pickup gem score
+file: src/game/items.c
+- GEM_SCORE              = 1000,
++ GEM_SCORE              = 100,
+expect: Play_Pickup_gem_adds_a_gem_and_1000_points
+
+== play: Pickup gem drop every 50
+file: src/game/items.c
+- if ((PL.gems - SHIP->gemBase) / SHIP->gemStep % 100 == 0) {
++ if ((PL.gems - SHIP->gemBase) / SHIP->gemStep % 50 == 0) {
+expect: Play_Pickup_gem_adds_a_gem_and_1000_points
+
+== play: Pickup gem drop state
+file: src/game/items.c
+-             g_state = STATE_GEM_DROP;
++             g_state = STATE_PLAYING;
+expect: Play_Pickup_every_100th_gem_starts_the_gem_drop
+
+== play: Pickup super gem drop threshold
+file: src/game/items.c
+- if ((PL.gems - SHIP->gemBase) / SHIP->gemStep >= 1000) {
++ if ((PL.gems - SHIP->gemBase) / SHIP->gemStep > 1000) {
+expect: Play_Pickup_the_1000th_gem_is_a_super_gem_drop
+
+== play: Pickup super gem drop keeps the gems
+file: src/game/items.c
+-                 PL.gems = SHIP->gemBase + SHIP->gemStep;
++
+expect: Play_Pickup_the_1000th_gem_is_a_super_gem_drop
+
+== play: Pickup rank gem wrong mark
+file: src/game/items.c
+-         GEMHDR(MARK_3);
++         GEMHDR(MARK_4);
+expect: Play_Pickup_rank_gems_set_their_mark
+
+== play: Pickup rank gem replaces marks
+file: src/game/items.c
+-         PL.marks = (short)PL.marks | bit; \
++         PL.marks = bit; \
+expect: Play_Pickup_rank_gems_set_their_mark
+
+== play: Pickup rank gem score
+file: src/game/items.c
+- RANK_GEM_SCORE         = 5000,
++ RANK_GEM_SCORE         = 500,
+expect: Play_Pickup_rank_gems_set_their_mark
+
+== play: Pickup rank gem pickups not counted
+file: src/game/items.c
+-         PL.gemPickups++; \
++         \
+expect: Play_Pickup_rank_gems_set_their_mark
+
+== play: Pickup rank gem 4 sequence
+file: src/game/items.c
+-         GEMSEQ(0x10, 8, 4, 8);
++         GEMSEQ(0x10, 8, 2, 8);
+expect: Play_Pickup_rank_gems_1_to_6_in_order_give_super_autofire
+
+== play: Pickup rank gem 1 sequence start
+file: src/game/items.c
+-         PL.gemSeqA = -1;
+-         PL.gemSeqB = 1;
++         PL.gemSeqA = -1;
++         PL.gemSeqB = 2;
+expect: Play_Pickup_rank_gems_1_to_6_in_order_give_super_autofire
+
+== play: Pickup rank gem 6 needs no sequence
+file: src/game/items.c
+-         if (PL.gemSeqB == 0x10) {
++         if (PL.gemSeqB != -2) {
+expect: Play_Pickup_rank_gems_out_of_order_break_the_sequence
+
+== play: Pickup rank gem sequence not broken
+file: src/game/items.c
+-         else \
+-             PL.gemSeqB = -1;
++         ;
+expect: Play_Pickup_rank_gems_out_of_order_break_the_sequence
+
+== play: Pickup super autofire interval
+file: src/game/items.c
+-             PL.superAuto = 1;
+-             PL.autofireInterval = 0x19;
++             PL.superAuto = 1;
++             PL.autofireInterval = 0x32;
+expect: Play_Pickup_rank_gems_1_to_6_in_order_give_super_autofire
+
+== play: Pickup rank gem 5 reverse sequence
+file: src/game/items.c
+-         GEMSEQ(0x20, 0x10, 8, 0x10);
++         GEMSEQ(0x20, 8, 8, 0x10);
+expect: Play_Pickup_rank_gems_6_to_1_add_500_levels
+
+== play: Pickup 500 levels ignores the sequence
+file: src/game/items.c
+-         if (PL.gemSeqA == 2 && PL.bulkLevelsCooldown == 0) {
++         if (PL.bulkLevelsCooldown == 0) {
+expect: Play_Pickup_rank_gems_out_of_order_break_the_sequence
+
+== play: Pickup 500 levels ignores the cooldown
+file: src/game/items.c
+-         if (PL.gemSeqA == 2 && PL.bulkLevelsCooldown == 0) {
++         if (PL.gemSeqA == 2) {
+expect: Play_Pickup_500_levels_waits_for_its_cooldown
+
+== play: Pickup 500 levels cooldown length
+file: src/game/items.c
+- BULK_LEVELS_COOLDOWN   = 50
++ BULK_LEVELS_COOLDOWN   = 5
+expect: Play_Pickup_rank_gems_6_to_1_add_500_levels
+
+== play: Pickup bad gem keeps marks
+file: src/game/items.c
+-         PL.marks = 0;
+-         PL.gemSeqB = -1;
++         PL.gemSeqB = -1;
+expect: Play_Pickup_bad_gem_clears_the_marks_and_costs_rank
+
+== play: Pickup bad gem rank loss range
+file: src/game/items.c
+- PL.rank -= RandRange(2, 5);
++ PL.rank -= RandRange(1, 5);
+expect: Play_Pickup_bad_gem_clears_the_marks_and_costs_rank
+
+== play: Pickup bad gem rank negative
+file: src/game/items.c
+-         if (PL.rank < 0)
+-             PL.rank = 0;
++         if (PL.rank < -5)
++             PL.rank = 0;
+expect: Play_Pickup_bad_gem_clears_the_marks_and_costs_rank
+
+== play: Pickup gem bomb kills motherships
+file: src/game/items.c
+-         // Kill every enemy on screen that isn't immune, dropping gems/items appropriate to its type.
+-         for (i = 0; i < MAX_ENEMIES; i++) {
+-             if (EN.active == 1 && EN.type != ENEMY_CAPTURED && EN.type != ENEMY_MOTHERSHIP &&
++         // Kill every enemy on screen that isn't immune, dropping gems/items appropriate to its type.
++         for (i = 0; i < MAX_ENEMIES; i++) {
++             if (EN.active == 1 && EN.type != ENEMY_CAPTURED &&
+expect: Play_Pickup_gem_bomb_destroys_enemies_and_drops_gems
+
+== play: Pickup gem bomb kills staggered enemies
+file: src/game/items.c
+-                 EN.type != ENEMY_MONEY_SHIP && EN.attackStaggerTimer < 1.0) {
+-                 EN.hp = 0;
+-                 g_flashOverlayActive = 1;
+-                 g_fadeStep = 0;
+-                 g_fadeColorSet = 0;
+-                 EN.active = 0;
++                 EN.type != ENEMY_MONEY_SHIP) {
++                 EN.hp = 0;
++                 g_flashOverlayActive = 1;
++                 g_fadeStep = 0;
++                 g_fadeColorSet = 0;
++                 EN.active = 0;
+expect: Play_Pickup_gem_bomb_destroys_enemies_and_drops_gems
+
+== play: Pickup gem bomb no credit
+file: src/game/items.c
+-                 EN.active = 0;
+-                 EN.forcedDir = -1;
+-                 CreditKill(g_curPlayer);
++                 EN.active = 0;
++                 EN.forcedDir = -1;
+expect: Play_Pickup_gem_bomb_destroys_enemies_and_drops_gems
+
+== play: Pickup gem bomb ignores hover offset
+file: src/game/items.c
+-                 if (EN.type == ENEMY_HOVER) {
+-                     spawnX = EN.x + EN.offsetX;
+-                     spawnY = EN.y + EN.offsetY;
+-                 } else {
+-                     spawnX = EN.x;
+-                     spawnY = EN.y;
+-                 }
+-                 gemBombExplosionDone = false;
++                 spawnX = EN.x;
++                 spawnY = EN.y;
++                 gemBombExplosionDone = false;
+expect: Play_Pickup_gem_bomb_destroys_enemies_and_drops_gems
+
+== play: Pickup gem bomb gem offset
+file: src/game/items.c
+-                     SpawnGem(spawnX + 9.0, spawnY + 2.0);
+-                     SpawnSlots(spawnX + 16.0, spawnY + 16.0, 0x32, 0xff, 0, 0xff);
++                     SpawnGem(spawnX, spawnY);
++                     SpawnSlots(spawnX + 16.0, spawnY + 16.0, 0x32, 0xff, 0, 0xff);
+expect: Play_Pickup_gem_bomb_destroys_enemies_and_drops_gems
+
+== play: Pickup gem bomb money sucker drops one gem
+file: src/game/items.c
+-                     SpawnItems();
+-                     SpawnGem(spawnX + 9.0 + RandFloat(-10.0f, 10.0f), spawnY + 2.0 + RandFloat(-3.0f, 3.0f));
+-                     SpawnGem(spawnX + 9.0 + RandFloat(-10.0f, 10.0f), spawnY + 2.0 + RandFloat(-3.0f, 3.0f));
++                     SpawnItems();
++                     SpawnGem(spawnX + 9.0 + RandFloat(-10.0f, 10.0f), spawnY + 2.0 + RandFloat(-3.0f, 3.0f));
+expect: Play_Pickup_gem_bomb_on_a_money_sucker_drops_five_gems
+
+== play: Pickup gem bomb wrapper drops a gem too
+file: src/game/items.c
+-                 if (EN.type == ENEMY_WRAPPER) {
+-                     gemBombExplosionDone = true;
++                 if (EN.type == ENEMY_WRAPPER) {
+expect: Play_Pickup_gem_bomb_on_a_wrapper_drops_a_coin
+
+== play: Pickup gem bomb bonus wave count
+file: src/game/items.c
+-         if (PL.trackKillsFlag != 0)
+-             PL.bonusKilled = PL.totalEnemies;
+-         break;
+-
+-     case ITEM_METEOR_STORM:
++         break;
++
++     case ITEM_METEOR_STORM:
+expect: Play_Pickup_gem_bomb_in_a_bonus_wave_counts_every_enemy
+
+== play: Pickup gem bomb dual uses own enemies
+file: src/game/items.c
+-     if (g_gameMode == MODE_DUAL)
+-         playerSlot = 0;
+-     g_completePopupYOffset = 0;
++     g_completePopupYOffset = 0;
+expect: Play_Pickup_bomb_in_dual_mode_hits_the_shared_enemies
+
+== play: Pickup money bomb drops gems
+file: src/game/items.c
+-                     SpawnPowerup(spawnX + 4.0, spawnY + 3.0);
++                     SpawnGem(spawnX + 4.0, spawnY + 3.0);
+expect: Play_Pickup_money_bomb_drops_money_instead_of_gems
+
+== play: Pickup money bomb kills motherships
+file: src/game/items.c
+-         // Kill every enemy on screen, dropping money powerups (instead of gems) per its type.
+-         for (i = 0; i < MAX_ENEMIES; i++) {
+-             if (EN.active == 1 && EN.type != ENEMY_CAPTURED && EN.type != ENEMY_MOTHERSHIP &&
++         // Kill every enemy on screen, dropping money powerups (instead of gems) per its type.
++         for (i = 0; i < MAX_ENEMIES; i++) {
++             if (EN.active == 1 && EN.type != ENEMY_CAPTURED &&
+expect: Play_Pickup_money_bomb_drops_money_instead_of_gems
+
+== play: Pickup money bomb not counted
+file: src/game/items.c
+-     case ITEM_MONEY_BOMB:  // MONEY BOMB: kills all on-screen enemies and drops money powerups instead of gems
+-         PL.bombPickups++;
++     case ITEM_MONEY_BOMB:  // MONEY BOMB: kills all on-screen enemies and drops money powerups instead of gems
+expect: Play_Pickup_money_bomb_drops_money_instead_of_gems
+
+== play: Pickup random bonus rolls itself
+file: src/game/items.c
+-                 if (g_itemTypePool[bonusIndex] == ITEM_RANDOM_BONUS)
+-                     validPick = false;
++
+expect: Play_Pickup_random_bonus_never_rolls_itself
+
+== play: Pickup random bonus stays nested
+file: src/game/items.c
+-             Pickup(g_itemTypePool[bonusIndex]);
+-             g_inRandom = 0;
++             Pickup(g_itemTypePool[bonusIndex]);
+expect: Play_Pickup_random_bonus_applies_a_rolled_item
+
+== play: Pickup random bonus ignores the nesting guard
+file: src/game/items.c
+-         if (g_inRandom == 0) {
++         if (g_inRandom >= 0) {
+expect: Play_Pickup_random_bonus_does_nothing_when_nested
+
+== play: Pickup memory station keeps the hyperspace fade
+file: src/game/items.c
+-             PL.hyperspaceFade = 0; \
++             \
+expect: Play_Pickup_memory_station_saves_the_ship_and_enters_the_stage
+
+== play: Pickup memory station keeps the shields
+file: src/game/items.c
+-             PL.tries = 0;
+-             RELEASE_HELD();
++             PL.tries = 0;
+expect: Play_Pickup_memory_station_saves_the_ship_and_enters_the_stage
+
+== play: Pickup memory station during the results
+file: src/game/items.c
+-         if (g_bonusResultsTime == 0) {
+-             SoundStopAll();
+-             if (PL.trackKillsFlag != 0)
+-                 PL.bonusKilled = PL.totalEnemies;
+-             if (g_gameMode == MODE_DUAL)
+-                 g_bonusStagePlayer = g_curPlayer;
++         if (1) {
++             SoundStopAll();
++             if (PL.trackKillsFlag != 0)
++                 PL.bonusKilled = PL.totalEnemies;
++             if (g_gameMode == MODE_DUAL)
++                 g_bonusStagePlayer = g_curPlayer;
+expect: Play_Pickup_memory_station_waits_for_the_bonus_results
+
+== play: Pickup memory station in the demo
+file: src/game/items.c
+-         if (g_playerUpdateFn == StateDemo) {
+-             ResetToTitle();
+-             break;
+-         }
++
+expect: Play_Pickup_memory_station_in_the_demo_returns_to_the_title
+
+== play: Pickup meteor storm keeps the items
+file: src/game/items.c
+-                 g_items[itemIdx].alive = 0;
++                 ;
+expect: Play_Pickup_meteor_storm_clears_items_and_starts_the_race
+
+== play: Pickup meteor storm keeps mirror mode
+file: src/game/items.c
+-             PL.mirrorTime = 0;
+-             if (PL.trackKillsFlag != 0)
++             if (PL.trackKillsFlag != 0)
+expect: Play_Pickup_meteor_storm_clears_items_and_starts_the_race
+
+== play: Pickup meteor storm keeps the transition lock
+file: src/game/items.c
+-             g_transitionLock = 0;
+-             g_state = STATE_BONUS_RACE;
++             g_state = STATE_BONUS_RACE;
+expect: Play_Pickup_meteor_storm_clears_items_and_starts_the_race
+
+== play: Pickup meteor storm no multiplier item
+file: src/game/items.c
+-             if (PL.multiplierUnlocked != 0) {
++             if (PL.multiplierUnlocked > 1) {
+expect: Play_Pickup_meteor_storm_drops_a_multiplier_once_unlocked
+
+== play: Pickup meteor storm multiplier start height
+file: src/game/items.c
+-                         g_items[itemSlot].y = -300.0f;
++                         g_items[itemSlot].y = -30.0f;
+expect: Play_Pickup_meteor_storm_drops_a_multiplier_once_unlocked
+
+# ---------------------------------------------------------------- items.c: spawning and motion
+
+== play: SpawnItem x offset
+file: src/game/items.c
+-             g_items[i].x = x + 22.0;
++             g_items[i].x = x + 20.0;
+expect: Play_SpawnItem_drops_a_coin_in_the_first_free_slot
+
+== play: SpawnItem overwrites a live slot
+file: src/game/items.c
+-             if (rare && RandRange(0, 5) < 1)
+-                 n = 7;
++             i = 0;
++             if (rare && RandRange(0, 5) < 1)
++                 n = 7;
+expect: Play_SpawnItem_drops_a_coin_in_the_first_free_slot
+
+== play: SpawnItem never rare
+file: src/game/items.c
+-                 n = 7;
+-             else
+-                 n = 6;
++                 n = 6;
++             else
++                 n = 6;
+expect: Play_SpawnItem_rare_can_drop_the_bad_gem
+
+== play: SpawnItem fills every slot
+file: src/game/items.c
+-             g_items[i].bottom = g_items[i].top + g_items[i].h;
+-             break;
+-         }
+-     }
+- }
+-
+- // Drops a weapon-upgrade coin
++             g_items[i].bottom = g_items[i].top + g_items[i].h;
++         }
++     }
++ }
++
++ // Drops a weapon-upgrade coin
+expect: Play_SpawnItem_drops_a_coin_in_the_first_free_slot
+
+== play: SpawnItem speed table index
+file: src/game/items.c
+-             g_items[i].x = x + 22.0;
+-             g_items[i].y = y;
+-             g_items[i].vx = 0;
+-             g_items[i].vy = g_coinVySpeedTable[r];
++             g_items[i].x = x + 22.0;
++             g_items[i].y = y;
++             g_items[i].vx = 0;
++             g_items[i].vy = g_coinVySpeedTable[0];
+expect: Play_SpawnItem_drops_a_coin_in_the_first_free_slot
+
+== play: SpawnWeaponItem ignores mark 3
+file: src/game/items.c
+-     if (((short)g_save.players[g_curPlayer].marks & MARK_3) == 0)
+-     {
+-         nothave[n] = 2;
++     if (((short)g_save.players[g_curPlayer].marks & MARK_3) == 1)
++     {
++         nothave[n] = 2;
+expect: Play_SpawnWeaponItem_prefers_a_missing_mark
+
+== play: SpawnWeaponItem mark 6 slot
+file: src/game/items.c
+-         nothave[n] = 5;
++         nothave[n] = 4;
+expect: Play_SpawnWeaponItem_prefers_a_missing_mark
+
+== play: SpawnWeaponItem picks the first missing
+file: src/game/items.c
+-         r = nothave[RandRange(0, n)];
++         r = nothave[0] + 0 * RandRange(0, n);
+expect: Play_SpawnWeaponItem_prefers_a_missing_mark
+
+== play: SpawnWeaponItem with all marks range
+file: src/game/items.c
+-         r = RandRange(0, 6);
++         r = RandRange(0, 5);
+expect: Play_SpawnWeaponItem_with_every_mark_drops_any
+
+== play: SpawnGem sprite offsets
+file: src/game/items.c
+- gemXO[3] = 48;
++ gemXO[3] = 32;
+expect: Play_SpawnGem_drops_a_gem
+
+== play: SpawnGem type
+file: src/game/items.c
+-             g_items[i].frame = RandRange(0, 11);
+-             g_items[i].type = ITEM_GEM;
++             g_items[i].frame = RandRange(0, 11);
++             g_items[i].type = ITEM_STAR;
+expect: Play_SpawnGem_drops_a_gem
+
+== play: SpawnGem fills every slot
+file: src/game/items.c
+-             g_items[i].type = ITEM_GEM;
+-
+-             g_items[i].left = g_items[i].srcX;
+-             g_items[i].top = g_items[i].srcY;
+-             g_items[i].right = g_items[i].left + g_items[i].w;
+-             g_items[i].bottom = g_items[i].top + g_items[i].h;
+-             break;
++             g_items[i].type = ITEM_GEM;
++
++             g_items[i].left = g_items[i].srcX;
++             g_items[i].top = g_items[i].srcY;
++             g_items[i].right = g_items[i].left + g_items[i].w;
++             g_items[i].bottom = g_items[i].top + g_items[i].h;
+expect: Play_Pickup_gem_bomb_destroys_enemies_and_drops_gems
+
+== play: SpawnGem takes the last slot when full
+file: src/game/items.c
+-     gemXO[3] = 48;
+-     for (i = 0; i < MAX_ITEMS; i++)
+-     {
+-         if (g_items[i].alive == 0)
++     gemXO[3] = 48;
++     for (i = 0; i < MAX_ITEMS; i++)
++     {
++         if (g_items[i].alive == 0 || i == MAX_ITEMS - 1)
+expect: Play_SpawnItem_does_nothing_when_all_slots_are_used
+
+== play: SpawnPowerup small boundary
+file: src/game/items.c
+-             if (r <= MONEY_ROLL_SMALL_MAX)
+-                 nn = ITEM_MONEY_SMALL;
+-             if (r > MONEY_ROLL_SMALL_MAX && r <= MONEY_ROLL_MEDIUM_MAX)
+-                 nn = ITEM_MONEY_MEDIUM;
++             if (r < MONEY_ROLL_SMALL_MAX)
++                 nn = ITEM_MONEY_SMALL;
++             if (r >= MONEY_ROLL_SMALL_MAX && r <= MONEY_ROLL_MEDIUM_MAX)
++                 nn = ITEM_MONEY_MEDIUM;
+expect: Play_SpawnPowerup_rolls_40_27_20_13_percent_money
+
+== play: SpawnPowerup blue boundary
+file: include/constants.h
+- MONEY_ROLL_LARGE_MAX    = 87,
++ MONEY_ROLL_LARGE_MAX    = 88,
+expect: Play_SpawnPowerup_rolls_40_27_20_13_percent_money
+
+== play: SpawnPowerup medium boundary
+file: include/constants.h
+- MONEY_ROLL_MEDIUM_MAX   = 67,
++ MONEY_ROLL_MEDIUM_MAX   = 66,
+expect: Play_SpawnPowerup_rolls_40_27_20_13_percent_money
+
+== play: SpawnBonus wrong graphics row
+file: src/game/items.c
+-             g_items[i].srcX = g_itemBonusSrcX[k];
++             g_items[i].srcX = g_itemBonusSrcX[k + 1];
+expect: Play_SpawnBonus_rolls_a_weighted_type
+
+== play: SpawnBonus fall speed
+file: src/game/items.c
+-             g_items[i].vy = RandFloat(1.2f, 1.8f);
++             g_items[i].vy = RandFloat(1.8f, 2.4f);
+expect: Play_SpawnBonus_rolls_a_weighted_type
+
+== play: SpawnBonus first weighted type only
+file: src/game/items.c
+-                     while (r > g_bonusWeight[k])
++                     while (r > g_bonusWeight[k] + 100)
+expect: Play_SpawnBonus_rolls_a_weighted_type
+
+== play: SpawnPowerupBurst count
+file: src/game/items.c
+- count = RandRange(0, 15) + 30;
++ count = RandRange(0, 15) + 20;
+expect: Play_SpawnPowerupBurst_flings_30_to_44_bags
+
+== play: SpawnPowerupBurst timer
+file: src/game/items.c
+- g_items[i].timer = 10.0f;
++ g_items[i].timer = 5.0f;
+expect: Play_SpawnPowerupBurst_flings_30_to_44_bags
+
+== play: SpawnPowerupBurst blue shrink
+file: src/game/items.c
+- count = count * 0.6f;
++ count = count * 0.85f;
+expect: Play_SpawnPowerupBurst_blue_money_once_unlocked
+
+== play: SpawnPowerupBurst ignores the blue money unlock
+file: src/game/items.c
+- if (preferBlueMoney && g_save.players[g_curPlayer].blueMoneyUnlocked != 0)
++ if (preferBlueMoney && g_save.players[g_curPlayer].blueMoneyUnlocked > 1)
+expect: Play_SpawnPowerupBurst_blue_money_once_unlocked
+
+== play: SpawnPowerupBurst blue becomes a plain bag
+file: src/game/items.c
+-                 g_items[i].type = ITEM_MONEY_BLUE_BURST;
++                 g_items[i].type = ITEM_MONEY_BLUE;
+expect: Play_SpawnPowerupBurst_blue_money_once_unlocked
+
+== play: SpawnPowerupBurst never fast
+file: src/game/items.c
+- g_items[i].fastFall = bigBurst & preferBlueMoney;
++ g_items[i].fastFall = 0;
+expect: Play_SpawnPowerupBurst_blue_money_once_unlocked
+
+== play: SpawnItems tally medium becomes small
+file: src/game/items.c
+-                 if (g_items[i].type == ITEM_MONEY_MEDIUM_TALLY) kind = ITEM_MONEY_MEDIUM;
++                 if (g_items[i].type == ITEM_MONEY_MEDIUM_TALLY) kind = ITEM_MONEY_SMALL;
+expect: Play_SpawnItems_turns_tally_markers_into_money
+
+== play: SpawnItems bursts stay inactive
+file: src/game/items.c
+-                 if (g_items[i].type == ITEM_MONEY_SMALL_BURST || g_items[i].type == ITEM_MONEY_MEDIUM_BURST ||
+-                     g_items[i].type == ITEM_MONEY_LARGE_BURST || g_items[i].type == ITEM_MONEY_BLUE_BURST)
+-                     g_items[i].active = 1;
+-             }
++             }
+expect: Play_SpawnItems_turns_tally_markers_into_money
+
+== play: SpawnItems activates dead items
+file: src/game/items.c
+-     for (i = 0; i < MAX_ITEMS; i++) {
+-         if (g_items[i].alive != 0) {
+-             if (g_items[i].type == ITEM_MONEY_SMALL_TALLY || g_items[i].type == ITEM_MONEY_MEDIUM_TALLY ||
++     for (i = 0; i < MAX_ITEMS; i++) {
++         if (1) {
++             if (g_items[i].type == ITEM_MONEY_SMALL_TALLY || g_items[i].type == ITEM_MONEY_MEDIUM_TALLY ||
+expect: Play_SpawnItems_turns_tally_markers_into_money
+
+== play: UpdateItems despawn height
+file: src/game/items.c
+-                 if (g_items[i].y > g_screenH + 30)
++                 if (g_items[i].y > g_screenH + 40)
+expect: Play_UpdateItems_items_fall_and_vanish_below_the_screen
+
+== play: UpdateItems ignores frame time
+file: src/game/items.c
+-                 } else {
+-                     g_items[i].x += g_items[i].vx * g_frameDt;
+-                     g_items[i].y += g_items[i].vy * g_frameDt;
+-                 }
++                 } else {
++                     g_items[i].x += g_items[i].vx;
++                     g_items[i].y += g_items[i].vy;
++                 }
+expect: Play_UpdateItems_items_fall_and_vanish_below_the_screen
+
+== play: UpdateItems frame wrap
+file: src/game/items.c
+-                     if (g_items[i].frame >= g_items[i].frameCount)
++                     if (g_items[i].frame > g_items[i].frameCount)
+expect: Play_UpdateItems_animates_frames
+
+== play: UpdateItems frame timer not reloaded
+file: src/game/items.c
+-                     g_items[i].frameTimer = g_items[i].frameDelay;
+-                     g_items[i].frame += 1.0;
++                     g_items[i].frame += 1.0;
+expect: Play_UpdateItems_animates_frames
+
+== play: UpdateItems right wrap
+file: src/game/items.c
+-                 if (g_items[i].x > g_screenW + 100)
+-                     g_items[i].x = -100.0f;
+-             }
++                 if (g_items[i].x > g_screenW + 100)
++                     g_items[i].x = -50.0f;
++             }
+expect: Play_UpdateItems_wraps_items_off_the_right_edge
+
+== play: UpdateItems burst drag
+file: src/game/items.c
+-                     g_items[i].vx /= 1 + g_frameDt * 0.02f;
++                     g_items[i].vx /= 1 + g_frameDt * 0.04f;
+expect: Play_UpdateItems_burst_bags_slow_down_then_fall
+
+== play: UpdateItems burst large becomes medium
+file: src/game/items.c
+-                             g_items[i].type = ITEM_MONEY_LARGE;
++                             g_items[i].type = ITEM_MONEY_MEDIUM;
+expect: Play_UpdateItems_burst_bags_slow_down_then_fall
+
+== play: UpdateItems burst keeps flying sideways
+file: src/game/items.c
+-                         g_items[i].vx = 0;
+-                         if (g_items[i].fastFall)
++                         if (g_items[i].fastFall)
+expect: Play_UpdateItems_burst_bags_slow_down_then_fall
+
+== play: UpdateItems fast fall ignored
+file: src/game/items.c
+-                             g_items[i].vy = 1 + RandFloat(1.0f, 6.0f);
++                             g_items[i].vy = 1 + RandFloat(0.0f, 1.0f);
+expect: Play_UpdateItems_fast_falling_bursts_drop_faster
+
+== play: UpdateItems gem pulled the wrong way
+file: src/game/items.c
+-                             if (g_save.players[g_curPlayer].x + 14.0 < g_items[i].x)
+-                                 g_items[i].x -= 1.0 * g_frameDt;
++                             if (g_save.players[g_curPlayer].x + 14.0 < g_items[i].x)
++                                 g_items[i].x += 1.0 * g_frameDt;
+expect: Play_UpdateItems_down_pulls_gems_toward_the_ship
+
+== play: UpdateItems gem pulled without down
+file: src/game/items.c
+-                         if (InputDown(g_curPlayer)) {
++                         if (1) {
+expect: Play_UpdateItems_down_pulls_gems_toward_the_ship
+
+== play: UpdateItems hyperspace ignored
+file: src/game/items.c
+- if (g_save.players[g_curPlayer].hyperspaceFade > 0.0 && g_items[i].type != ITEM_STAR) {
++ if (g_save.players[g_curPlayer].hyperspaceFade > 50.0 && g_items[i].type != ITEM_STAR) {
+expect: Play_UpdateItems_during_hyperspace_items_scroll
+
+== play: UpdateItems tally never arrives
+file: src/game/items.c
+-                         g_items[i].y - g_targetY > -30.0 && g_items[i].y - g_targetY < 30.0)
++                         g_items[i].y - g_targetY > -30.0 && g_items[i].y - g_targetY < 20.0)
+expect: Play_UpdateItems_tally_money_flies_to_the_counter
+
+== play: UpdateItems tally speed
+file: src/game/items.c
+-                     dx = 0 - (g_items[i].x - g_targetX) / spd;
++                     dx = 0 - (g_items[i].x - g_targetX) / (spd * 2);
+expect: Play_UpdateItems_tally_money_flies_to_the_counter
+
+== play: UpdateStarItems wrap
+file: src/game/items.c
+-             if (g_items[i].x > g_screenW + 100) {
+-                 g_items[i].x = -100.0f;
++             if (g_items[i].x >= g_screenW + 100) {
++                 g_items[i].x = -100.0f;
+expect: Play_UpdateStarItems_wraps_stars
+
+# ---------------------------------------------------------------- collide.c
+
+== play: ItemsVsPlayer keeps the item
+file: src/game/collide.c
+-                             g_items[i].alive = 0;
+-                             Pickup(g_items[i].type);
++                             Pickup(g_items[i].type);
+expect: Play_ItemsVsPlayer_picks_up_an_overlapping_item
+
+== play: ItemsVsPlayer box width
+file: src/game/collide.c
+-             px2 = px1 + 40;
+-             py2 = py1 + 27;
+-
+-             for (i = 0; i < MAX_ITEMS; i++) {
++             px2 = px1 + 41;
++             py2 = py1 + 27;
++
++             for (i = 0; i < MAX_ITEMS; i++) {
+expect: Play_ItemsVsPlayer_uses_a_40x27_box
+
+== play: ItemsVsPlayer box height
+file: src/game/collide.c
+-             px2 = px1 + 40;
+-             py2 = py1 + 27;
+-
+-             for (i = 0; i < MAX_ITEMS; i++) {
++             px2 = px1 + 40;
++             py2 = py1 + 26;
++
++             for (i = 0; i < MAX_ITEMS; i++) {
+expect: Play_ItemsVsPlayer_uses_a_40x27_box
+
+== play: ItemsVsPlayer left edge inclusive
+file: src/game/collide.c
+-                     if (y2 > py1 && y1 < py2 && x2 > px1 && x1 < px2) {
++                     if (y2 > py1 && y1 < py2 && x2 >= px1 && x1 < px2) {
+expect: Play_ItemsVsPlayer_uses_a_40x27_box
+
+== play: ItemsVsPlayer top edge inclusive
+file: src/game/collide.c
+-                     if (y2 > py1 && y1 < py2 && x2 > px1 && x1 < px2) {
++                     if (y2 >= py1 && y1 < py2 && x2 > px1 && x1 < px2) {
+expect: Play_ItemsVsPlayer_uses_a_40x27_box
+
+== play: ItemsVsPlayer item height ignored
+file: src/game/collide.c
+-                     y2 = y1 + g_items[i].h;
++                     y2 = y1 + g_items[i].w / 2;
+expect: Play_ItemsVsPlayer_uses_a_40x27_box
+
+== play: ItemsVsPlayer inactive items collected
+file: src/game/collide.c
+-                 if (g_items[i].alive != 0 && g_items[i].active != 0) {
++                 if (g_items[i].alive != 0) {
+expect: Play_ItemsVsPlayer_ignores_inactive_items
+
+== play: ItemsVsPlayer while dead
+file: src/game/collide.c
+-     if (g_save.players[g_curPlayer].dead == 0) {
+-         if (g_save.players[g_curPlayer].lives > g_shipDefs[g_save.players[g_curPlayer].ship]->minEnergy &&
+-             g_save.players[g_curPlayer].hyperspaceFade < 50.0) {
++     if (1) {
++         if (g_save.players[g_curPlayer].lives > g_shipDefs[g_save.players[g_curPlayer].ship]->minEnergy &&
++             g_save.players[g_curPlayer].hyperspaceFade < 50.0) {
+expect: Play_ItemsVsPlayer_not_while_dead_out_of_lives_or_in_hyperspace
+
+== play: ItemsVsPlayer hyperspace threshold
+file: src/game/collide.c
+-             g_save.players[g_curPlayer].hyperspaceFade < 50.0) {
++             g_save.players[g_curPlayer].hyperspaceFade <= 50.0) {
+expect: Play_ItemsVsPlayer_not_while_dead_out_of_lives_or_in_hyperspace
+
+== play: ItemsVsPlayer mirror ignored
+file: src/game/collide.c
+-                     px1 = g_screenW - 40 - (int)g_save.players[g_curPlayer].x;
++                     px1 = (int)g_save.players[g_curPlayer].x;
+expect: Play_ItemsVsPlayer_in_mirror_mode_either_ship_collects
+
+== play: ItemsVsPlayer mirror only
+file: src/game/collide.c
+-                 if (Rand1ff() < 0x100)
+-                     px1 = (int)g_save.players[g_curPlayer].x;
++                 if (Rand1ff() < 0)
++                     px1 = (int)g_save.players[g_curPlayer].x;
+expect: Play_ItemsVsPlayer_in_mirror_mode_either_ship_collects
+
+== play: ItemsVsBothPlayers repeats player 0
+file: src/game/collide.c
+-     ItemsVsPlayer();
+-     g_curPlayer = 1 - g_curPlayer;
++     ItemsVsPlayer();
++     if (g_curPlayer == 0)
++         g_curPlayer = 1;
++     if (g_curPlayer == 1)
++         g_curPlayer = 0;
+expect: Play_ItemsVsBothPlayers_checks_both_players_in_either_order
+
+== play: ItemsVsBothPlayers only once
+file: src/game/collide.c
+-     g_curPlayer = 1 - g_curPlayer;
+-     ItemsVsPlayer();
++     g_curPlayer = 1 - g_curPlayer;
+expect: Play_ItemsVsBothPlayers_checks_both_players_in_either_order
+
+== play: ItemsVsBothPlayers leaves the player
+file: src/game/collide.c
+-     ItemsVsPlayer();
+-     g_curPlayer = 0;
++     ItemsVsPlayer();
+expect: Play_ItemsVsBothPlayers_checks_both_players_in_either_order
+
+== play: BulletsVsPlayer death keeps the bullet
+file: src/game/collide.c
+-                                 g_levelObj[i].active = 0;
+-                                 if (g_autoplay && RandRange(0, 1000) < 982)
+-                                     return;
+-
+-                                 if (!hit) {
+-                                     SoundPlay(g_sfxExplo4
++                                 if (g_autoplay && RandRange(0, 1000) < 982)
++                                     return;
++
++                                 if (!hit) {
++                                     SoundPlay(g_sfxExplo4
+expect: Play_BulletsVsPlayer_kills_a_ship_without_spare_armour
+
+== play: BulletsVsPlayer respawn delay
+file: src/game/collide.c
+- g_save.players[g_curPlayer].respawnTime = g_time + 3000;
++ g_save.players[g_curPlayer].respawnTime = g_time + 2000;
+expect: Play_BulletsVsPlayer_kills_a_ship_without_spare_armour
+
+== play: BulletsVsPlayer death not counted
+file: src/game/collide.c
+-                                     g_save.players[g_curPlayer].deaths++;
++
+expect: Play_BulletsVsPlayer_kills_a_ship_without_spare_armour
+
+== play: BulletsVsPlayer death keeps drunk mode
+file: src/game/collide.c
+-                                     g_save.players[g_curPlayer].drunkModeTimer = 0;
++
+expect: Play_BulletsVsPlayer_kills_a_ship_without_spare_armour
+
+== play: BulletsVsPlayer death stat
+file: src/game/collide.c
+-                                     g_deathsCount += 2;
++                                     g_deathsCount += 1;
+expect: Play_BulletsVsPlayer_kills_a_ship_without_spare_armour
+
+== play: BulletsVsPlayer armour threshold
+file: src/game/collide.c
+-                             if (g_save.players[g_curPlayer].armour <
+-                                 g_shipDefs[g_save.players[g_curPlayer].ship]->baseArmour +
+-                                 g_shipDefs[g_save.players[g_curPlayer].ship]->armourStep) {
++                             if (g_save.players[g_curPlayer].armour <=
++                                 g_shipDefs[g_save.players[g_curPlayer].ship]->baseArmour +
++                                 g_shipDefs[g_save.players[g_curPlayer].ship]->armourStep) {
+expect: Play_BulletsVsPlayer_armour_absorbs_a_hit
+
+== play: BulletsVsPlayer armour not lost
+file: src/game/collide.c
+-                                     g_save.players[g_curPlayer].armour -=
+-                                         g_shipDefs[g_save.players[g_curPlayer].ship]->armourStep;
++                                     g_save.players[g_curPlayer].armour -= 0;
+expect: Play_BulletsVsPlayer_armour_absorbs_a_hit
+
+== play: BulletsVsPlayer armour hit shield length
+file: src/game/collide.c
+-                                         g_save.players[g_curPlayer].buffDuration / 5 * 1000 + g_time;
++                                         g_save.players[g_curPlayer].buffDuration / 4 * 1000 + g_time;
+expect: Play_BulletsVsPlayer_armour_absorbs_a_hit
+
+== play: BulletsVsPlayer armour hit every bullet
+file: src/game/collide.c
+-                                 g_levelObj[i].active = 0;
+-                                 if (!hit) {
+-                                     g_viewTransitionFlag = 2;
++                                 g_levelObj[i].active = 0;
++                                 if (1) {
++                                     g_viewTransitionFlag = 2;
+expect: Play_BulletsVsPlayer_only_one_hit_per_frame
+
+== play: BulletsVsPlayer ship box width
+file: src/game/collide.c
+-         px2 = px1 + 40;
+-         py2 = py1 + 27;
+-
+-         if (g_profileCollisions)
++         px2 = px1 + 41;
++         py2 = py1 + 27;
++
++         if (g_profileCollisions)
+expect: Play_BulletsVsPlayer_misses_outside_the_ship_box
+
+== play: BulletsVsPlayer ship box height
+file: src/game/collide.c
+-         px2 = px1 + 40;
+-         py2 = py1 + 27;
+-
+-         if (g_profileCollisions)
++         px2 = px1 + 40;
++         py2 = py1 + 28;
++
++         if (g_profileCollisions)
+expect: Play_BulletsVsPlayer_misses_outside_the_ship_box
+
+== play: BulletsVsPlayer ignores the hit offset
+file: src/game/collide.c
+-                 bx1 = (int)g_levelObj[i].x + g_levelObj[i].hitOffsetX;
++                 bx1 = (int)g_levelObj[i].x;
+expect: Play_BulletsVsPlayer_misses_outside_the_ship_box
+
+== play: BulletsVsPlayer left edge inclusive
+file: src/game/collide.c
+-                 if (g_levelObj[i].active && by2 > py1 && bx1 < px2 && bx2 > px1 && by1 < py2) {
++                 if (g_levelObj[i].active && by2 > py1 && bx1 < px2 && bx2 >= px1 && by1 < py2) {
+expect: Play_BulletsVsPlayer_misses_outside_the_ship_box
+
+== play: BulletsVsPlayer top edge inclusive
+file: src/game/collide.c
+-                 if (g_levelObj[i].active && by2 > py1 && bx1 < px2 && bx2 > px1 && by1 < py2) {
++                 if (g_levelObj[i].active && by2 >= py1 && bx1 < px2 && bx2 > px1 && by1 < py2) {
+expect: Play_BulletsVsPlayer_misses_outside_the_ship_box
+
+== play: BulletsVsPlayer shield ignored
+file: src/game/collide.c
+-         && g_save.players[g_curPlayer].shieldTimer == 0
++         && 1
+expect: Play_BulletsVsPlayer_shield_god_mode_and_death_protect
+
+== play: BulletsVsPlayer god mode ignored
+file: src/game/collide.c
+-         && !g_cheatGodMode
++         && 1
+expect: Play_BulletsVsPlayer_shield_god_mode_and_death_protect
+
+== play: BulletsVsPlayer hits with no lives left
+file: src/game/collide.c
+-         && g_save.players[g_curPlayer].lives > g_shipDefs[g_save.players[g_curPlayer].ship]->minEnergy) {
+-         if (g_save.players[g_curPlayer].mirrorTime != 0) {
++         && g_save.players[g_curPlayer].lives >= g_shipDefs[g_save.players[g_curPlayer].ship]->minEnergy) {
++         if (g_save.players[g_curPlayer].mirrorTime != 0) {
+expect: Play_BulletsVsPlayer_shield_god_mode_and_death_protect
+
+== play: BulletsVsPlayer left shield zone on the right
+file: src/game/collide.c
+-                     && by2 > py1 && bx1 < px2 - 36 && bx2 > px1 - 36 && by1 < py2) {
++                     && by2 > py1 && bx1 < px2 + 36 && bx2 > px1 + 36 && by1 < py2) {
+expect: Play_BulletsVsPlayer_left_captured_enemy_shields_the_ship
+
+== play: BulletsVsPlayer left shield survives
+file: src/game/collide.c
+-                         DropAlienGfxAge(g_enemies[g_curPlayer][g_save.players[g_curPlayer].shieldLIdx].gfxA);
+-                         g_save.players[g_curPlayer].shieldL = 0;
+-                         g_enemies[g_curPlayer][g_save.players[g_curPlayer].shieldLIdx].active = 0;
++                         DropAlienGfxAge(g_enemies[g_curPlayer][g_save.players[g_curPlayer].shieldLIdx].gfxA);
++                         g_enemies[g_curPlayer][g_save.players[g_curPlayer].shieldLIdx].active = 0;
+expect: Play_BulletsVsPlayer_left_captured_enemy_shields_the_ship
+
+== play: BulletsVsPlayer left shield unsettled
+file: src/game/collide.c
+-                 if (g_save.players[g_curPlayer].shieldL
+-                     && g_enemies[g_curPlayer][g_save.players[g_curPlayer].shieldLIdx].settled
++                 if (g_save.players[g_curPlayer].shieldL
+expect: Play_BulletsVsPlayer_an_unsettled_shield_does_not_block
+
+== play: BulletsVsPlayer right shield zone width
+file: src/game/collide.c
+-                     && by2 > py1 && bx1 < px2 + 36 && bx2 > px1 + 36 && by1 < py2) {
++                     && by2 > py1 && bx1 < px2 + 36 && bx2 > px1 - 36 && by1 < py2) {
+expect: Play_BulletsVsPlayer_right_captured_enemy_shields_the_ship
+
+== play: BulletsVsPlayer right shield keeps the bullet
+file: src/game/collide.c
+-                     && by2 > py1 && bx1 < px2 + 36 && bx2 > px1 + 36 && by1 < py2) {
+-                     g_levelObj[i].active = 0;
++                     && by2 > py1 && bx1 < px2 + 36 && bx2 > px1 + 36 && by1 < py2) {
+expect: Play_BulletsVsPlayer_right_captured_enemy_shields_the_ship
+
+== play: BulletsVsPlayer shields ignored on a ship hit
+file: src/game/collide.c
+-                         if (g_save.players[g_curPlayer].shieldL == 0 &&
+-                             g_save.players[g_curPlayer].shieldR == 0) {
++                         if (1) {
+expect: Play_BulletsVsPlayer_a_hit_on_the_ship_costs_a_shield_instead_of_a_life
+
+== play: BulletsVsPlayer ship hit takes the right shield first
+file: src/game/collide.c
+-                             if (!hit) {
+-                                 hit = true;
+-                                 if (g_save.players[g_curPlayer].shieldL) {
++                             if (!hit) {
++                                 hit = true;
++                                 if (!g_save.players[g_curPlayer].shieldR) {
+expect: Play_BulletsVsPlayer_a_hit_on_the_ship_costs_a_shield_instead_of_a_life
+
+== play: BulletsVsBothPlayers repeats player 1
+file: src/game/collide.c
+-     BulletsVsPlayer();
+-     g_curPlayer = 1 - g_curPlayer;
++     BulletsVsPlayer();
++     if (g_curPlayer == 0)
++         g_curPlayer = 1;
+expect: Play_BulletsVsBothPlayers_checks_both_players_in_either_order
+
+== play: BulletsVsBothPlayers once
+file: src/game/collide.c
+-     BulletsVsPlayer();
+-     g_curPlayer = 1 - g_curPlayer;
++     BulletsVsPlayer();
+expect: Play_BulletsVsBothPlayers_checks_both_players_in_either_order
+
+== play: PlayerShotsHitEnemies damage halved
+file: src/game/collide.c
+-                                 g_enemies[p][j].hp -= g_mapObjs[i].dmg;
++                                 g_enemies[p][j].hp -= g_mapObjs[i].dmg / 2;
+expect: Play_PlayerShotsHitEnemies_damages_an_enemy
+
+== play: PlayerShotsHitEnemies shot survives a hit
+file: src/game/collide.c
+-     } else {                                                                                     \
+-         g_mapObjs[i].active = 0;                                                                \
+-         g_enemies[p][g_mapObjs[i].enemy].locked = 0;                                            \
++     } else {                                                                                     \
++         g_enemies[p][g_mapObjs[i].enemy].locked = 0;                                            \
+expect: Play_PlayerShotsHitEnemies_damages_an_enemy
+expect: Play_PlayerShotsHitEnemies_one_shot_hits_one_enemy
+
+== play: PlayerShotsHitEnemies shot slot not refunded
+file: src/game/collide.c
+-         g_enemies[p][g_mapObjs[i].enemy].locked = 0;                                            \
+-         g_save.players[g_mapObjs[i].player].energy -= g_mapObjs[i].cost;                        \
++         g_enemies[p][g_mapObjs[i].enemy].locked = 0;                                            \
+expect: Play_PlayerShotsHitEnemies_damages_an_enemy
+
+== play: PlayerShotsHitEnemies target stays locked
+file: src/game/collide.c
+-         g_enemies[p][g_mapObjs[i].enemy].locked = 0;                                            \
++         g_enemies[p][g_mapObjs[i].enemy].locked = g_enemies[p][g_mapObjs[i].enemy].locked;      \
+expect: Play_PlayerShotsHitEnemies_a_kill_unlocks_the_rockets_target
+
+== play: PlayerShotsHitEnemies kill threshold
+file: src/game/collide.c
+-                                 if (g_enemies[p][j].hp <= 0.0) {
+-                                     LASER_DECAY_OR_UNLOCK(0.0f)
++                                 if (g_enemies[p][j].hp < 0.0) {
++                                     LASER_DECAY_OR_UNLOCK(0.0f)
+expect: Play_PlayerShotsHitEnemies_exact_damage_kills
+
+== play: PlayerShotsHitEnemies kill score ignores multiplier
+file: src/game/collide.c
+- killScore = g_enemies[p][j].score * g_scoreMul[g_mapObjs[i].player];
++ killScore = g_enemies[p][j].score;
+expect: Play_PlayerShotsHitEnemies_kills_and_scores
+
+== play: PlayerShotsHitEnemies kill not credited
+file: src/game/collide.c
+-                                             kills++;
+-                                             CreditKill(g_mapObjs[i].player);
+-                                             if (RandRange(1, (int)g_diffBonusDropRoll) < 4)
+-                                                 SpawnBonus(ex, ey);
+-                                             if (g_save.players[g_curPlayer].trackKillsFlag != 0)
+-                                                 g_save.players[g_mapObjs[i].player].bonusKilled++;
+-                                             break;
+-
+-                                         case ENEMY_WRAPPER:
++                                             kills++;
++                                             if (RandRange(1, (int)g_diffBonusDropRoll) < 4)
++                                                 SpawnBonus(ex, ey);
++                                             if (g_save.players[g_curPlayer].trackKillsFlag != 0)
++                                                 g_save.players[g_mapObjs[i].player].bonusKilled++;
++                                             break;
++
++                                         case ENEMY_WRAPPER:
+expect: Play_PlayerShotsHitEnemies_kills_and_scores
+
+== play: PlayerShotsHitEnemies hits not counted on a kill
+file: src/game/collide.c
+-                                     LASER_DECAY_OR_UNLOCK(0.0f)
+-
+-                                     g_save.players[g_mapObjs[i].player].hits++;
+-                                     g_hits++;
+-
+-                                     if (g_enemyDamageStage[p][j] != 0
++                                     LASER_DECAY_OR_UNLOCK(0.0f)
++
++                                     if (g_enemyDamageStage[p][j] != 0
+expect: Play_PlayerShotsHitEnemies_kills_and_scores
+
+== play: PlayerShotsHitEnemies hit rect x offset
+file: src/game/collide.c
+-                         case ENEMY_ESCAPER:
+-                             ex = g_enemies[p][j].x + g_enemies[p][j].hitRect.x1;
++                         case ENEMY_ESCAPER:
++                             ex = g_enemies[p][j].x;
+expect: Play_PlayerShotsHitEnemies_uses_the_enemy_hit_rect
+
+== play: PlayerShotsHitEnemies right edge inclusive
+file: src/game/collide.c
+-                         if (sx2 > ex && sx < ex + ew && sy2 > ey && sy < ey + eh) {
++                         if (sx2 > ex && sx <= ex + ew && sy2 > ey && sy < ey + eh) {
+expect: Play_PlayerShotsHitEnemies_uses_the_enemy_hit_rect
+
+== play: PlayerShotsHitEnemies top edge inclusive
+file: src/game/collide.c
+-                         if (sx2 > ex && sx < ex + ew && sy2 > ey && sy < ey + eh) {
++                         if (sx2 > ex && sx < ex + ew && sy2 >= ey && sy < ey + eh) {
+expect: Play_PlayerShotsHitEnemies_uses_the_enemy_hit_rect
+
+== play: PlayerShotsHitEnemies shot height ignored
+file: src/game/collide.c
+-             sy2 = g_mapObjs[i].stepY + sy;
++             sy2 = sy + 1;
+expect: Play_PlayerShotsHitEnemies_uses_the_enemy_hit_rect
+
+== play: PlayerShotsHitEnemies hover offset ignored
+file: src/game/collide.c
+-                             ex = g_enemies[p][j].x + g_enemies[p][j].offsetX + g_enemies[p][j].hitRect.x1;
++                             ex = g_enemies[p][j].x + g_enemies[p][j].hitRect.x1;
+expect: Play_PlayerShotsHitEnemies_hover_enemies_are_hit_where_drawn
+
+== play: PlayerShotsHitEnemies hits debris
+file: src/game/collide.c
+-                     g_enemies[p][j].type != ENEMY_DEBRIS && g_enemies[p][j].attackStaggerTimer < 1.0 &&
+-                     g_mapObjs[i].active != 0) {
++                     g_enemies[p][j].attackStaggerTimer < 1.0 &&
++                     g_mapObjs[i].active != 0) {
+expect: Play_PlayerShotsHitEnemies_skips_captured_debris_and_staggered_enemies
+
+== play: PlayerShotsHitEnemies hits staggered enemies
+file: src/game/collide.c
+-                     g_enemies[p][j].type != ENEMY_DEBRIS && g_enemies[p][j].attackStaggerTimer < 1.0 &&
+-                     g_mapObjs[i].active != 0) {
++                     g_enemies[p][j].type != ENEMY_DEBRIS && g_enemies[p][j].attackStaggerTimer <= 1.0 &&
++                     g_mapObjs[i].active != 0) {
+expect: Play_PlayerShotsHitEnemies_skips_captured_debris_and_staggered_enemies
+
+== play: PlayerShotsHitEnemies spent shot keeps hitting
+file: src/game/collide.c
+-                     g_enemies[p][j].type != ENEMY_DEBRIS && g_enemies[p][j].attackStaggerTimer < 1.0 &&
+-                     g_mapObjs[i].active != 0) {
++                     g_enemies[p][j].type != ENEMY_DEBRIS && g_enemies[p][j].attackStaggerTimer < 1.0) {
+expect: Play_PlayerShotsHitEnemies_one_shot_hits_one_enemy
+
+== play: PlayerShotsHitEnemies laser not halved
+file: src/game/collide.c
+-         g_mapObjs[i].dmg /= 2.0;                                                                \
++         g_mapObjs[i].dmg /= 1.0;                                                                \
+expect: Play_PlayerShotsHitEnemies_a_laser_loses_half_its_power_per_hit
+
+== play: PlayerShotsHitEnemies laser reach
+file: src/game/collide.c
+-                 sy = 0;
+-                 sy2 = g_save.players[g_mapObjs[i].player].y;
++                 sy2 = g_save.players[g_mapObjs[i].player].y;
+expect: Play_PlayerShotsHitEnemies_a_laser_loses_half_its_power_per_hit
+
+== play: PlayerShotsHitEnemies laser detail not restored
+file: src/game/collide.c
+-                                 if (g_mapObjs[i].laser != 0)
+-                                     g_cfg.collisionDetail = savedFlag;
+-                                 g_enemies[p][j].hp -= g_mapObjs[i].dmg;
++                                 g_enemies[p][j].hp -= g_mapObjs[i].dmg;
+expect: Play_PlayerShotsHitEnemies_a_laser_loses_half_its_power_per_hit
+
+== play: PlayerShotsHitEnemies spent laser links stay
+file: src/game/collide.c
+-                 if (g_mapObjs[i].link1 != -1) {                                                 \
+-                     g_mapObjs[g_mapObjs[i].link1].active = 0;                                   \
++                 if (g_mapObjs[i].link1 != -1) {                                                 \
+expect: Play_PlayerShotsHitEnemies_a_spent_laser_ends_with_its_links
+
+== play: PlayerShotsHitEnemies fire rate nudge per kill
+file: src/game/collide.c
+-                 g_enemies[p][j].attackDelay -= g_enemies[p][j].attackDelayStep * kills;
++                 g_enemies[p][j].attackDelay -= g_enemies[p][j].attackDelayStep;
++                 g_enemies[p][j].attackDelay -= kills;
+expect: Play_PlayerShotsHitEnemies_kills_speed_up_the_others_fire
+
+== play: PlayerShotsHitEnemies fire delay floor
+file: src/game/collide.c
+-                 if (g_enemies[p][j].fireDelay < g_enemyFireRateMin)
+-                     g_enemies[p][j].fireDelay = g_enemyFireRateMin;
++                 if (g_enemies[p][j].fireDelay < g_enemyFireRateMin - 5)
++                     g_enemies[p][j].fireDelay = g_enemyFireRateMin;
+expect: Play_PlayerShotsHitEnemies_kills_speed_up_the_others_fire
+
+== play: PlayerShotsHitEnemies attack delay floor
+file: src/game/collide.c
+-                 if (g_enemies[p][j].attackDelay < g_fireDelayMin)
+-                     g_enemies[p][j].attackDelay = g_fireDelayMin;
++                 if (g_enemies[p][j].attackDelay < g_fireDelayMin)
++                     g_enemies[p][j].attackDelay = g_fireDelayMin + 1;
+expect: Play_PlayerShotsHitEnemies_kills_speed_up_the_others_fire
+
+== play: PlayerShotsHitEnemies paired kill score
+file: src/game/collide.c
+- PAIRED_KILL_SCORE        = 2500,
++ PAIRED_KILL_SCORE        = 1000,
+expect: Play_PlayerShotsHitEnemies_paired_kill_bonus
+
+== play: PlayerShotsHitEnemies paired index kept
+file: src/game/collide.c
+-                                             if (g_enemies[p][j].pairedEnemyIdx > -1) {
+-                                                 g_enemies[p][j].pairedEnemyIdx = -1;
++                                             if (g_enemies[p][j].pairedEnemyIdx > -1) {
+expect: Play_PlayerShotsHitEnemies_paired_kill_bonus
+
+== play: PlayerShotsHitEnemies group bonus
+file: src/game/collide.c
+- GROUP_CLEAR_BONUS_SCORE  = 10000,
++ GROUP_CLEAR_BONUS_SCORE  = 1000,
+expect: Play_PlayerShotsHitEnemies_group_clear_bonus
+
+== play: PlayerShotsHitEnemies group combo not reset
+file: src/game/collide.c
+-                                                     g_typeKillCombo[g_enemies[p][j].groupIndex] = 0;
++
+expect: Play_PlayerShotsHitEnemies_group_clear_bonus
+
+== play: PlayerShotsHitEnemies chain bonus not doubled
+file: src/game/collide.c
+-                                                         chainBonus = chainBonus * 2;
++                                                         chainBonus = chainBonus + 2500;
+expect: Play_PlayerShotsHitEnemies_alt_fire_chain_kills_its_pair
+
+== play: PlayerShotsHitEnemies chain pair survives
+file: src/game/collide.c
+-                                                         g_enemies[p][c].pairedEnemyIdx = -1;
+-                                                         g_enemies[p][c].active = 0;
++                                                         g_enemies[p][c].pairedEnemyIdx = -1;
+expect: Play_PlayerShotsHitEnemies_alt_fire_chain_kills_its_pair
+
+== play: PlayerShotsHitEnemies wrapper drops nothing
+file: src/game/collide.c
+-                                             SpawnItem(ex, ey, g_save.players[g_mapObjs[i].player].color);
+-                                             CreditKill(g_mapObjs[i].player);
++                                             CreditKill(g_mapObjs[i].player);
+expect: Play_PlayerShotsHitEnemies_a_wrapper_drops_a_coin
+
+== play: PlayerShotsHitEnemies mothership drops nothing
+file: src/game/collide.c
+-                                             SpawnWeaponItem((int)ex, (int)ey);
++
+expect: Play_PlayerShotsHitEnemies_a_mothership_drops_a_rank_gem
+
+== play: PlayerShotsHitEnemies boss full damage
+file: src/game/collide.c
+-                             dmg = g_mapObjs[i].dmg / 10.0;
++                             dmg = g_mapObjs[i].dmg;
+expect: Play_PlayerShotsHitEnemies_damages_a_boss_by_a_tenth
+
+== play: PlayerShotsHitEnemies boss minimum damage
+file: src/game/collide.c
+-                             if (dmg <= 1.0)
+-                                 dmg = 1.0;
++                             if (dmg <= 0.5)
++                                 dmg = 1.0;
+expect: Play_PlayerShotsHitEnemies_damages_a_boss_by_a_tenth
+
+== play: PlayerShotsHitEnemies boss box larger
+file: src/game/collide.c
+-                         if (xp[0] > 16 && yp[0] > 16 && xp[0] < 240 && yp[0] < 112) {
++                         if (xp[0] > 0 && yp[0] > 16 && xp[0] < 240 && yp[0] < 112) {
+expect: Play_PlayerShotsHitEnemies_damages_a_boss_by_a_tenth
+
+== play: PlayerShotsHitEnemies boss hits not counted
+file: src/game/collide.c
+-                             LASER_DECAY_OR_UNLOCK(0.0f)
+-
+-                             g_save.players[g_mapObjs[i].player].hits++;
+-                             g_hits++;
+-                         }
+-                     } else {
++                             LASER_DECAY_OR_UNLOCK(0.0f)
++
++                             g_hits++;
++                         }
++                     } else {
+expect: Play_PlayerShotsHitEnemies_damages_a_boss_by_a_tenth
+
+== play: PlayerShotsHitEnemies boss score
+file: src/game/collide.c
+-                                     g_mapObjs[i].player, g_enemies[p][j].score * 1000);
++                                     g_mapObjs[i].player, g_enemies[p][j].score * 100);
+expect: Play_PlayerShotsHitEnemies_killing_a_boss_pays_its_score_times_1000
+
+== play: PlayerShotsHitEnemies boss not killed
+file: src/game/collide.c
+-                                               g_save.players[g_mapObjs[i].player].color);
+-                                 g_enemies[p][j].active = 0;
++                                               g_save.players[g_mapObjs[i].player].color);
+expect: Play_PlayerShotsHitEnemies_killing_a_boss_pays_its_score_times_1000
+
+== play: PlayerShotsHitEnemies dual uses own wave
+file: src/game/collide.c
+-     if (g_gameMode == MODE_DUAL)
+-         p = 0;
+-     kills = 0;
++     kills = 0;
+expect: Play_PlayerShotsHitEnemies_in_dual_mode_both_shoot_the_shared_wave
+
+== play: PlayerShotsHitEnemies credits the current player
+file: src/game/collide.c
+-                                     killScore = g_enemies[p][j].score * g_scoreMul[g_mapObjs[i].player];
+-                                     if (killScore > 0 && killScore < 100000000) {
+-                                         g_save.players[g_mapObjs[i].player].score =
+-                                             g_save.players[g_mapObjs[i].player].score + killScore;
++                                     killScore = g_enemies[p][j].score * g_scoreMul[g_mapObjs[i].player];
++                                     if (killScore > 0 && killScore < 100000000) {
++                                         g_save.players[0].score =
++                                             g_save.players[0].score + killScore;
+expect: Play_PlayerShotsHitEnemies_in_dual_mode_both_shoot_the_shared_wave
+
+== play: ShieldGrabEnemies left slot reused
+file: src/game/collide.c
+-                         if (g_save.players[g_curPlayer].shieldL == 0) {
++                         if (g_save.players[g_curPlayer].shieldR != 0 || g_save.players[g_curPlayer].shieldL == 0) {
+expect: Play_ShieldGrabEnemies_with_both_slots_full_makes_debris
+
+== play: ShieldGrabEnemies right side flag
+file: src/game/collide.c
+-                             g_enemies[set][i].beamSide = 1;
++                             g_enemies[set][i].beamSide = 0;
+expect: Play_ShieldGrabEnemies_captures_into_the_left_then_right_slot
+
+== play: ShieldGrabEnemies beam offset
+file: src/game/collide.c
+-                             g_enemies[set][i].beamOffsetX = (int)(ex - g_save.players[g_curPlayer].x);
+-                             g_enemies[set][i].y = (float)ey;
+-
+-                             if (g_save.players[g_curPlayer].trackKillsFlag != 0)
+-                                 CreditKill(g_curPlayer);
+-                             else
+-                                 CreditEscape(g_curPlayer);
+-                             if (g_save.players[g_curPlayer].trackKillsFlag != 0)
+-                                 g_save.players[g_curPlayer].bonusKilled++;
+-                             g_warpLevelR = g_loadedLevel;
++                             g_enemies[set][i].beamOffsetX = 0;
++                             g_enemies[set][i].y = (float)ey;
++
++                             if (g_save.players[g_curPlayer].trackKillsFlag != 0)
++                                 CreditKill(g_curPlayer);
++                             else
++                                 CreditEscape(g_curPlayer);
++                             if (g_save.players[g_curPlayer].trackKillsFlag != 0)
++                                 g_save.players[g_curPlayer].bonusKilled++;
++                             g_warpLevelR = g_loadedLevel;
+expect: Play_ShieldGrabEnemies_captures_into_the_left_then_right_slot
+
+== play: ShieldGrabEnemies capture counts as a kill
+file: src/game/collide.c
+-                             g_enemies[set][i].beamSide = 0;
+-                             g_enemies[set][i].type = ENEMY_CAPTURED;
+-                             g_enemies[set][i].settled = 0;
+-                             g_enemies[set][i].beamOffsetX = (int)(ex - g_save.players[g_curPlayer].x);
+-                             g_enemies[set][i].y = (float)ey;
+-
+-                             if (g_save.players[g_curPlayer].trackKillsFlag != 0)
++                             g_enemies[set][i].beamSide = 0;
++                             g_enemies[set][i].type = ENEMY_CAPTURED;
++                             g_enemies[set][i].settled = 0;
++                             g_enemies[set][i].beamOffsetX = (int)(ex - g_save.players[g_curPlayer].x);
++                             g_enemies[set][i].y = (float)ey;
++
++                             if (1)
+expect: Play_ShieldGrabEnemies_captures_into_the_left_then_right_slot
+
+== play: ShieldGrabEnemies bonus wave kill not counted
+file: src/game/collide.c
+-                             if (g_save.players[g_curPlayer].trackKillsFlag != 0)
+-                                 g_save.players[g_curPlayer].bonusKilled++;
+-                             g_warpLevelL = g_loadedLevel;
++                             g_warpLevelL = g_loadedLevel;
+expect: Play_ShieldGrabEnemies_in_a_bonus_wave_counts_kills
+
+== play: ShieldGrabEnemies full slots no score
+file: src/game/collide.c
+- SHIELD_FULL_DEBRIS_SCORE = 2500,
++ SHIELD_FULL_DEBRIS_SCORE = 250,
+expect: Play_ShieldGrabEnemies_with_both_slots_full_makes_debris
+
+== play: ShieldGrabEnemies full slots debris type
+file: src/game/collide.c
+-                             g_enemies[set][i].type = ENEMY_DEBRIS;
++                             g_enemies[set][i].type = ENEMY_CAPTURED;
+expect: Play_ShieldGrabEnemies_with_both_slots_full_makes_debris
+
+== play: ShieldGrabEnemies beam height
+file: src/game/collide.c
+- top = py - (int)(g_scoopYScale * 45.0);
++ top = py - (int)(g_scoopYScale * 40.0);
+expect: Play_ShieldGrabEnemies_beam_height_is_90_above_the_ship
+
+== play: ShieldGrabEnemies beam includes the top
+file: src/game/collide.c
+-                 if ((ey > top && ey < py) || (ey2 > top && ey2 < py)) {
++                 if ((ey > top && ey < py) || (ey2 >= top && ey2 < py)) {
+expect: Play_ShieldGrabEnemies_beam_height_is_90_above_the_ship
+
+== play: ShieldGrabEnemies beam includes the ship row
+file: src/game/collide.c
+-                 if ((ey > top && ey < py) || (ey2 > top && ey2 < py)) {
++                 if ((ey > top && ey <= py) || (ey2 > top && ey2 < py)) {
+expect: Play_ShieldGrabEnemies_beam_height_is_90_above_the_ship
+
+== play: ShieldGrabEnemies beam width table offset
+file: src/game/collide.c
+-                     if ((clamp = py - ey) < 0)
++                     if ((clamp = py - ey + 10) < 0)
+expect: Play_ShieldGrabEnemies_beam_widens_with_distance
+
+== play: ShieldGrabEnemies beam centre
+file: src/game/collide.c
+-                     if (g_save.players[g_curPlayer].mirrorTime == 0)
+-                         px = (int)(g_save.players[g_curPlayer].x + 20.0);
++                     if (g_save.players[g_curPlayer].mirrorTime == 0)
++                         px = (int)(g_save.players[g_curPlayer].x + 21.0);
+expect: Play_ShieldGrabEnemies_beam_widens_with_distance
+
+== play: ShieldGrabEnemies without the scoop
+file: src/game/collide.c
+-         && g_save.players[g_curPlayer].scoopTimer != 0) {
++         ) {
+expect: Play_ShieldGrabEnemies_needs_the_scoop_and_skips_wrappers
+
+== play: ShieldGrabEnemies grabs wrappers
+file: src/game/collide.c
+-                 && g_enemies[set][i].type != ENEMY_DEBRIS && g_enemies[set][i].type != ENEMY_WRAPPER) {
++                 && g_enemies[set][i].type != ENEMY_DEBRIS) {
+expect: Play_ShieldGrabEnemies_needs_the_scoop_and_skips_wrappers
+
+== play: ShieldGrabEnemies while dead
+file: src/game/collide.c
+-     g_grabZoneHit = 0;
+-     if (g_save.players[g_curPlayer].dead == 0
++     g_grabZoneHit = 0;
++     if (1
+expect: Play_ShieldGrabEnemies_needs_the_scoop_and_skips_wrappers
+
+== play: ShieldGrabEnemiesBothPlayers repeats player 1
+file: src/game/collide.c
+-     ShieldGrabEnemies();
+-     g_curPlayer = 1 - g_curPlayer;
++     ShieldGrabEnemies();
++     if (g_curPlayer == 0)
++         g_curPlayer = 1;
+expect: Play_ShieldGrabEnemiesBothPlayers_checks_both_players_in_either_order
+
+== play: ShieldGrabEnemies wrong owner
+file: src/game/collide.c
+-                             g_save.players[g_curPlayer].shieldLIdx = i;
+-                             g_enemies[set][i].ownerPlayer = g_curPlayer;
++                             g_save.players[g_curPlayer].shieldLIdx = i;
++                             g_enemies[set][i].ownerPlayer = set;
+expect: Play_ShieldGrabEnemiesBothPlayers_checks_both_players_in_either_order
+
+== play: IsEnemyWaveCleared counts any non-zero
+file: src/game/collide.c
+-         if (g_enemies[p][i].active == 1)
+-             count++;
++         if (g_enemies[p][i].active != 0)
++             count++;
+expect: Play_IsEnemyWaveCleared_counts_active_enemies
+
+== play: IsEnemyWaveCleared misses the last slot
+file: src/game/collide.c
+-     count = 0;
+-     for (i = 0; i < MAX_ENEMIES; i++) {
+-         if (g_enemies[p][i].active == 1)
++     count = 0;
++     for (i = 0; i < MAX_ENEMIES - 1; i++) {
++         if (g_enemies[p][i].active == 1)
+expect: Play_IsEnemyWaveCleared_counts_active_enemies
+
+== play: IsEnemyWaveCleared dual uses player 2
+file: src/game/collide.c
+-     p = g_curPlayer;
+-     if (g_gameMode == MODE_DUAL)
+-         p = 0;
+-     count = 0;
++     p = g_curPlayer;
++     count = 0;
+expect: Play_IsEnemyWaveCleared_counts_active_enemies
+
+== play: IsHurryUpEnemyActive player 1 only
+file: src/game/collide.c
+-     for (p = 0; p < 2; p++) {
+-         for (i = 0; i < MAX_ENEMIES; i++) {
+-             if (g_enemies[p][i].active != 0 && g_enemies[p][i].type == ENEMY_MONEY_SHIP)
++     for (p = 0; p < 1; p++) {
++         for (i = 0; i < MAX_ENEMIES; i++) {
++             if (g_enemies[p][i].active != 0 && g_enemies[p][i].type == ENEMY_MONEY_SHIP)
+expect: Play_IsHurryUpEnemyActive_finds_a_money_ship_of_either_player
+
+== play: IsHurryUpEnemyActive mothership
+file: src/game/collide.c
+-             if (g_enemies[p][i].active != 0 && g_enemies[p][i].type == ENEMY_MONEY_SHIP)
++             if (g_enemies[p][i].active != 0 && g_enemies[p][i].type >= ENEMY_MOTHERSHIP)
+expect: Play_IsHurryUpEnemyActive_finds_a_money_ship_of_either_player
+
+== play: BoxOverlap right edge inclusive
+file: src/game/collide.c
+-             if (right > g_boxesA[i].x0 + x && bottom > g_boxesA[i].y0 + y &&
+-                 left < g_boxesA[i].x1 + x && top < g_boxesA[i].y1 + y)
++             if (right > g_boxesA[i].x0 + x && bottom > g_boxesA[i].y0 + y &&
++                 left <= g_boxesA[i].x1 + x && top < g_boxesA[i].y1 + y)
+expect: Play_BoxOverlap_tests_the_rect_against_the_box_list
+
+== play: BoxOverlap ignores y offset
+file: src/game/collide.c
+-             if (right > g_boxesA[i].x0 + x && bottom > g_boxesA[i].y0 + y &&
+-                 left < g_boxesA[i].x1 + x && top < g_boxesA[i].y1 + y)
++             if (right > g_boxesA[i].x0 + x && bottom > g_boxesA[i].y0 &&
++                 left < g_boxesA[i].x1 + x && top < g_boxesA[i].y1 + y)
+expect: Play_BoxOverlap_tests_the_rect_against_the_box_list
+
+== play: BoxOverlap ignores the terminator
+file: src/game/collide.c
+-             if (g_boxesA[i].x0 == -1)
+-                 return false;
++             if (g_boxesA[i].x0 == -2)
++                 return false;
+expect: Play_BoxOverlap_tests_the_rect_against_the_box_list
+
+== play: BoxOverlap set 1 tests set 0
+file: src/game/collide.c
+-             if (right > g_boxesB[j].x0 + x && bottom > g_boxesB[j].y0 + y &&
+-                 left < g_boxesB[j].x1 + x && top < g_boxesB[j].y1 + y)
++             if (right > g_boxesA[j].x0 + x && bottom > g_boxesA[j].y0 + y &&
++                 left < g_boxesA[j].x1 + x && top < g_boxesA[j].y1 + y)
+expect: Play_BoxOverlap_set_1_uses_its_own_shifted_boxes_and_terminator
+
+== play: MaskCollide wrong pitch
+file: src/game/collide.c
+-     g_idxA = (boxA.y1 + g_offYA) * pitchA + boxA.x1 + g_offXA;
++     g_idxA = (boxA.y1 + g_offYA) * pitchB + boxA.x1 + g_offXA + 1;
+expect: Play_MaskCollide_finds_overlapping_set_pixels
+
+== play: MaskCollide B offset
+file: src/game/collide.c
+-         g_offXB = x1 - x3;
++         g_offXB = x3 - x1;
+expect: Play_MaskCollide_finds_overlapping_set_pixels
+
+== play: MaskCollide ignores enable
+file: src/game/collide.c
+-     if (!enable || !maskA || !maskB)
+-         return 1;
+-
+-     g_ovX1
++     if (!maskA || !maskB)
++         return 1;
++
++     g_ovX1
+expect: Play_MaskCollide_finds_overlapping_set_pixels
+
+== play: MaskCollide2 B offset
+file: src/game/collide.c
+-         xb = x1 - x3;
++         xb = 0;
+expect: Play_MaskCollide2_finds_overlapping_set_pixels
+
+== play: MaskCollide2 ignores enable
+file: src/game/collide.c
+-     if (!enable)
+-         return 1;
+-     if (!maskA || !maskB)
++     if (!maskA || !maskB)
+expect: Play_MaskCollide2_finds_overlapping_set_pixels
+
+# ---------------------------------------------------------------- cheats.c
+
+== play: Cheats wrong code
+file: src/game/cheats.c
+- #define CHEAT_CODE "GALAGA"
++ #define CHEAT_CODE "GALAGO"
+expect: Play_Cheats_typing_GALAGA_toggles_them
+
+== play: Cheats only turn on
+file: src/game/cheats.c
+-             g_cheatsOn = !g_cheatsOn;
++             g_cheatsOn = true;
+expect: Play_Cheats_typing_GALAGA_toggles_them
+
+== play: Cheats off keeps god mode
+file: src/game/cheats.c
+-             if (!g_cheatsOn)
+-                 g_cheatGodMode = false;
++
+expect: Play_Cheats_typing_GALAGA_toggles_them
+
+== play: Cheats code not reset after timeout
+file: src/game/cheats.c
+-         if (g_time - s_lastLetterTime > CHEAT_CODE_TIMEOUT_MS)
+-             s_codePos = 0;
++         if (g_time - s_lastLetterTime > CHEAT_CODE_TIMEOUT_MS)
+expect: Play_Cheats_letters_must_follow_within_2_seconds
+
+== play: Cheats message time
+file: src/game/cheats.c
+-     g_msgTime = g_time + MSG_DURATION_MS;
++     g_msgTime = g_time + 1000;
+expect: Play_Cheats_typing_GALAGA_toggles_them
+
+== play: Cheats no fanfare
+file: src/game/cheats.c
+-             SoundPlay(g_sfxFanfare, -1, 0xff, 0.0f, 0xdf, g_sndFlags);
++
+expect: Play_Cheats_typing_GALAGA_toggles_them
+
+== play: Cheats timeout off by one
+file: src/game/cheats.c
+-         if (g_time - s_lastLetterTime > CHEAT_CODE_TIMEOUT_MS)
++         if (g_time - s_lastLetterTime >= CHEAT_CODE_TIMEOUT_MS)
+expect: Play_Cheats_letters_must_follow_within_2_seconds
+
+== play: Cheats no timeout
+file: src/game/cheats.c
+-         if (g_time - s_lastLetterTime > CHEAT_CODE_TIMEOUT_MS)
+-             s_codePos = 0;
++
+expect: Play_Cheats_letters_must_follow_within_2_seconds
+
+== play: Cheats timeout from the first letter
+file: src/game/cheats.c
+-         s_lastLetterTime = g_time;
+-         if (letter == CHEAT_CODE[s_codePos])
++         if (s_codePos == 0)
++             s_lastLetterTime = g_time;
++         if (letter == CHEAT_CODE[s_codePos])
+expect: Play_Cheats_letters_must_follow_within_2_seconds
+
+== play: Cheats wrong letter ignored
+file: src/game/cheats.c
+-         else
+-             s_codePos = letter == CHEAT_CODE[0] ? 1 : 0;
++
+expect: Play_Cheats_a_wrong_letter_restarts_the_code
+
+== play: Cheats wrong G restarts from zero
+file: src/game/cheats.c
+-             s_codePos = letter == CHEAT_CODE[0] ? 1 : 0;
++             s_codePos = 0;
+expect: Play_Cheats_a_wrong_letter_restarts_the_code
+
+== play: Cheats letters repeat while held
+file: src/game/cheats.c
+-             if (s_letterLatch[i] == 0 && pressed == 0)
++             if (pressed == 0)
+expect: Play_Cheats_a_held_key_counts_once
+
+== play: Cheats held letter hides the next
+file: src/game/cheats.c
+-             if (s_letterLatch[i] == 0 && pressed == 0)
+-                 pressed = (char)('A' + i);
+-             s_letterLatch[i] = 1;
++             if (s_letterLatch[i] == 0 && pressed == 0)
++                 pressed = (char)('A' + i);
++             s_letterLatch[i] = 1;
++             if (pressed != (char)('A' + i))
++                 return 0;
+expect: Play_Cheats_a_held_key_does_not_hide_the_next_one
+
+== play: Cheats letter latch never released
+file: src/game/cheats.c
+-             s_letterLatch[i] = 0;
++             ;
+expect: Play_Cheats_typing_GALAGA_toggles_them
+
+== play: Cheats in the demo
+file: src/game/cheats.c
+-     if (g_playerUpdateFn == StateDemo || g_autoplay || AnyWindowActive())
++     if (g_autoplay || AnyWindowActive())
+expect: Play_Cheats_not_in_the_demo_autoplay_or_with_a_window_open
+
+== play: Cheats in autoplay
+file: src/game/cheats.c
+-     if (g_playerUpdateFn == StateDemo || g_autoplay || AnyWindowActive())
++     if (g_playerUpdateFn == StateDemo || AnyWindowActive())
+expect: Play_Cheats_not_in_the_demo_autoplay_or_with_a_window_open
+
+== play: Cheats with a window open
+file: src/game/cheats.c
+-     if (g_playerUpdateFn == StateDemo || g_autoplay || AnyWindowActive())
++     if (g_playerUpdateFn == StateDemo || g_autoplay)
+expect: Play_Cheats_not_in_the_demo_autoplay_or_with_a_window_open
+
+== play: AnyWindowActive misses the last window
+file: src/ui/window.c
+-     for (i = 0; i < MAX_WINDOWS; i++) {
+-         if (g_windows[i].active != 0) {
+-             return true;
++     for (i = 0; i < MAX_WINDOWS - 1; i++) {
++         if (g_windows[i].active != 0) {
++             return true;
+expect: Play_Cheats_not_in_the_demo_autoplay_or_with_a_window_open
+
+== play: Hotkeys skips the cheat code
+file: src/game/gameflow.c
+-     CheatHotkeys();
+-
+-     // ---- F6
++
++     // ---- F6
+expect: Play_Cheats_Hotkeys_watches_for_the_code
+
+== play: Cheats digits without the code
+file: src/game/cheats.c
+-     if (digit != 0 && g_cheatsOn && (digit == 9 || (g_state == STATE_PLAYING && PL.dead == 0)))
++     if (digit != 0 && (digit == 9 || (g_state == STATE_PLAYING && PL.dead == 0)))
+expect: Play_Cheats_digits_do_nothing_while_cheats_are_off
+
+== play: Cheats digits while dead
+file: src/game/cheats.c
+-     if (digit != 0 && g_cheatsOn && (digit == 9 || (g_state == STATE_PLAYING && PL.dead == 0)))
++     if (digit != 0 && g_cheatsOn && (digit == 9 || g_state == STATE_PLAYING))
+expect: Play_Cheats_other_digits_need_normal_play_and_a_live_ship
+
+== play: Cheats digits outside play
+file: src/game/cheats.c
+-     if (digit != 0 && g_cheatsOn && (digit == 9 || (g_state == STATE_PLAYING && PL.dead == 0)))
++     if (digit != 0 && g_cheatsOn && (digit == 9 || PL.dead == 0))
+expect: Play_Cheats_other_digits_need_normal_play_and_a_live_ship
+
+== play: Cheats god mode needs a live ship
+file: src/game/cheats.c
+-     if (digit != 0 && g_cheatsOn && (digit == 9 || (g_state == STATE_PLAYING && PL.dead == 0)))
++     if (digit != 0 && g_cheatsOn && (g_state == STATE_PLAYING && PL.dead == 0))
+expect: Play_Cheats_9_toggles_god_mode_even_while_dead
+
+== play: Cheats digits repeat while held
+file: src/game/cheats.c
+-             if (s_digitLatch[d] == 0 && pressed == 0)
++             if (pressed == 0)
+expect: Play_Cheats_numpad_digits_work_too_once_per_press
+
+== play: Cheats no numpad
+file: src/game/cheats.c
+-         if (KeyDown((enum EKeyboardLayout)(K_VK_0 + d)) || KeyDown((enum EKeyboardLayout)(K_VK_NUM0 + d))) {
++         if (KeyDown((enum EKeyboardLayout)(K_VK_0 + d))) {
+expect: Play_Cheats_numpad_digits_work_too_once_per_press
+
+== play: Cheats digit 9 ignored
+file: src/game/cheats.c
+-     for (int d = 1; d <= 9; d++) {
++     for (int d = 1; d < 9; d++) {
+expect: Play_Cheats_9_toggles_god_mode_even_while_dead
+
+== play: Cheats no click
+file: src/game/cheats.c
+-     }
+-     PlayClick();
+- }
++     }
++ }
+expect: Play_Cheats_1_adds_a_life_up_to_the_max
+
+== play: Cheats extra life not capped
+file: src/game/cheats.c
+-             if (PL.lives > SHIP->minEnergy + SHIP->maxEnergy)
+-                 PL.lives = SHIP->minEnergy + SHIP->maxEnergy;
++
+expect: Play_Cheats_1_adds_a_life_up_to_the_max
+
+== play: Cheats extra life when full
+file: src/game/cheats.c
+-         if (PL.lives < SHIP->minEnergy + SHIP->maxEnergy) {
++         if (PL.lives <= SHIP->minEnergy + SHIP->maxEnergy) {
+expect: Play_Cheats_1_adds_a_life_up_to_the_max
+
+== play: Cheats extra life size
+file: src/game/cheats.c
+-             PL.lives += SHIP->cost;
++             PL.lives += 1;
+expect: Play_Cheats_1_adds_a_life_up_to_the_max
+
+== play: Cheats money amount
+file: src/game/cheats.c
+-     CHEAT_MONEY           = 1000,
++     CHEAT_MONEY           = 100,
+expect: Play_Cheats_2_adds_1000_money_up_to_the_wallet
+
+== play: Cheats money not capped
+file: src/game/cheats.c
+-         if (PL.money > PL.moneyMax)
+-             PL.money = PL.moneyMax;
++
+expect: Play_Cheats_2_adds_1000_money_up_to_the_wallet
+
+== play: Cheats money record
+file: src/game/cheats.c
+-         if (PL.money > g_moneyMax)
+-             g_moneyMax = PL.money;
++
+expect: Play_Cheats_2_adds_1000_money_up_to_the_wallet
+
+== play: Cheats warp twice
+file: src/game/cheats.c
+-         if (PL.levelFinished)
+-             return;
++
+expect: Play_Cheats_3_warps_once_per_level
+
+== play: Cheats warp not applied
+file: src/game/cheats.c
+-         Pickup(ITEM_WARP);
++
+expect: Play_Cheats_3_warps_once_per_level
+
+== play: Cheats weapon
+file: src/game/cheats.c
+-         PL.weapon = WEAPON_WAR_PLASMA;
++         PL.weapon = WEAPON_LASER;
+expect: Play_Cheats_4_gives_war_i_plasma_with_50_bullets
+
+== play: Cheats bullets
+file: src/game/cheats.c
+-     CHEAT_MAX_BULLETS     = 50,
++     CHEAT_MAX_BULLETS     = 49,
+expect: Play_Cheats_4_gives_war_i_plasma_with_50_bullets
+
+== play: Cheats armour
+file: src/game/cheats.c
+-         PL.armour = SHIP->baseArmour + SHIP->maxArmourBonus;
++         PL.armour = SHIP->baseArmour + SHIP->armourStep;
+expect: Play_Cheats_5_fills_the_armour
+
+== play: Cheats rockets
+file: src/game/cheats.c
+-     CHEAT_MAX_ROCKETS     = 50,
++     CHEAT_MAX_ROCKETS     = 5,
+expect: Play_Cheats_6_gives_rockets_and_super_autofire
+
+== play: Cheats autofire rate
+file: src/game/cheats.c
+-     CHEAT_SUPER_AUTO_RATE = 0x19,
++     CHEAT_SUPER_AUTO_RATE = 0x32,
+expect: Play_Cheats_6_gives_rockets_and_super_autofire
+
+== play: Cheats no autofire
+file: src/game/cheats.c
+-         PL.autofire = 1;
++
+expect: Play_Cheats_6_gives_rockets_and_super_autofire
+
+== play: Cheats shield gives scoop
+file: src/game/cheats.c
+-         Pickup(ITEM_SHIELD);
++         Pickup(ITEM_SCOOP);
+expect: Play_Cheats_7_gives_a_shield
+
+== play: Cheats bomb is money bomb
+file: src/game/cheats.c
+-         Pickup(ITEM_GEM_BOMB);
++         Pickup(ITEM_FREEZE);
+expect: Play_Cheats_8_is_a_smart_bomb
+
+== play: Cheats god mode only on
+file: src/game/cheats.c
+-         g_cheatGodMode = !g_cheatGodMode;
++         g_cheatGodMode = true;
+expect: Play_Cheats_9_toggles_god_mode_even_while_dead
+
+== play: Cheats digits shifted
+file: src/game/cheats.c
+-     case 4:  // best weapon
++     case 5:  // best weapon
+-         PL.weapon = WEAPON_WAR_PLASMA;
+-         PL.bullets = CHEAT_MAX_BULLETS;
+-         CheatMsg("CHEAT : WAR.I.PLASMA");
+-         break;
+-
+-     case 5:  // full armour
++         PL.weapon = WEAPON_WAR_PLASMA;
++         PL.bullets = CHEAT_MAX_BULLETS;
++         CheatMsg("CHEAT : WAR.I.PLASMA");
++         break;
++
++     case 4:  // full armour
+expect: Play_Cheats_4_gives_war_i_plasma_with_50_bullets
+expect: Play_Cheats_5_fills_the_armour
+
+# ---------------------------------------------------------------- input.c
+
+== play: InputLeft reads the right key
+file: src/game/input.c
+-         if (KeyDown((enum EKeyboardLayout)g_cfg.left[p]) == true || PAD(p, PAD_LEFT))
++         if (KeyDown((enum EKeyboardLayout)g_cfg.right[p]) == true || PAD(p, PAD_LEFT))
+expect: Play_Input_each_action_reads_only_its_own_key
+
+== play: InputRight reads player 1
+file: src/game/input.c
+-         if (KeyDown((enum EKeyboardLayout)g_cfg.right[p]) == true || PAD(p, PAD_RIGHT))
++         if (KeyDown((enum EKeyboardLayout)g_cfg.right[0]) == true || PAD(p, PAD_RIGHT))
+expect: Play_Input_each_action_reads_only_its_own_key
+
+== play: InputUp reads down
+file: src/game/input.c
+-         if (KeyDown((enum EKeyboardLayout)g_cfg.up[p]) == true || PAD(p, PAD_UP))
++         if (KeyDown((enum EKeyboardLayout)g_cfg.down[p]) == true || PAD(p, PAD_UP))
+expect: Play_Input_each_action_reads_only_its_own_key
+
+== play: InputDown reads player 2
+file: src/game/input.c
+-         if (KeyDown((enum EKeyboardLayout)g_cfg.down[p]) == true || PAD(p, PAD_DOWN))
++         if (KeyDown((enum EKeyboardLayout)g_cfg.down[1]) == true || PAD(p, PAD_DOWN))
+expect: Play_Input_each_action_reads_only_its_own_key
+
+== play: InputFire reads rocket
+file: src/game/input.c
+-     if (g_save.players[p].inputDevice == DEVICE_KEYBOARD) {
+-         if (KeyDown((enum EKeyboardLayout)g_cfg.fire[p]) == true || PAD(p, PAD_FIRE))
++     if (g_save.players[p].inputDevice == DEVICE_KEYBOARD) {
++         if (KeyDown((enum EKeyboardLayout)g_cfg.rocket[p]) == true || PAD(p, PAD_FIRE))
+expect: Play_Input_each_action_reads_only_its_own_key
+
+== play: InputRocket reads fire
+file: src/game/input.c
+-         if (KeyDown((enum EKeyboardLayout)g_cfg.rocket[p]) == true || PAD(p, PAD_ROCKET))
++         if (KeyDown((enum EKeyboardLayout)g_cfg.fire[p]) == true || PAD(p, PAD_ROCKET))
+expect: Play_Input_each_action_reads_only_its_own_key
+
+== play: InputPause reads profile
+file: src/game/input.c
+-         if (KeyDown((enum EKeyboardLayout)g_cfg.pause[p]) == true || PAD(p, PAD_PAUSE))
++         if (KeyDown((enum EKeyboardLayout)g_cfg.profile[p]) == true || PAD(p, PAD_PAUSE))
+expect: Play_Input_each_action_reads_only_its_own_key
+
+== play: InputProfile always off
+file: src/game/input.c
+-         if (KeyDown((enum EKeyboardLayout)g_cfg.profile[p]) == true || PAD(p, PAD_PROFILE))
++         if (KeyDown((enum EKeyboardLayout)g_cfg.profile[p]) == false || PAD(p, PAD_PROFILE))
+expect: Play_Input_each_action_reads_only_its_own_key
+
+== play: InputLeft keeps the joystick speed
+file: src/game/input.c
+-         g_joystickSpeedMul = 1.0f;
+-         if (KeyDown((enum EKeyboardLayout)g_cfg.left[p]) == true || PAD(p, PAD_LEFT))
++         if (KeyDown((enum EKeyboardLayout)g_cfg.left[p]) == true || PAD(p, PAD_LEFT))
+expect: Play_InputLeft_keyboard_moves_at_full_speed
+
+== play: InputFire joystick reads the keyboard
+file: src/game/input.c
+-     if (g_save.players[p].inputDevice == DEVICE_JOYSTICK1) {
+-         if (GetFlagMask(0) & g_cfg.joyFire[p])
++     if (g_save.players[p].inputDevice == DEVICE_JOYSTICK1) {
++         if (KeyDown((enum EKeyboardLayout)g_cfg.fire[p]))
+expect: Play_Input_a_joystick_player_ignores_the_keyboard
+
+== play: InputPause any device is a keyboard
+file: src/game/input.c
+- int InputPause(int p)
+- {
+-     if (g_save.players[p].inputDevice == DEVICE_KEYBOARD) {
++ int InputPause(int p)
++ {
++     if (g_save.players[p].inputDevice != DEVICE_JOYSTICK1) {
+expect: Play_Input_a_joystick_player_ignores_the_keyboard
+expect: Play_Input_an_unknown_device_reads_nothing
+
+== play: InputMenuFire uses the game device
+file: src/game/input.c
+-     if (g_cfg.device[p] == DEVICE_KEYBOARD) {
++     if (g_save.players[p].inputDevice == DEVICE_KEYBOARD) {
+expect: Play_InputMenuFire_uses_the_configured_device
+
+== play: GetFlagMask inverted
+file: src/game/input.c
+-     if (JoyButton(joy, bit) == true) \
++     if (JoyButton(joy, bit) == false) \
+expect: Play_GetFlagMask_has_no_buttons_without_a_joystick
+
+== play: InputFire autoplay banner color
+file: src/game/input.c
+-         g_msgColor = 2;
+-         g_msgTimer = g_time + 5000;
+-         if (g_state == STATE_BONUS_RACE
++         g_msgColor = 1;
++         g_msgTimer = g_time + 5000;
++         if (g_state == STATE_BONUS_RACE
+expect: Play_InputFire_in_autoplay_shows_the_banner
+
+== play: InputFire autoplay fire odds
+file: src/game/input.c
+-                 if (g_targetObjX != -1.0 && RandRange(0, 100) < 70)
++                 if (g_targetObjX != -1.0 && RandRange(0, 100) < 50)
+expect: Play_InputFire_in_autoplay_shoots_at_a_target
+
+== play: InputFire autoplay fires without a target
+file: src/game/input.c
+-                 if (g_targetObjX != -1.0 && RandRange(0, 100) < 70)
++                 if (RandRange(0, 100) < 70)
+expect: Play_InputFire_in_autoplay_shoots_at_a_target
+
+== play: InputFire autoplay memory station
+file: src/game/input.c
+-         if (g_state == STATE_MEMORY_STATION && RandRange(0, 100) < 100)
++         if (g_state == STATE_MEMORY_STATION && RandRange(0, 100) < 90)
+expect: Play_InputFire_in_autoplay_always_fires_in_the_memory_station
+
+== play: InputRocket autoplay odds
+file: src/game/input.c
+-         if (RandRange(0, 100) < 4)
++         if (RandRange(0, 100) < 5)
+expect: Play_InputRocket_in_autoplay_fires_4_percent_of_the_time
+
+== play: InputDown autoplay odds
+file: src/game/input.c
+-     if (g_autoplay && RandRange(0, 100) < 50)
++     if (g_autoplay && RandRange(0, 100) < 40)
+expect: Play_InputDown_in_autoplay_is_a_coin_flip
+
+== play: InputUp autoplay timer not counted down
+file: src/game/input.c
+- int InputUp(int p)
+- {
+-     if (g_autoplay) {
+-         if (g_aiTimer > 0) {
+-             g_aiTimer--;
++ int InputUp(int p)
++ {
++     if (g_autoplay) {
++         if (g_aiTimer > 0) {
+expect: Play_InputUp_in_autoplay_holds_for_the_ai_timer
+
+== play: InputUp autoplay dodge odds
+file: src/game/input.c
+-             return 1;
+-         }
+-         if (RandRange(0, 100) < 2) {
+-             g_aiTimer = RandRange(5, 40);
+-             return 1;
+-         }
+-     }
+-
+-     if (g_save.players[p].inputDevice == DEVICE_KEYBOARD) {
+-         if (KeyDown((enum EKeyboardLayout)g_cfg.up[p]) == true || PAD(p, PAD_UP))
++             return 1;
++         }
++         if (RandRange(0, 100) < 20) {
++             g_aiTimer = RandRange(5, 40);
++             return 1;
++         }
++     }
++
++     if (g_save.players[p].inputDevice == DEVICE_KEYBOARD) {
++         if (KeyDown((enum EKeyboardLayout)g_cfg.up[p]) == true || PAD(p, PAD_UP))
+expect: Play_InputUp_in_autoplay_holds_for_the_ai_timer
+
+== play: InputLeft autoplay chases the wrong way
+file: src/game/input.c
+-             if (g_targetObjX != -1.0 && g_targetObjX < g_save.players[p].x)
++             if (g_targetObjX != -1.0 && g_targetObjX > g_save.players[p].x)
+expect: Play_InputLeft_and_Right_in_autoplay_chase_the_lowest_enemy
+
+== play: InputRight autoplay moves without target
+file: src/game/input.c
+-             if (g_targetObjX != -1.0 && g_targetObjX > g_save.players[p].x)
++             if (g_targetObjX == -1.0 || g_targetObjX > g_save.players[p].x)
+expect: Play_InputLeft_and_Right_in_autoplay_chase_the_lowest_enemy
+
+== play: InputLeft autoplay ignores items
+file: src/game/input.c
+-             if (g_targetItemY > g_targetObjY && g_targetItemX != -1.0 &&
+-                 g_targetItemX < g_save.players[p].x)
++             if (0)
+expect: Play_InputLeft_in_autoplay_prefers_a_lower_item
+
+== play: InputLeft autoplay any item
+file: src/game/input.c
+-             if (g_targetItemY > g_targetObjY && g_targetItemX != -1.0 &&
+-                 g_targetItemX < g_save.players[p].x)
++             if (g_targetItemX != -1.0 &&
++                 g_targetItemX < g_save.players[p].x)
+expect: Play_InputLeft_in_autoplay_prefers_a_lower_item
+
+== play: InputRight gem drop wrong way
+file: src/game/input.c
+-             if (g_target847X != -1.0 && g_target847X > g_save.players[p].x)
++             if (g_target847X != -1.0 && g_target847X < g_save.players[p].x)
+expect: Play_InputLeft_in_the_gem_drop_chases_the_lowest_gem
+
+== play: InputLeft gem drop without gem
+file: src/game/input.c
+-             if (g_target847X != -1.0 && g_target847X < g_save.players[p].x)
++             if (g_target847X < g_save.players[p].x)
+expect: Play_InputLeft_in_the_gem_drop_chases_the_lowest_gem
+
+== play: InputLeft race timer not counted
+file: src/game/input.c
+-             if (g_aiLeft > 0) {
+-                 g_aiLeft--;
++             if (g_aiLeft > 0) {
+expect: Play_InputLeft_in_the_race_holds_for_the_ai_timer
+
+== play: InputMenuFire autoplay without permission
+file: src/game/input.c
+-     if (g_autoplay && g_autoplayCanFire && RandRange(0, 100) < 90)
++     if (g_autoplay && RandRange(0, 100) < 90)
+expect: Play_InputMenuFire_in_autoplay_needs_permission
+
+== play: InputMenuFire autoplay odds
+file: src/game/input.c
+-     if (g_autoplay && g_autoplayCanFire && RandRange(0, 100) < 90)
++     if (g_autoplay && g_autoplayCanFire && RandRange(0, 100) < 80)
+expect: Play_InputMenuFire_in_autoplay_needs_permission
+
+== play: FindTargetItem highest instead of lowest
+file: src/game/input.c
+-                 g_items[i].y > maxY) {
++                 g_items[i].y < maxY + 1000 - g_items[i].y) {
+expect: Play_FindTargetItem_picks_the_lowest_item_above_the_ship
+
+== play: FindTargetItem below the ship
+file: src/game/input.c
+-                 g_items[i].y < g_save.players[g_curPlayer].y + 32 &&
++                 g_items[i].y <= g_save.players[g_curPlayer].y + 32 &&
+expect: Play_FindTargetItem_picks_the_lowest_item_above_the_ship
+
+== play: FindTargetItem left margin
+file: src/game/input.c
+-         if (g_items[i].alive != 0 && g_items[i].active != 0 && g_items[i].x > 70.0) {
++         if (g_items[i].alive != 0 && g_items[i].active != 0 && g_items[i].x >= 70.0) {
+expect: Play_FindTargetItem_picks_the_lowest_item_above_the_ship
+
+== play: FindTargetItem inactive items
+file: src/game/input.c
+-         if (g_items[i].alive != 0 && g_items[i].active != 0 && g_items[i].x > 70.0) {
++         if (g_items[i].alive != 0 && g_items[i].x > 70.0) {
+expect: Play_FindTargetItem_picks_the_lowest_item_above_the_ship
+
+== play: FindTargetItem right margin
+file: src/game/input.c
+-             if (g_items[i].x < g_screenW - 70 &&
++             if (g_items[i].x <= g_screenW - 70 &&
+expect: Play_FindTargetItem_picks_the_lowest_item_above_the_ship
+
+== play: FindTargetItem y not reset
+file: src/game/input.c
+-     g_targetItemX = -1.0f;
+-     g_targetItemY = -1.0f;
++     g_targetItemX = -1.0f;
+expect: Play_FindTargetItem_picks_the_lowest_item_above_the_ship
+
+== play: FindTargetObj captured enemies
+file: src/game/input.c
+-             g_enemies[g_curPlayer][i].type != ENEMY_CAPTURED &&
+-             g_enemies[g_curPlayer][i].y < 500.0 &&
++             g_enemies[g_curPlayer][i].y < 500.0 &&
+expect: Play_FindTargetObj_picks_the_lowest_enemy
+
+== play: FindTargetObj low limit
+file: src/game/input.c
+-             g_enemies[g_curPlayer][i].y < 500.0 &&
++             g_enemies[g_curPlayer][i].y <= 500.0 &&
+expect: Play_FindTargetObj_picks_the_lowest_enemy
+
+== play: FindTargetObj any active value
+file: src/game/input.c
+-         if (g_enemies[g_curPlayer][i].active == 1 &&
++         if (g_enemies[g_curPlayer][i].active != 0 &&
+expect: Play_FindTargetObj_picks_the_lowest_enemy
+
+== play: FindTargetObj right margin
+file: src/game/input.c
+-             if (g_enemies[g_curPlayer][i].x < g_screenW - 70 &&
++             if (g_enemies[g_curPlayer][i].x <= g_screenW - 70 &&
+expect: Play_FindTargetObj_picks_the_lowest_enemy
+
+== play: FindTargetObj player 1 only
+file: src/game/input.c
+-     for (i = 0; i < MAX_ENEMIES; i++) {
+-         if (g_enemies[g_curPlayer][i].active == 1 &&
++     for (i = 0; i < MAX_ENEMIES; i++) {
++         if (g_enemies[0][i].active == 1 &&
+expect: Play_FindTargetObj_picks_the_lowest_enemy
+
+== play: FindTargetGem low limit
+file: src/game/input.c
+-         if (g_fallingGems[i].active != 0 && g_fallingGems[i].y < 550.0 &&
++         if (g_fallingGems[i].active != 0 && g_fallingGems[i].y <= 550.0 &&
+expect: Play_FindTargetGem_picks_the_lowest_gem_centre
+
+== play: FindTargetGem left edge not centre
+file: src/game/input.c
+-         g_target847X = g_fallingGems[best].x + (g_fallingGems[best].w >> 1);
++         g_target847X = g_fallingGems[best].x;
+expect: Play_FindTargetGem_picks_the_lowest_gem_centre
+
+== play: FindTargetGem left margin
+file: src/game/input.c
+-             g_fallingGems[i].x + (g_fallingGems[i].w >> 1) > 70.0) {
++             g_fallingGems[i].x + (g_fallingGems[i].w >> 1) >= 70.0) {
+expect: Play_FindTargetGem_picks_the_lowest_gem_centre
+
+== play: FindTargetGem misses the last
+file: src/game/input.c
+-     for (i = 0; i < MAX_FALLING_GEMS; i++) {
++     for (i = 0; i < MAX_FALLING_GEMS - 1; i++) {
+expect: Play_FindTargetGem_picks_the_lowest_gem_centre
+
+== play: FindTargetMeteor uses the top
+file: src/game/input.c
+-         g_targetB49Y = g_bonusMeteors[best].y + g_bonusMeteors[best].h;
++         g_targetB49Y = g_bonusMeteors[best].y;
+expect: Play_FindTargetMeteor_picks_the_lowest_meteor_bottom
+
+== play: FindTargetMeteor bottom limit
+file: src/game/input.c
+-         if (g_bonusMeteors[i].active != 0 && g_bonusMeteors[i].y + g_bonusMeteors[i].h < 550.0) {
++         if (g_bonusMeteors[i].active != 0 && g_bonusMeteors[i].y + g_bonusMeteors[i].h <= 550.0) {
+expect: Play_FindTargetMeteor_picks_the_lowest_meteor_bottom
+
+== play: FindTargetMeteor margins
+file: src/game/input.c
+-             if (cx > 70.0 && cx < g_screenW - 70 &&
++             if (cx >= 70.0 && cx <= g_screenW - 70 &&
+expect: Play_FindTargetMeteor_picks_the_lowest_meteor_bottom
+
+== play: FindTargetMeteor inactive
+file: src/game/input.c
+-         if (g_bonusMeteors[i].active != 0 && g_bonusMeteors[i].y + g_bonusMeteors[i].h < 550.0) {
++         if (g_bonusMeteors[i].y + g_bonusMeteors[i].h < 550.0) {
+expect: Play_FindTargetMeteor_picks_the_lowest_meteor_bottom
+
+== play: default bindings right is up
+file: src/profile/settings.c
+-     g_cfg.right[0] = 3;
++     g_cfg.right[0] = 1;
+expect: Play_Input_default_bindings
+
+== play: default bindings player 2 fire
+file: src/profile/settings.c
+-     g_cfg.fire[1] = 8;
++     g_cfg.fire[1] = 9;
+expect: Play_Input_default_bindings
+
+== play: UpdatePlayer two player respawn keeps the turn
+file: src/game/player.c
+-                 if (!IsGameOver())
+-                     SwitchPlayer();
++                 IsGameOver();
+expect: Play_UpdatePlayer_two_player_respawn_hands_over_to_the_other_player
+
+== play: UpdatePlayer two player respawn shield
+file: src/game/player.c
+-                 case MODE_TWO_PLAYER:
+-                     P.shieldTimer = g_time + 5000;
++                 case MODE_TWO_PLAYER:
++                     P.shieldTimer = g_time + 3000;
+expect: Play_UpdatePlayer_two_player_respawn_hands_over_to_the_other_player
+
+== play: UpdatePlayer two player respawn costs nothing
+file: src/game/player.c
+-                 P.dead = 0;
+-                 P.lives = P.lives - g_shipDefs[P.ship]->cost;
+-                 PlayerHit(g_curPlayer);
+-                 if (!IsGameOver())
++                 P.dead = 0;
++                 PlayerHit(g_curPlayer);
++                 if (!IsGameOver())
+expect: Play_UpdatePlayer_two_player_respawn_hands_over_to_the_other_player

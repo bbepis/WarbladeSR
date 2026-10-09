@@ -1,0 +1,1367 @@
+# src/core (random.c, mathutil.c, platform.c, weblinks.c, init.c, main.c, stubs.c) and
+# src/data/static_init.c (tests/test_core_*.c)
+
+# ---------------------------------------------------------------- random.c
+
+== core: SeedRand Y adds instead of multiplying
+file: src/core/random.c
+- g_rngY = rand() * g_rngX;
++ g_rngY = rand() + g_rngX;
+expect: core_SeedRand_derives_xyz_from_the_crt_rng
+
+== core: SeedRand Z drops Y
+file: src/core/random.c
+- g_rngZ = rand() * g_rngX + g_rngY;
++ g_rngZ = rand() * g_rngX;
+expect: core_SeedRand_derives_xyz_from_the_crt_rng
+
+== core: SeedRand resets W
+file: src/core/random.c
+- g_rngZ = rand() * g_rngX + g_rngY;
++ g_rngZ = rand() * g_rngX + g_rngY;
++     g_rngW = 0;
+expect: core_SeedRand_derives_xyz_from_the_crt_rng
+
+== core: SeedRand ignores the seed
+file: src/core/random.c
+- srand(seed);
++ srand(1);
+expect: core_SeedRand_same_seed_same_sequence
+
+== core: XorShift T xor instead of subtract
+file: src/core/random.c
+- g_rngT -= (g_rngX << 11) ^ g_rngX;
++ g_rngT ^= (g_rngX << 11) ^ g_rngX;
+expect: core_XorShift_known_sequence
+expect: core_XorShift_shifts_the_state
+expect: core_XorShift_matches_model_over_many_steps
+
+== core: XorShift shift 11 -> 12
+file: src/core/random.c
+- g_rngT -= (g_rngX << 11) ^ g_rngX;
++ g_rngT -= (g_rngX << 12) ^ g_rngX;
+expect: core_XorShift_known_sequence
+
+== core: XorShift W shift 19 -> 18
+file: src/core/random.c
+- g_rngW = (g_rngW >> 19) ^ g_rngW
++ g_rngW = (g_rngW >> 18) ^ g_rngW
+expect: core_XorShift_matches_model_over_many_steps
+
+== core: XorShift T shift 8 -> 9
+file: src/core/random.c
+- ((g_rngT >> 8) ^ g_rngT);
++ ((g_rngT >> 9) ^ g_rngT);
+expect: core_XorShift_known_sequence
+
+== core: XorShift skips the Y shift
+file: src/core/random.c
+- g_rngY = g_rngZ;
+-     g_rngZ = g_rngW;
++ g_rngZ = g_rngW;
+expect: core_XorShift_shifts_the_state
+
+== core: XorShift seeds a zero state
+file: src/core/random.c
+- unsigned int XorShift()
+- {
++ unsigned int XorShift()
++ {
++     if (!(g_rngX | g_rngY | g_rngZ | g_rngW | g_rngT)) g_rngW = 1;
+expect: core_XorShift_all_zero_state_stays_zero
+
+== core: RandRange empty returns lo
+file: src/core/random.c
+- if (hi - lo == 0)
+-         return 0;
++ if (hi - lo == 0)
++         return lo;
+expect: core_RandRange_empty_range_is_zero_without_advancing
+
+== core: RandRange empty advances the generator
+file: src/core/random.c
+- if (hi - lo == 0)
+-         return 0;
++ if (hi - lo == 0)
++         return XorShift() * 0;
+expect: core_RandRange_empty_range_is_zero_without_advancing
+
+== core: RandRange includes hi
+file: src/core/random.c
+- return XorShift() % (hi - lo) + lo;
++ return XorShift() % (hi - lo + 1) + lo;
+expect: core_RandRange_is_xorshift_mod_width_plus_lo
+expect: core_RandRange_stays_in_bounds_and_reaches_both_ends
+
+== core: RandRange never reaches hi - 1
+file: src/core/random.c
+- return XorShift() % (hi - lo) + lo;
++ return XorShift() % (hi - lo - 1) + lo;
+expect: core_RandRange_stays_in_bounds_and_reaches_both_ends
+
+== core: RandFloat 1/2^31
+file: src/core/random.c
+- 2.3283064365386963e-10 + lo;
++ 4.6566128730773926e-10 + lo;
+expect: core_RandFloat_scales_by_2_pow_minus_32
+expect: core_RandFloat_stays_in_range
+
+== core: RandFloat drops lo
+file: src/core/random.c
+- 2.3283064365386963e-10 + lo;
++ 2.3283064365386963e-10;
+expect: core_RandFloat_scales_by_2_pow_minus_32
+expect: core_RandFloat_stays_in_range
+
+== core: Rand7f mask 0xff
+file: src/core/random.c
+- return XorShift() & 0x7f;
++ return XorShift() & 0xff;
+expect: core_Rand_masks_take_the_low_bits
+expect: core_Rand_masks_cover_their_full_range
+
+== core: Randff mask 0x7f
+file: src/core/random.c
+- return XorShift() & 0xff;
++ return XorShift() & 0x7f;
+expect: core_Rand_masks_cover_their_full_range
+
+== core: Rand1ff mask 0xff
+file: src/core/random.c
+- return XorShift() & 0x1ff;
++ return XorShift() & 0xff;
+expect: core_Rand_masks_take_the_low_bits
+expect: core_Rand_masks_cover_their_full_range
+
+== core: MakeRandomId upper bound x10
+file: src/core/random.c
+- v > 9999999999999LL);
++ v > 99999999999999LL);
+expect: core_MakeRandomId_is_in_range_for_many_seeds
+
+== core: MakeRandomId accepts negatives
+file: src/core/random.c
+- } while (v < 0 || v == 0 ||
++ } while (v == 0 ||
+expect: core_MakeRandomId_is_in_range_for_many_seeds
+
+== core: MakeRandomId keeps state between calls
+file: src/core/random.c
+- int n = 1024;
++ static int calls;
++     int n = 1024 + calls++;
+expect: core_MakeRandomId_is_deterministic
+
+== core: MakeRandomId ignores the clock
+file: src/core/random.c
+- v += sy.milliseconds * sy.second - sy.minute;
+-     n += sy.milliseconds;
++ n += 0;
+expect: core_MakeRandomId_depends_on_rng_and_clock
+
+== core: MakeRandomId reseeds from the clock
+file: src/core/random.c
+- SysLocalDate(&sy);
++ SysLocalDate(&sy);
++     SeedRand(sy.second); g_rngW = g_rngT = 1;
+expect: core_MakeRandomId_depends_on_rng_and_clock
+
+# ---------------------------------------------------------------- mathutil.c
+
+== core: InitTrigTables whole-degree steps
+file: src/core/mathutil.c
+- g_cosTable[i] = cos(a * 0.017453292519968373);
+-         a += 0.1;
++ g_cosTable[i] = cos(a * 0.017453292519968373);
++         a += 1.0;
+expect: core_InitTrigTables_tenth_degree_steps
+
+== core: InitTrigTables swaps sin and cos
+file: src/core/mathutil.c
+- g_sinTable[i] = sin(a * 0.017453292519968373);
+-         g_cosTable[i] = cos(a * 0.017453292519968373);
++ g_sinTable[i] = cos(a * 0.017453292519968373);
++         g_cosTable[i] = sin(a * 0.017453292519968373);
+expect: core_InitTrigTables_tenth_degree_steps
+
+== core: InitTrigTables skips the last entry
+file: src/core/mathutil.c
+- for (i = 0; i < 3600; i++) {
+-         g_sinTable[i]
++ for (i = 0; i < 3599; i++) {
++         g_sinTable[i]
+expect: core_InitTrigTables_tenth_degree_steps
+
+== core: InitTrigTables rough degree constant
+file: src/core/mathutil.c
+- g_cosTable[i] = cos(a * 0.017453292519968373);
++ g_cosTable[i] = cos(a * 0.0174);
+expect: core_InitTrigTables_tenth_degree_steps
+
+== core: BuildSinCos whole-degree steps
+file: src/core/mathutil.c
+- g_cosTableFine[i] = cos(a * 0.017453292519968373);
+-         a += 0.1;
++ g_cosTableFine[i] = cos(a * 0.017453292519968373);
++         a += 1.0;
+expect: core_BuildSinCos_fills_the_fine_tables
+
+== core: BuildSinCos fills the coarse sin table
+file: src/core/mathutil.c
+- g_sinTableFine[i] = sin(a * 0.017453292519968373);
++ g_sinTable[i] = g_sinTableFine[i] = sin(a * 0.017453292519968373);
+expect: core_BuildSinCos_fills_the_fine_tables
+
+== core: BuildSinCos cos uses sin
+file: src/core/mathutil.c
+- g_cosTableFine[i] = cos(
++ g_cosTableFine[i] = sin(
+expect: core_BuildSinCos_fills_the_fine_tables
+
+== core: FabsF returns x
+file: src/core/mathutil.c
+- return (float)fabs((double)x);
++ return x;
+expect: core_Fabs_wrappers
+
+== core: FabsWindow returns x
+file: src/core/mathutil.c
+- float FabsWindow(float x)
+- {
+-     return FabsF(x);
++ float FabsWindow(float x)
++ {
++     return x;
+expect: core_Fabs_wrappers
+
+== core: FabsExplosion returns x
+file: src/core/mathutil.c
+- float FabsExplosion(float x)
+- {
+-     return FabsF(x);
++ float FabsExplosion(float x)
++ {
++     return x;
+expect: core_Fabs_wrappers
+
+== core: Sqrtf returns half
+file: src/core/mathutil.c
+- return (float)sqrt((double)x);
++ return x / 2;
+expect: core_Sqrt_wrappers
+
+== core: Sqrt returns x
+file: src/core/mathutil.c
+- return Sqrtf(x);
++ return x;
+expect: core_Sqrt_wrappers
+
+== core: Sin uses cos
+file: src/core/mathutil.c
+- return (float)sin((double)a);
++ return (float)cos((double)a);
+expect: core_Sin_Cos_wrappers
+
+== core: Cos uses sin
+file: src/core/mathutil.c
+- return (float)cos((double)a);
++ return (float)sin((double)a);
+expect: core_Sin_Cos_wrappers
+
+== core: Sin2 calls Cos
+file: src/core/mathutil.c
+- return Sin(a);
++ return Cos(a);
+expect: core_Sin_Cos_wrappers
+
+== core: Cos2 calls Sin
+file: src/core/mathutil.c
+- return Cos(a);
++ return Sin(a);
+expect: core_Sin_Cos_wrappers
+
+== core: ClampX allows the screen width
+file: src/core/mathutil.c
+- if (x > (int)(g_screenW - 1))
++ if (x > (int)g_screenW)
+expect: core_ClampX_to_screen_width
+
+== core: ClampX negative to 1
+file: src/core/mathutil.c
+- if (x < 0)
+-         x = 0;
++ if (x < 0)
++         x = 1;
+expect: core_ClampX_to_screen_width
+
+== core: ClampX fixed 800
+file: src/core/mathutil.c
+- x = g_screenW - 1;
++ x = 799;
+expect: core_ClampX_to_screen_width
+
+== core: ClampY uses the width
+file: src/core/mathutil.c
+- if (y > (int)(g_screenH - 1))
+-         y = g_screenH - 1;
++ if (y > (int)(g_screenW - 1))
++         y = g_screenW - 1;
+expect: core_ClampY_to_screen_height
+
+== core: ClampY negative to 1
+file: src/core/mathutil.c
+- if (y < 0)
+-         y = 0;
++ if (y < 0)
++         y = 1;
+expect: core_ClampY_to_screen_height
+
+# ---------------------------------------------------------------- static_init.c, stubs.c
+
+== core: floor line 60 above the bottom
+file: src/data/static_init.c
+- int g_floorY = 600 - 50;
++ int g_floorY = 600 - 60;
+expect: core_static_globals_initial_values
+
+== core: save message blink rate
+file: src/data/static_init.c
+- unsigned int g_saveMsgBlinkRate = 450;
++ unsigned int g_saveMsgBlinkRate = 500;
+expect: core_static_globals_initial_values
+
+== core: end colours start at 201
+file: src/data/static_init.c
+- g_endR = RandRange(200, 250);
++ g_endR = RandRange(201, 250);
+expect: core_InitStaticGlobals_on_initial_rng_is_200
+expect: core_InitStaticGlobals_rolls_r_g_b_in_order
+
+== core: end colours rolled G first
+file: src/data/static_init.c
+- g_endR = RandRange(200, 250);
+-     g_endG = RandRange(200, 250);
++ g_endG = RandRange(200, 250);
++     g_endR = RandRange(200, 250);
+expect: core_InitStaticGlobals_rolls_r_g_b_in_order
+
+== core: end blue range 200-255
+file: src/data/static_init.c
+- g_endB = RandRange(200, 250);
++ g_endB = RandRange(200, 255);
+expect: core_InitStaticGlobals_rolls_r_g_b_in_order
+
+== core: ReturnTrueNet false
+file: src/core/stubs.c
+- bool ReturnTrueNet()
+- {
+-     return true;
++ bool ReturnTrueNet()
++ {
++     return false;
+expect: core_stub_constants
+
+== core: ReturnZero returns 1
+file: src/core/stubs.c
+- int ReturnZero()
+- {
+-     return 0;
++ int ReturnZero()
++ {
++     return 1;
+expect: core_stub_constants
+
+== core: EmptyEscGateCheck returns 1
+file: src/core/stubs.c
+- int result = 0;
++ int result = 1;
+expect: core_stub_constants
+
+# ---------------------------------------------------------------- platform.c
+
+== core: MakeGameDir inverted check
+file: src/core/platform.c
+- if (!SysFileExists(path))
+-         SysMakeDir(path);
++ if (SysFileExists(path))
++         SysMakeDir(path);
+expect: core_MakeGameDir_creates_the_warblade_folder
+
+== core: LogInit without truncation
+file: src/core/platform.c
+- fh = _open(path, 0x302, 0x180);
++ fh = _open(path, 0x102, 0x180);
+expect: core_LogInit_truncates_an_old_log
+
+== core: LogInit writes the header short
+file: src/core/platform.c
+- written = _write(fh, tit, (unsigned int)strlen(tit));
++ written = _write(fh, tit, (unsigned int)strlen(tit) - 2);
+expect: core_LogInit_writes_the_header
+
+== core: LogPrint overwrites instead of appending
+file: src/core/platform.c
+- fh = _open(path, 0xa, 0x180);
++ fh = _open(path, 0x2, 0x180);
+expect: core_LogPrint_appends_to_the_log
+
+== core: LogPrint creates the log
+file: src/core/platform.c
+- fh = _open(path, 0xa, 0x180);
++ fh = _open(path, 0x10a, 0x180);
+expect: core_LogPrint_without_a_log_creates_nothing
+
+== core: LogPrint reports every write
+file: src/core/platform.c
+- written = _write(fh, s, (unsigned int)strlen(s));
+-         if (written == -1)
++ written = _write(fh, s, (unsigned int)strlen(s));
++         if (written != -1)
+expect: core_LogPrint_appends_to_the_log
+
+== core: ClipCursorOn in windowed mode
+file: src/core/platform.c
+- if (!g_windowed)
+-         ClipPointer(true);
++ if (g_windowed)
++         ClipPointer(true);
+expect: core_ClipCursor_only_in_fullscreen
+
+== core: ClipCursorOff clips
+file: src/core/platform.c
+- ClipPointer(false);
++ ClipPointer(true);
+expect: core_ClipCursor_only_in_fullscreen
+
+== core: CurMonth returns the day
+file: src/core/platform.c
+- return date.month;
++ return date.day;
+expect: core_CurMonth_CurYear_from_the_date
+
+== core: CurYear from the clock's start
+file: src/core/platform.c
+- return date.year;
++ return 2009;
+expect: core_CurMonth_CurYear_from_the_date
+
+== core: GetDaySeconds minutes as hours
+file: src/core/platform.c
+- + g_sysTime.minute * 60 + g_sysTime.second;
++ + g_sysTime.minute * 3600 + g_sysTime.second;
+expect: core_GetDaySeconds_combines_day_and_time
+
+== core: GetDaySeconds uses dayOfWeek
+file: src/core/platform.c
+- secs = g_sysTime.day * 86400
++ secs = g_sysTime.dayOfWeek * 86400
+expect: core_GetDaySeconds_combines_day_and_time
+
+== core: StampTimeB writes mark C
+file: src/core/platform.c
+- g_timeMarkB = SysFileTimeNow();
++ g_timeMarkC = SysFileTimeNow();
+expect: core_StampTime_records_the_file_time
+
+== core: StampTimeA skipped
+file: src/core/platform.c
+- g_timeA = SysFileTimeNow();
++ g_timeA = 0;
+expect: core_StampTime_records_the_file_time
+
+== core: StampTimeE always
+file: src/core/platform.c
+- if (g_timeD != 0)
+-         g_timeE = SysFileTimeNow();
++ g_timeE = SysFileTimeNow();
+expect: core_StampTimeE_waits_for_StampTimeD
+
+== core: StampTimeD writes E
+file: src/core/platform.c
+- g_timeD = SysFileTimeNow();
++ g_timeD = g_timeE = SysFileTimeNow();
+expect: core_StampTimeE_waits_for_StampTimeD
+
+== core: TimerStop1 keeps the longest
+file: src/core/platform.c
+- if (elapsed < g_timerMin1)
++ if (elapsed > g_timerMin1)
+expect: core_Timer1_keeps_the_shortest_interval
+
+== core: TimerStop1 always updates
+file: src/core/platform.c
+- if (elapsed < g_timerMin1)
+-         g_timerMin1 = elapsed;
++ g_timerMin1 = elapsed;
+expect: core_Timer1_keeps_the_shortest_interval
+
+== core: TimerReset1 sentinel
+file: src/core/platform.c
+- g_timerMin1 = 999999999;
++ g_timerMin1 = 99999999;
+expect: core_Timer1_keeps_the_shortest_interval
+
+== core: TimerStop2 keeps the longest
+file: src/core/platform.c
+- if (elapsed < g_timerMin2)
++ if (elapsed > g_timerMin2)
+expect: core_Timer2_keeps_the_shortest_interval
+
+== core: TimerStop2 updates timer 1
+file: src/core/platform.c
+- if (elapsed < g_timerMin2)
+-         g_timerMin2 = elapsed;
++ if (elapsed < g_timerMin2)
++         g_timerMin2 = g_timerMin1 = elapsed;
+expect: core_Timer2_keeps_the_shortest_interval
+
+== core: TimerStart2 stamps timer 1
+file: src/core/platform.c
+- g_timerStart2 = SysFileTimeNow();
++ g_timerStart1 = SysFileTimeNow();
+expect: core_Timer2_keeps_the_shortest_interval
+
+== core: TimerReset2 sentinel
+file: src/core/platform.c
+- g_timerMin2 = 999999999;
++ g_timerMin2 = 0;
+expect: core_Timer2_keeps_the_shortest_interval
+
+== core: TakeScreenshot starts at 000
+file: src/core/platform.c
+- count = 1;
+-     ok = true;
++ count = 0;
++     ok = true;
+expect: core_TakeScreenshot_numbers_files_from_001
+
+== core: TakeScreenshot two-digit numbers
+file: src/core/platform.c
+- ScreenShot%03d.jpg
++ ScreenShot%02d.jpg
+expect: core_TakeScreenshot_numbers_files_from_001
+
+== core: TakeScreenshot never makes the folder
+file: src/core/platform.c
+- if (!SysFileExists(filename)) {
+-         if (!SysMakeDir(filename))
++ if (SysFileExists(filename)) {
++         if (!SysMakeDir(filename))
+expect: core_TakeScreenshot_numbers_files_from_001
+
+== core: TakeScreenshot makes the game folder first
+file: src/core/platform.c
+- count = 1;
+-     ok = true;
++ count = 1;
++     MakeGameDir();
++     ok = true;
+expect: core_TakeScreenshot_without_game_folder_does_nothing
+
+== core: TakeScreenshot skips the gap
+file: src/core/platform.c
+- if (fd != -1) {
+-                 count++;
++ if (fd != -1 || count < 4) {
++                 count++;
+expect: core_TakeScreenshot_fills_the_first_gap
+
+# ---------------------------------------------------------------- weblinks.c
+
+== core: ArchiveUrl table: faq misspelt
+file: src/core/weblinks.c
+- { "warblade.as/faq.asp",
++ { "warblade.as/faq.aspx",
+expect: core_ArchiveUrl_known_pages
+
+== core: ArchiveUrl keeps https
+file: src/core/weblinks.c
+- else if (_strnicmp(p, "https://", 8) == 0)
+-         p += 8;
++ else if (_strnicmp(p, "https://", 8) == 0)
++         p += 0;
+expect: core_ArchiveUrl_ignores_case_scheme_www_and_slashes
+
+== core: ArchiveUrl keeps www
+file: src/core/weblinks.c
+- if (_strnicmp(p, "www.", 4) == 0)
+-         p += 4;
++ if (_strnicmp(p, "www.", 4) == 0)
++         p += 0;
+expect: core_ArchiveUrl_ignores_case_scheme_www_and_slashes
+expect: core_ArchiveUrl_known_pages
+
+== core: ArchiveUrl case sensitive
+file: src/core/weblinks.c
+- key[n++] = (char)tolower((unsigned char)*p++);
++ key[n++] = *p++;
+expect: core_ArchiveUrl_ignores_case_scheme_www_and_slashes
+
+== core: ArchiveUrl keeps the query
+file: src/core/weblinks.c
+- while (*p && *p != '?' && n
++ while (*p && n
+expect: core_ArchiveUrl_drops_the_query
+
+== core: ArchiveUrl strips one slash only
+file: src/core/weblinks.c
+- while (n > 0 && key[n - 1] == '/')
+-         n--;
++ if (n > 0 && key[n - 1] == '/')
++         n--;
+expect: core_ArchiveUrl_ignores_case_scheme_www_and_slashes
+
+== core: ArchiveUrl no front-page fallback
+file: src/core/weblinks.c
+- if (strncmp(key, "warblade.as", 11) == 0)
+-         return s_archivedUrls[0].archive;
++ if (strncmp(key, "warblade.as", 11) == 0)
++         return url;
+expect: core_ArchiveUrl_other_warblade_pages_go_to_the_front_page
+
+== core: ArchiveUrl unknown sites go to the front page
+file: src/core/weblinks.c
+- return url;
+- }
++ return s_archivedUrls[0].archive;
++ }
+expect: core_ArchiveUrl_unknown_sites_unchanged
+
+== core: OpenUrl opens the original link
+file: src/core/weblinks.c
+- SysOpenUrl(ArchiveUrl(url));
++ SysOpenUrl(url);
+expect: core_OpenUrl_opens_the_archive_and_saves_hiscores
+
+== core: OpenUrl keeps the clicked window
+file: src/core/weblinks.c
+- g_clickWin = -1;
+-     g_clickItem = -1;
++ g_clickItem = -1;
+expect: core_OpenUrl_opens_the_archive_and_saves_hiscores
+
+== core: OpenUrl skips the hiscore file
+file: src/core/weblinks.c
+- WriteHiscoreFile();
+-     ClearHiscores();
++ ClearHiscores();
+expect: core_OpenUrl_opens_the_archive_and_saves_hiscores
+
+# ---------------------------------------------------------------- init.c (no boot)
+
+== core: InitTablePtrs swaps ships 3 and 4
+file: src/core/init.c
+- g_shipDefs[3] = (ShipDef *)g_shipStats3;
+-     g_shipDefs[4] = (ShipDef *)g_shipStats4;
++ g_shipDefs[3] = (ShipDef *)g_shipStats4;
++     g_shipDefs[4] = (ShipDef *)g_shipStats3;
+expect: core_InitTablePtrs_points_at_each_ship
+
+== core: InitTablePtrs ship 9 uses ship 8's stats
+file: src/core/init.c
+- g_shipDefs[9] = (ShipDef *)g_shipStats9;
++ g_shipDefs[9] = (ShipDef *)g_shipStats8;
+expect: core_InitTablePtrs_points_at_each_ship
+
+== core: RendererChoiceOf accepts the old OpenGL byte
+file: src/core/init.c
+- return value > RENDERER_AUTO && value < RENDERER_COUNT ? value : RENDERER_AUTO;
++ return value >= RENDERER_AUTO_OLD_OPENGL && value < RENDERER_COUNT ? value : RENDERER_AUTO;
+expect: core_RendererChoiceOf_maps_unknown_to_auto
+
+== core: RendererChoiceOf accepts RENDERER_COUNT
+file: src/core/init.c
+- return value > RENDERER_AUTO && value < RENDERER_COUNT ? value : RENDERER_AUTO;
++ return value > RENDERER_AUTO && value <= RENDERER_COUNT ? value : RENDERER_AUTO;
+expect: core_RendererChoiceOf_maps_unknown_to_auto
+
+== core: ApplyFrameSettings vsync inverted
+file: src/core/init.c
+- SysSetVSync(g_cfg.vsyncOff != 1);
++ SysSetVSync(g_cfg.vsyncOff == 1);
+expect: core_ApplyFrameSettings_passes_vsync_and_interpolation
+expect: core_ToggleVSync_flips_applies_and_saves
+
+== core: ApplyFrameSettings vsync on only for 0
+file: src/core/init.c
+- SysSetVSync(g_cfg.vsyncOff != 1);
++ SysSetVSync(g_cfg.vsyncOff == 0);
+expect: core_ApplyFrameSettings_passes_vsync_and_interpolation
+
+== core: ApplyFrameSettings no interpolation
+file: src/core/init.c
+- SysSetInterpolation(g_cfg.interpolation);
++ SysSetInterpolation(SYS_INTERP_AUTO);
+expect: core_ApplyFrameSettings_passes_vsync_and_interpolation
+expect: core_CycleInterpolation_auto_on_off_auto
+
+== core: ToggleVSync not saved
+file: src/core/init.c
+-     WriteSettings();
+-     return g_cfg.vsyncOff == 1 ?
++     return g_cfg.vsyncOff == 1 ?
+expect: core_ToggleVSync_flips_applies_and_saves
+
+== core: ToggleVSync banner inverted
+file: src/core/init.c
+- return g_cfg.vsyncOff == 1 ? "VSYNC : OFF" : "VSYNC : ON";
++ return g_cfg.vsyncOff == 1 ? "VSYNC : ON" : "VSYNC : OFF";
+expect: core_ToggleVSync_flips_applies_and_saves
+
+== core: CycleInterpolation wraps one late
+file: src/core/init.c
+- if (g_cfg.interpolation >= SYS_INTERP_COUNT)
++ if (g_cfg.interpolation > SYS_INTERP_COUNT)
+expect: core_CycleInterpolation_auto_on_off_auto
+
+== core: CycleInterpolation not applied
+file: src/core/init.c
+-         g_cfg.interpolation = SYS_INTERP_AUTO;
+-     ApplyFrameSettings();
++         g_cfg.interpolation = SYS_INTERP_AUTO;
+expect: core_CycleInterpolation_auto_on_off_auto
+
+== core: CycleInterpolation not saved
+file: src/core/init.c
+-     WriteSettings();
+-     if (g_cfg.interpolation == SYS_INTERP_ON)
++     if (g_cfg.interpolation == SYS_INTERP_ON)
+expect: core_CycleInterpolation_auto_on_off_auto
+
+== core: CycleInterpolation banners swapped
+file: src/core/init.c
+- return "INTERPOLATION : ON";
++ return "INTERPOLATION : OFF";
+expect: core_CycleInterpolation_auto_on_off_auto
+
+== core: InitWindow keeps the screen width
+file: src/core/init.c
+- g_screenW = 800;
+-     g_screenH = 600;
++ g_screenH = 600;
+expect: core_InitWindow_creates_an_800x600_window
+
+== core: InitWindow ignores the windowed setting
+file: src/core/init.c
+- g_cfg.windowed = windowed;
++ g_cfg.windowed = 1;
+expect: core_InitWindow_fullscreen_with_a_chosen_renderer
+
+== core: InitWindow skips frame settings
+file: src/core/init.c
+- int renderer = RendererChoiceOf(g_cfg.renderer);
+-
+-     ApplyFrameSettings();
++ int renderer = RendererChoiceOf(g_cfg.renderer);
+expect: core_InitWindow_creates_an_800x600_window
+
+== core: InitWindow renderer hint off by one
+file: src/core/init.c
+- windowed, "Warblade SR 2.0", s_rendererHints[renderer])) {
++ windowed, "Warblade SR 2.0", s_rendererHints[renderer - 1])) {
+expect: core_InitWindow_fullscreen_with_a_chosen_renderer
+
+== core: InitWindow failed renderer not reset
+file: src/core/init.c
+- renderer = RENDERER_AUTO;
+-         g_cfg.renderer = RENDERER_AUTO;
+-         WriteSettings();
++ renderer = RENDERER_AUTO;
+expect: core_InitWindow_falls_back_to_auto_when_the_renderer_fails
+
+== core: InitWindow failed renderer gives up
+file: src/core/init.c
+- renderer = RENDERER_AUTO;
+-         g_cfg.renderer = RENDERER_AUTO;
++ return false;
++         g_cfg.renderer = RENDERER_AUTO;
+expect: core_InitWindow_falls_back_to_auto_when_the_renderer_fails
+
+== core: InitWindow records the choice not the renderer
+file: src/core/init.c
+- g_windowRenderer = (unsigned char)renderer;
++ g_windowRenderer = (unsigned char)RendererChoiceOf(RENDERER_VULKAN);
+expect: core_InitWindow_falls_back_to_auto_when_the_renderer_fails
+
+== core: InitWindow succeeds without a window
+file: src/core/init.c
+- LogPrint("ERROR :  Could not open window\n");
+-         return false;
++ LogPrint("ERROR :  Could not open window\n");
+expect: core_InitWindow_fails_without_any_window
+
+== core: InitWindow logs no renderer
+file: src/core/init.c
+- sprintf(g_logBuf, "Renderer : %s\n", SysRendererName());
+-     LogPrint(g_logBuf);
++ sprintf(g_logBuf, "Renderer : %s\n", SysRendererName());
+expect: core_InitWindow_creates_an_800x600_window
+
+== core: InitWindowCfg keeps the clip left
+file: src/core/init.c
+- g_clipLeft = 0;
++ g_clipLeft = g_clipLeft;
+expect: core_InitWindowCfg_resets_the_clip_rect
+
+== core: InitWindowCfg clip bottom from the width
+file: src/core/init.c
+- g_clipBottom = g_screenH;
++ g_clipBottom = g_screenW;
+expect: core_InitWindowCfg_resets_the_clip_rect
+
+== core: InitWindowCfg always fullscreen
+file: src/core/init.c
+- return InitWindow(g_cfg.windowed);
++ return InitWindow(false);
+expect: core_InitWindowCfg_resets_the_clip_rect
+
+== core: InitFail logs nothing
+file: src/core/init.c
+- LogPrint(msg);
+-     SoundShutdown();
++ SoundShutdown();
+expect: core_InitFail_logs_and_returns_0
+
+# ---------------------------------------------------------------- main.c: LogCrashReport
+
+== core: LogCrashReport wrong state
+file: src/core/main.c
+- sprintf(sMsg, "Program State: %d\r\n", g_state);
++ sprintf(sMsg, "Program State: %d\r\n", g_savedState);
+expect: core_LogCrashReport_writes_state_and_players
+
+== core: LogCrashReport two player mode mislabelled
+file: src/core/main.c
+- case MODE_TWO_PLAYER: LogPrint("Game mode : TWO PLAYER GAME\r\n"); break;
++ case MODE_TWO_PLAYER: LogPrint("Game mode : DUAL PLAYER GAME\r\n"); break;
+expect: core_LogCrashReport_writes_state_and_players
+
+== core: LogCrashReport screen mode inverted
+file: src/core/main.c
+- if (g_windowed)
+-         LogPrint("Game screen mode : WINDOWED\r\n");
++ if (!g_windowed)
++         LogPrint("Game screen mode : WINDOWED\r\n");
+expect: core_LogCrashReport_writes_state_and_players
+expect: core_LogCrashReport_fullscreen_single_no_profile
+
+== core: LogCrashReport player two shows player one's level
+file: src/core/main.c
+- sprintf(sMsg, " On level: %d\r\n", g_save.players[1].level);
++ sprintf(sMsg, " On level: %d\r\n", g_save.players[0].level);
+expect: core_LogCrashReport_writes_state_and_players
+
+== core: LogCrashReport cash shows energy
+file: src/core/main.c
+- sprintf(sMsg, "     Cash: %d\r\n", g_save.players[0].money);
++ sprintf(sMsg, "     Cash: %d\r\n", g_save.players[0].energy);
+expect: core_LogCrashReport_writes_state_and_players
+
+== core: LogCrashReport profile check inverted
+file: src/core/main.c
+- if (g_profileIndex != -1)
+-         LogPrint("Profile is in use...\r\n");
++ if (g_profileIndex == -1)
++         LogPrint("Profile is in use...\r\n");
+expect: core_LogCrashReport_writes_state_and_players
+expect: core_LogCrashReport_fullscreen_single_no_profile
+
+== core: LogCrashReport drops the reason
+file: src/core/main.c
+- sprintf(sMsg, "Error: %s\r\n", reason);
++ sprintf(sMsg, "Error: %s\r\n", "unknown");
+expect: core_LogCrashReport_writes_state_and_players
+
+== core: LogCrashReport no version line
+file: src/core/main.c
+- LogPrint("Version : FULL VERSION\r\n");
++ LogPrint("Version : DEMO\r\n");
+expect: core_LogCrashReport_writes_state_and_players
+
+# ---------------------------------------------------------------- main.c: GameMain
+
+== core: GameMain no game folder
+file: src/core/main.c
+- MakeGameDir();
+-     LogInit();
++ LogInit();
+expect: core_BootGame_writes_the_start_up_log
+
+== core: GameMain logs a wrong version
+file: src/core/main.c
+- LogPrint("Warblade SR 2.0, Copyright 1999-2009 Edgar M Vigdal\r\n");
++ LogPrint("WarBlade v1.31, Copyright 1999-2009 Edgar M Vigdal\r\n");
+expect: core_BootGame_writes_the_start_up_log
+
+== core: GameMain doesn't log the joysticks
+file: src/core/main.c
+- LogPrint("Init joysticks is passed...\r\n");
++ LogPrint("");
+expect: core_BootGame_writes_the_start_up_log
+expect: core_GameMain_runs_until_quit_and_shuts_down
+
+== core: GameMain doesn't hide the pointer
+file: src/core/main.c
+- HidePointer();
+-     LogPrint("Hide mouse curosr is passed...\r\n");
++ LogPrint("Hide mouse curosr is passed...\r\n");
+expect: core_BootGame_reaches_the_title_screen
+
+== core: GameMain doesn't set the ship tables
+file: src/core/main.c
+- ResetAllObjects();
+-     InitTablePtrs();
++ ResetAllObjects();
+expect: core_BootGame_builds_the_degree_tables
+
+== core: GameMain view transition flag
+file: src/core/main.c
+- g_viewTransitionFlag = 2;
++ g_viewTransitionFlag = 1;
+expect: core_BootGame_reaches_the_title_screen
+
+== core: GameMain music restart delay
+file: src/core/main.c
+- g_musicRestartTime = g_time + 1500;
+-     g_menuIdleTimeout = g_time + MENU_IDLE_MS;
++ g_musicRestartTime = g_time + 1000;
++     g_menuIdleTimeout = g_time + MENU_IDLE_MS;
+expect: core_BootGame_reaches_the_title_screen
+
+== core: GameMain menu idle from attract time
+file: src/core/main.c
+- g_menuIdleTimeout = g_time + MENU_IDLE_MS;
++ g_menuIdleTimeout = g_time + ATTRACT_SCREEN_MS;
+expect: core_BootGame_reaches_the_title_screen
+
+== core: GameMain background index 0
+file: src/core/main.c
+- g_bgIndex = 1;
++ g_bgIndex = 0;
+expect: core_BootGame_reaches_the_title_screen
+
+== core: GameMain fps 30
+file: src/core/main.c
+- g_cfg.fps = 60;
++ g_cfg.fps = 30;
+expect: core_BootGame_reaches_the_title_screen
+
+== core: GameMain hard difficulty
+file: src/core/main.c
+- g_cfg.difficulty = DIFF_NORMAL;
+-     LogPrint("Setting Variables is passed...\r\n");
++ g_cfg.difficulty = DIFF_HARD;
++     LogPrint("Setting Variables is passed...\r\n");
+expect: core_BootGame_reaches_the_title_screen
+
+== core: GameMain HUD function
+file: src/core/main.c
+- g_drawHudFn = DrawHud1P;
++ g_drawHudFn = 0;
+expect: core_BootGame_hooks_up_the_frame_functions
+
+== core: GameMain bright bullets inverted
+file: src/core/main.c
+- if (g_cfg.bulletIntensity == 1) {
++ if (g_cfg.bulletIntensity != 1) {
+expect: core_BootGame_hooks_up_the_frame_functions
+expect: core_BootGame_bright_bullets_and_glowing_stars_from_settings
+
+== core: GameMain grab function
+file: src/core/main.c
+- g_grabEnemyFn = ShieldGrabEnemies;
++ g_grabEnemyFn = 0;
+expect: core_BootGame_hooks_up_the_frame_functions
+
+== core: GameMain right shift ignored
+file: src/core/main.c
+- if (KeyDown(K_VK_L_SHIFT) == true || KeyDown(K_VK_R_SHIFT) == true) {
++ if (KeyDown(K_VK_L_SHIFT) == true) {
+expect: core_BootGame_shift_opens_the_presets_prompt
+
+== core: GameMain left shift ignored
+file: src/core/main.c
+- if (KeyDown(K_VK_L_SHIFT) == true || KeyDown(K_VK_R_SHIFT) == true) {
++ if (KeyDown(K_VK_R_SHIFT) == true) {
+expect: core_BootGame_left_shift_opens_the_presets_prompt
+
+== core: GameMain joystick 1 is counted as 0
+file: src/core/main.c
+- if (JoyEnable(1)) {
+-         g_joy1 = 1;
++ if (JoyEnable(1)) {
++         g_joy0 = 1;
+expect: core_BootGame_counts_joysticks
+
+== core: GameMain joystick count not incremented
+file: src/core/main.c
+- g_joy1 = 1;
+-         g_joyCount++;
++ g_joy1 = 1;
+expect: core_BootGame_counts_joysticks
+expect: core_BootGame_counts_both_joysticks
+
+== core: GameMain joystick 0 not checked
+file: src/core/main.c
+- if (JoyEnable(0)) {
++ if (JoyEnable(5)) {
+expect: core_BootGame_counts_both_joysticks
+
+== core: GameMain degree tables in radians-ish
+file: src/core/main.c
+- g_cosDeg[i] = Sin2((float)(ang * 0.017453292384743690));
++ g_cosDeg[i] = Sin2((float)(ang * 0.01745));
+expect: core_BootGame_builds_the_degree_tables
+
+== core: GameMain degree tables named as they say
+file: src/core/main.c
+- g_cosDeg[i] = Sin2((float)(ang * 0.017453292384743690));
+-         g_sinDeg[i] = Cos2((float)(ang * 0.017453292384743690));
++ g_cosDeg[i] = Cos2((float)(ang * 0.017453292384743690));
++         g_sinDeg[i] = Sin2((float)(ang * 0.017453292384743690));
+expect: core_BootGame_builds_the_degree_tables
+
+== core: GameMain no fine trig tables
+file: src/core/main.c
+-     InitTrigTables();
+-
++
+expect: core_BootGame_builds_the_degree_tables
+
+== core: GameMain grab zone step
+file: src/core/main.c
+- g_grabZoneWidthTable[i] = i * 0.5 + 4.0;
++ g_grabZoneWidthTable[i] = i * 0.5 + 4.5;
+expect: core_BootGame_builds_the_grab_and_colour_tables
+
+== core: GameMain perfect colours 0-5
+file: src/core/main.c
+- g_perfectColorTable[i] = RandRange(0, 7);
++ g_perfectColorTable[i] = RandRange(0, 6);
+expect: core_BootGame_builds_the_grab_and_colour_tables
+
+== core: GameMain perfect colours 1-7
+file: src/core/main.c
+- g_perfectColorTable[i] = RandRange(0, 7);
++ g_perfectColorTable[i] = RandRange(1, 8);
+expect: core_BootGame_builds_the_grab_and_colour_tables
+
+== core: GameMain bonus volume not clamped
+file: src/core/main.c
+- if (v > 255) {
++ if (v > 900) {
+expect: core_BootGame_scales_the_bonus_volumes
+
+== core: GameMain bonus volume scale 1000
+file: src/core/main.c
+- float scale = 800.0 / maxv;
++ float scale = 1000.0 / maxv;
+expect: core_BootGame_scales_the_bonus_volumes
+
+== core: GameMain bonus area uses width twice
+file: src/core/main.c
+- g_bonusGfxArea[i] = g_bonusGfxW[i] * g_bonusGfxH[i];
++ g_bonusGfxArea[i] = g_bonusGfxW[i] * g_bonusGfxW[i];
+expect: core_BootGame_scales_the_bonus_volumes
+
+== core: GameMain bonus max skips the last
+file: src/core/main.c
+- if (g_bonusGfxArea[i] > (int)maxv) {
+-             maxv = (float)g_bonusGfxArea[i];
++ if (g_bonusGfxArea[i] > (int)maxv && i < 9) {
++             maxv = (float)g_bonusGfxArea[i];
+expect: core_BootGame_scales_the_bonus_volumes
+
+== core: GameMain stars below the screen
+file: src/core/main.c
+- g_stars[i].y = RandFloat(-550.0f, (float)g_screenH);
++ g_stars[i].y = RandFloat(-550.0f, (float)g_screenH + 100);
+expect: core_BootGame_seeds_the_starfield
+
+== core: GameMain fast stars get the small sprite
+file: src/core/main.c
+- if (rnd >= 98) {
+-             if (RandRange(0, 2) == 0) {
++ if (rnd >= 99) {
++             if (RandRange(0, 2) == 0) {
+expect: core_BootGame_seeds_the_starfield
+
+== core: GameMain fastest band 60-110
+file: src/core/main.c
+- g_starA[i] = RandFloat(60.0f, 100.0f);
++ g_starA[i] = RandFloat(60.0f, 110.0f);
+expect: core_BootGame_seeds_the_starfield
+
+== core: GameMain big stars all one sprite
+file: src/core/main.c
+- g_starGfx[i] = g_starSprite;
++ g_starGfx[i] = 0;
+expect: core_BootGame_seeds_the_starfield
+
+== core: GameMain skips Shutdown
+file: src/core/main.c
+- Shutdown();
+-     sprintf(g_logBuf, "# of alien gfx allocated
++ sprintf(g_logBuf, "# of alien gfx allocated
+expect: core_GameMain_runs_until_quit_and_shuts_down
+
+== core: GameMain reports gfx released as allocated
+file: src/core/main.c
+- sprintf(g_logBuf, "# of alien gfx released : %d \n", g_alienGfxFreedA);
++ sprintf(g_logBuf, "# of alien gfx released : %d \n", g_gfxLoaded);
+expect: core_GameMain_logs_the_alien_counters_at_exit
+
+== core: GameMain reports hitmasks released at exit as hit gfx
+file: src/core/main.c
+- sprintf(g_logBuf, "# of alien hitmasks released at exit: %d \n", g_freedC);
++ sprintf(g_logBuf, "# of alien hitmasks released at exit: %d \n", g_freedB);
+expect: core_GameMain_logs_the_alien_counters_at_exit
+
+== core: GameMain hitmasks released from the wrong counter
+file: src/core/main.c
+- sprintf(g_logBuf, "# of alien hitmasks released : %d \n", g_alienGfxFreedM);
++ sprintf(g_logBuf, "# of alien hitmasks released : %d \n", g_alienGfxFreedB);
+expect: core_GameMain_logs_the_alien_counters_at_exit
+
+== core: GameMain splash despite quit
+file: src/core/main.c
+- if (!SysQuitRequested())
+-         ShowLogoSplash();
++ ShowLogoSplash();
+expect: core_GameMain_quit_before_the_splashes_skips_them
+
+== core: GameMain title splash despite quit
+file: src/core/main.c
+- if (!SysQuitRequested())
+-         ShowTitleSplash();
++ ShowTitleSplash();
+expect: core_GameMain_quit_before_the_splashes_skips_them
+
+== core: GameMain carries on after InitGame fails
+file: src/core/main.c
+- if (!InitGame()) {
+-         return 0;
+-     }
++ InitGame();
+expect: core_GameMain_fails_when_graphics_dont_load
+expect: core_GameMain_fails_without_a_window
+
+== core: GameInit default fire chance
+file: src/core/main.c
+- g_diffEnemyFireChance = 6;
++ g_diffEnemyFireChance = 15;
+expect: core_BootGame_game_init_defaults
+
+== core: GameInit loaded level 0
+file: src/core/main.c
+- g_loadedLevel = -1;
++ g_loadedLevel = 0;
+expect: core_BootGame_game_init_defaults
+
+== core: GameInit warp level L
+file: src/core/main.c
+- g_warpLevelL = -1;
++ g_warpLevelL = 0;
+expect: core_BootGame_game_init_defaults
+
+== core: GameInit elite bonus
+file: src/core/main.c
+- g_eliteHpBonus = 1500;
++ g_eliteHpBonus = 2500;
+expect: core_BootGame_game_init_defaults
+
+== core: GameInit speed step
+file: src/core/main.c
+- g_speedStep = 0.75f;
++ g_speedStep = 0.5f;
+expect: core_BootGame_game_init_defaults
+
+== core: GameInit timer multiplier
+file: src/core/main.c
+- g_diffEnemyTimerMul = 2.2f;
++ g_diffEnemyTimerMul = 1.8f;
+expect: core_BootGame_game_init_defaults
+
+== core: GameInit fuse range
+file: src/core/main.c
+- g_diffShotFuseRange = 240;
++ g_diffShotFuseRange = 230;
+expect: core_BootGame_game_init_defaults
+
+== core: GameInit drops the windowed byte for a narrow desktop
+file: src/core/main.c
+- if (SysDesktopWidth() <= (int)g_screenW)
++ if (SysDesktopWidth() >= (int)g_screenW)
+expect: core_BootGame_with_settings_skips_the_presets_prompt
+
+== core: GameInit drops the windowed byte for a short desktop
+file: src/core/main.c
+- if (SysDesktopHeight() <= (int)g_screenH)
++ if (SysDesktopHeight() > (int)g_screenH)
+expect: core_BootGame_with_settings_skips_the_presets_prompt
+
+== core: OnFocusChange inverted
+file: src/core/main.c
+- if (focused) {
+-         HidePointer();
++ if (!focused) {
++         HidePointer();
+expect: core_OnFocusChange_pauses_gameplay
+expect: core_OnFocusChange_after_boot_on_the_title_screen
+
+== core: OnFocusChange doesn't resume the sound
+file: src/core/main.c
+- HidePointer();
+-         SoundResume();
++ HidePointer();
+expect: core_OnFocusChange_pauses_gameplay
+
+== core: OnFocusChange pauses on the title screen
+file: src/core/main.c
+- g_state != STATE_PAUSED && g_state != STATE_TITLE &&
++ g_state != STATE_PAUSED &&
+expect: core_OnFocusChange_only_pauses_sound_in_menus
+expect: core_OnFocusChange_after_boot_on_the_title_screen
+
+== core: OnFocusChange pauses the input config
+file: src/core/main.c
+- g_state != STATE_ENTER_HISCORE && g_state != STATE_INPUT_CONFIG &&
++ g_state != STATE_ENTER_HISCORE &&
+expect: core_OnFocusChange_only_pauses_sound_in_menus
+
+== core: OnFocusChange pauses the end sequence
+file: src/core/main.c
+- g_state != STATE_END_SEQUENCE && g_state != STATE_UNUSED_21)
++ g_state != STATE_UNUSED_21)
+expect: core_OnFocusChange_only_pauses_sound_in_menus
+
+== core: OnFocusChange never pauses the shop
+file: src/core/main.c
+- g_state != STATE_END_SEQUENCE && g_state != STATE_UNUSED_21)
++ g_state != STATE_END_SEQUENCE && g_state != STATE_UNUSED_21 && g_state != STATE_SHOP)
+expect: core_OnFocusChange_pauses_every_game_state
+
+== core: OnFocusChange in menus leaves the sound
+file: src/core/main.c
+- else
+-             SoundPause();
++ else
++             ;
+expect: core_OnFocusChange_only_pauses_sound_in_menus
+
+== core: OnFocusChange keeps the pointer hidden
+file: src/core/main.c
+-         ShowPointer();
+-         if (g_state != STATE_PAUSED
++         if (g_state != STATE_PAUSED
+expect: core_OnFocusChange_after_boot_on_the_title_screen
+
+== core: GameMain no focus hook
+file: src/core/main.c
+- SysSetFocusCallback(OnFocusChange);
++ SysSetFocusCallback(0);
+expect: core_GameMain_focus_hook_installed
+
+# ---------------------------------------------------------------- init.c: InitGame, LoadGameData, Shutdown
+
+== core: InitGame title song
+file: src/core/init.c
+- g_songName = "title";
++ g_songName = "intro";
+expect: core_BootGame_init_game_opens_the_window_and_title_music
+
+== core: InitGame doesn't stop on a window failure
+file: src/core/init.c
+- return InitFail("OpenScreen Failed");
++ InitFail("OpenScreen Failed");
+expect: core_GameMain_fails_without_a_window
+
+== core: InitGame carries on without graphics
+file: src/core/init.c
+- if (LoadGameData() == 0) {
+-         return 0;
++ if (LoadGameData() == 0) {
++         ;
+expect: core_GameMain_fails_when_graphics_dont_load
+
+== core: LoadGameData flare table skips the planet
+file: src/core/init.c
+- g_gfxTable[21] = g_gfxFlarePlanet;
++ g_gfxTable[21] = g_gfxFlare23;
+expect: core_BootGame_flare_table
+
+== core: LoadGameData flare table off by one
+file: src/core/init.c
+- g_gfxTable[10] = g_gfxFlare11;
++ g_gfxTable[10] = g_gfxFlare10;
+expect: core_BootGame_flare_table
+
+== core: LoadGameData flare spark loaded before the table
+file: src/core/init.c
+- g_gfxTable[34] = g_gfxFlareSpark;
++ g_gfxTable[34] = g_gfxFlareSpark = LoadGraphic2("flare_2.tga", true, true);
+expect: core_BootGame_flare_table
+
+== core: LoadGameData flare11 file name
+file: src/core/init.c
+- g_gfxFlare11 = LoadGraphic2("flare11.tga", true, true);
++ g_gfxFlare11 = LoadGraphic2("flare12.tga", true, true);
+expect: core_BootGame_flare_table
+
+== core: LoadGameData white ramp step
+file: src/core/init.c
+- r = 1.0f;
+-     g = 1.0f;
+-     b = 1.0f;
+-     dr = 0.033333335f;
+-     dg = 0.033333335f;
++ r = 1.0f;
++     g = 1.0f;
++     b = 1.0f;
++     dr = 0.033333335f;
++     dg = 0.04f;
+expect: core_BootGame_builds_the_flash_ramps
+
+== core: LoadGameData cyan ramp has red
+file: src/core/init.c
+- r = 0;
+-     g = 1.0f;
++ r = 0.5f;
++     g = 1.0f;
+expect: core_BootGame_builds_the_flash_ramps
+
+== core: LoadGameData orange ramp green step
+file: src/core/init.c
+- dg = 0.016666668f;
++ dg = 0.033333335f;
+expect: core_BootGame_builds_the_flash_ramps
+
+== core: LoadGameData orange ramp into the cyan slot
+file: src/core/init.c
+- (&g_colG[2].step0)[d] = g;
++ (&g_colG[1].step0)[d] = g;
+expect: core_BootGame_builds_the_flash_ramps
+
+== core: Shutdown leaves ship 1's hit mask
+file: src/core/init.c
+- FREE_NULL(g_ship1Hma);
++ ;
+expect: core_GameMain_logs_the_alien_counters_at_exit
+
+== core: Shutdown leaves the guard hit mask
+file: src/core/init.c
+- FREE_NULL(g_hmaGuard);
++ ;
+expect: core_GameMain_logs_the_alien_counters_at_exit
+
+== core: Shutdown doesn't log the exit
+file: src/core/init.c
+- InitFail("\r\n*** EXITING WARBLADE ***\r\n");
++ SoundShutdown();
+expect: core_GameMain_runs_until_quit_and_shuts_down
+
+== core: first run without the presets prompt
+file: src/profile/settings.c
+- g_presets = 1;
++ g_presets = 0;
+expect: core_BootGame_first_run_uses_default_settings

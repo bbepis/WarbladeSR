@@ -731,7 +731,7 @@ void ShowSecretsInOneGame(int id)
     if (id != -1) {
         UnpackAccount(id);
         g_shownStat = g_acc.secretsInOneGame;
-        sprintf(g_logBuf, "%d", (__int64)g_acc.secretsInOneGame);
+        sprintf(g_logBuf, "%lld", (__int64)g_acc.secretsInOneGame);
         ClearAccount();
     }
 }
@@ -818,7 +818,7 @@ void ShowHighestLevelReached(int id)
     if (id != -1) {
         UnpackAccount(id);
         g_shownStat = g_acc.highestLevel;
-        sprintf(g_logBuf, "%d", (__int64)g_acc.highestLevel);
+        sprintf(g_logBuf, "%lld", (__int64)g_acc.highestLevel);
         ClearAccount();
     }
 }
@@ -843,7 +843,7 @@ void ShowTotalLevelsPlayed(int id)
     if (id != -1) {
         UnpackAccount(id);
         g_shownStat = g_acc.totalLevelsPlayed;
-        sprintf(g_logBuf, "%d", (__int64)g_acc.totalLevelsPlayed);
+        sprintf(g_logBuf, "%lld", (__int64)g_acc.totalLevelsPlayed);
         ClearAccount();
 
         if (g_gameMode != MODE_TIME_TRIAL) {
@@ -884,7 +884,7 @@ void ShowTotalGamesPlayed(int id)
     if (id != -1) {
         UnpackAccount(id);
         g_shownStat = g_acc.gamesPlayed;
-        sprintf(g_logBuf, "%d", (__int64)g_acc.gamesPlayed);
+        sprintf(g_logBuf, "%lld", (__int64)g_acc.gamesPlayed);
         ClearAccount();
     }
 }
@@ -949,7 +949,7 @@ void FormatHighestMoney(int profile)
         if (g_profileReadOnly && g_shownStat > 99999)
             sprintf(g_logBuf, "???");
         else
-            sprintf(g_logBuf, "%d", (__int64)g_acc.highestMoney);
+            sprintf(g_logBuf, "%lld", (__int64)g_acc.highestMoney);
         ClearAccount();
     }
 }
@@ -1481,6 +1481,12 @@ void ProfileWindow(bool noButtons)
         WinAddText(POS_CENTERED, h - 50, g_curWin, "PRESS TAB TO CLOSE WINDOW", 8);
     } else {
         if (!g_newGameOnClose && g_state == STATE_TITLE && !g_profileReadOnly) {
+#ifdef __EMSCRIPTEN__
+            if (WebCanPlay() && !WebIsGuest() && ProfileValid(g_profileIndex))
+                WinAddMenuItem(25, h - 75, g_curWin, 9003, "CONTINUE GAME", 5);
+            WinAddMenuItem(25, h - 55, g_curWin, 0x106, WebIsGuest() ? "SIGN IN" : "SIGN OUT", 5);
+            WinAddMenuItem(150, h - 55, g_curWin, 0x108, "PLAYLIST", 5);
+#else
             WinAddMenuItem(25, h - 55, g_curWin, 0x106, "CLOSE PROFILE", 5);
             if (g_profileIndex == g_cfg.profileSel) {
                 WinAddMenuItem(150, h - 55, g_curWin, 0x107, "CLEAR AS DEFAULT", 5);
@@ -1489,11 +1495,14 @@ void ProfileWindow(bool noButtons)
                 WinAddMenuItem(150, h - 55, g_curWin, 0x107, "SET AS DEFAULT", 5);
                 WinAddMenuItem(283, h - 55, g_curWin, 0x108, "PLAYLIST", 5);
             }
+#endif
             WinAddMenuItem(25, h - 35, g_curWin, 0x109, "RESET", 5);
             WinAddMenuItem(82, h - 35, g_curWin, 0x10a, "BACKUP", 5);
             WinAddMenuItem(147, h - 35, g_curWin, 0x10b, "RESTORE", 5);
+#ifndef __EMSCRIPTEN__
             WinAddMenuItem(220, h - 35, g_curWin, 0x10c, "CHANGE NAME", 5);
             WinAddMenuItem(325, h - 35, g_curWin, 0x10d, "CHANGE PASSWORD", 5);
+#endif
         }
         WinAddMenuItem(w - 80, h - 35, g_curWin, 0xfc, "CLOSE", 5);
         WinSetSelected(g_curWin, 0xfc);

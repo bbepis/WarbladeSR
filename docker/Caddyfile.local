@@ -1,0 +1,11 @@
+http://localhost:8080 {
+    @api path /api/*
+    handle @api {
+        reverse_proxy api:8081 {
+            header_up X-Real-IP {remote_host}
+        }
+    }
+    handle {
+        reverse_proxy warblade:8080
+    }
+}

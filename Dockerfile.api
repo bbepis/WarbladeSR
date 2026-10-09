@@ -1,0 +1,18 @@
+# Private account/save API. Static game files remain in the separate nginx image.
+FROM docker.io/library/python:3.12-slim-bookworm
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    WARBLADE_DB_PATH=/state/warblade.sqlite3
+WORKDIR /app
+COPY server/requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt \
+    && groupadd --gid 10101 warblade \
+    && useradd --uid 10101 --gid 10101 --no-create-home --shell /usr/sbin/nologin warblade \
+    && mkdir -p /state \
+    && chown warblade:warblade /state
+COPY --chown=root:root server/ /app/server/
+USER 10101:10101
+EXPOSE 8081
+HEALTHCHECK --interval=30s --timeout=5s CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8081/healthz', timeout=3)" || exit 1
+CMD ["uvicorn", "server.app:app", "--host", "0.0.0.0", "--port", "8081", "--limit-concurrency", "64", "--timeout-keep-alive", "5", "--no-access-log"]

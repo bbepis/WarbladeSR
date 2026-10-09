@@ -1,6 +1,9 @@
 // resources.c: Loading graphics (Image) and .hma masks.
 #include <stdio.h>
 #include <stdlib.h>
+#include <limits.h>
+#include <stdint.h>
+#include <string.h>
 #include "globals.h"
 #include "game.h"
 
@@ -45,12 +48,23 @@ void *LoadHma(const char *name, int w, int h)
 {
     char levelname[512];
     void *buf;
+    size_t nameLen;
+    size_t maskSize;
 
-    buf = calloc(w * h, 1);
+    if (!name || w <= 0 || h <= 0 || (size_t)w > SIZE_MAX / (size_t)h)
+        return NULL;
+    maskSize = (size_t)w * (size_t)h;
+    if (maskSize > UINT_MAX)
+        return NULL;
+    nameLen = strlen(name);
+    if (nameLen > sizeof(levelname) - sizeof(".hma"))
+        return NULL;
+
+    buf = calloc(maskSize, 1);
     if (buf) {
-        StrToLowerN(name, levelname, 512);
-        sprintf(levelname, "%s.hma", levelname);
-        if (PacRead(levelname, buf, w * h)) {
+        StrToLowerN(name, levelname, (int)sizeof(levelname));
+        memcpy(levelname + nameLen, ".hma", sizeof(".hma"));
+        if (PacRead(levelname, buf, (unsigned)maskSize)) {
             return buf;
         } else {
             free(buf);

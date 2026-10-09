@@ -70,6 +70,28 @@ void UpdateSparkleFlashes()
     }
 }
 
+#ifdef __EMSCRIPTEN__
+// Whether this shop visit's game has been saved (the browser build, AutoSaveShop).
+static bool g_shopAutoSaved;
+
+// The browser build has no F1/F2 (a tab is closed, not quit): the profile's game is saved once
+// per shop visit instead, as soon as the shop is fully open. A visit starts when the shop is
+// drawn again after a gap (it is drawn every frame while open, paused or not).
+static void AutoSaveShop()
+{
+    static unsigned lastFrame;
+
+    if (g_time - lastFrame > 1000)
+        g_shopAutoSaved = false;
+    lastFrame = g_time;
+    if (!g_shopAutoSaved && (int)g_shopTransition == 500 && g_profileIndex != -1 &&
+        g_gameMode == MODE_SINGLE && g_playerUpdateFn != StateDemo && !g_autoplay) {
+        AutoSaveProfile(g_profileIndex);
+        g_shopAutoSaved = true;
+    }
+}
+#endif
+
 // Draws the blinking "press F1/F2 to save" pause-menu prompt, alternating between the two save options
 // each blink and slowing the blink rate to 4x while the alternate message is shown.
 void DrawSavePrompt()
@@ -85,10 +107,17 @@ void DrawSavePrompt()
             g_saveMsgBlinkRate = g_blinkRate;
     }
     if (g_uiBlink != 0) {
+#ifdef __EMSCRIPTEN__
+        // The browser build saves by itself at each shop visit (AutoSaveShop).
+        if (!g_shopAutoSaved)
+            return;
+        sprintf(g_logBuf, "GAME SAVED: CONTINUE FROM YOUR PROFILE NEXT TIME");
+#else
         if (g_saveMsgToggle)
             sprintf(g_logBuf, "PRESS F1 TO SAVE GAME AND EXIT TO WINDOWS      %d SAVES LEFT", g_lives);
         else
             sprintf(g_logBuf, "PRESS F2 TO SAVE GAME AND EXIT TO MENUSCREEN   %d SAVES LEFT", g_lives);
+#endif
         DrawMixedCaseText(g_logBuf, (int)g_offX + 0x82, (int)(g_offY + g_shopBounceY) + 0x216, 1);
     }
 }
@@ -680,6 +709,9 @@ void Shop()
     if (g_shopClosing == 0 && g_state != STATE_PAUSED && g_inputCooldown < 1) {
         g_shopActiveTimer = 5;
 
+#ifdef __EMSCRIPTEN__
+        AutoSaveShop();
+#else
         // F1: save and quit to Windows, after playing the goodbye jingle to completion
         // (pumping AudioUpdate() in a busy-wait since the main loop isn't running).
         if (KeyDown(K_VK_F1) && g_secretShown == 0 && (int)g_shopTransition == 500) {
@@ -722,7 +754,8 @@ void Shop()
         } else
             g_keyLatch[K_VK_F1] = 1;
 
-        // F2: delete the current profile and return to the title screen.
+        // F2: save the game, forget the auto-login profile (setpro.dat) and return to the
+        // title screen. The profile and its save are kept.
         if (KeyDown(K_VK_F2) && g_secretShown == 0 && (int)g_shopTransition == 500) {
             if (g_keyLatch[K_VK_F2]) {
                 g_keyLatch[K_VK_F2] = 0;
@@ -731,7 +764,9 @@ void Shop()
                     MergeSettings(g_profileIndex);
                     DeleteSetPro();
                     ClearAccount();
+#ifndef __EMSCRIPTEN__
                     g_profileIndex = -1;
+#endif
                     PlaySample();
                     g_quitGameWinOpen = 0;
                     ResetToTitle();
@@ -746,6 +781,8 @@ void Shop()
             }
         } else
             g_keyLatch[K_VK_F2] = 1;
+
+#endif
 
         // F7: take a screenshot.
         if (KeyDown(K_VK_F7)) {

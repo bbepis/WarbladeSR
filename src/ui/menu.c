@@ -25,10 +25,10 @@ enum {
 // Copies a file, overwriting `to` (the original used Win32 CopyFileA with bFailIfExists = 0).
 static bool CopyProfileFile(const char *from, const char *to)
 {
-    FILE *in = fopen(from, "rb");
+    FILE *in = fopen(SysPath(from), "rb");
     if (!in)
         return false;
-    FILE *out = fopen(to, "wb");
+    FILE *out = fopen(SysPath(to), "wb");
     if (!out) {
         fclose(in);
         return false;
@@ -52,15 +52,23 @@ static bool CopyProfileFile(const char *from, const char *to)
 // Opens the "quit current game?" confirmation window.
 void QuitGameDialog()
 {
+#ifdef __EMSCRIPTEN__
+    int h = 120;    // no QUIT TO WINDOWS in the browser
+#else
     int h = 140;
+#endif
     int w = 200;
     g_curWin = WinOpen(POS_CENTERED, POS_CENTERED, w, h, WIN_MODE_SLIDING);
     g_quitGameWin = g_curWin;
     WinAddText(POS_CENTERED, 20, g_curWin, "QUIT GAME?", 4);
     WinAddMenuItem(POS_CENTERED, 40, g_curWin, MENUID_QUIT_GAME_CONFIRM, "QUIT CURRENT GAME", 3);
     WinAddMenuItem(POS_CENTERED, 60, g_curWin, MENUID_RETIRE_CONFIRM, "RETIRE FROM  GAME", 3);
+#ifdef __EMSCRIPTEN__
+    WinAddMenuItem(POS_CENTERED, 80, g_curWin, MENUID_QUIT_GAME_CONTINUE, "  CONTINUE GAME  ", 3);
+#else
     WinAddMenuItem(POS_CENTERED, 80, g_curWin, MENUID_QUIT_GAME_TO_WINDOWS, " QUIT TO WINDOWS ", 3);
     WinAddMenuItem(POS_CENTERED, 100, g_curWin, MENUID_QUIT_GAME_CONTINUE, "  CONTINUE GAME  ", 3);
+#endif
     WinSetSelected(g_curWin, MENUID_QUIT_GAME_CONFIRM);
     WinCheckMenuItem(g_curWin, MENUID_QUIT_GAME_CONFIRM);
 }
@@ -83,9 +91,164 @@ void QuitToWindowsDialog()
     WinCheckMenuItem(g_curWin, MENUID_QUIT_TO_WINDOWS_YES);
 }
 
+// Activate an already unpacked account after authentication.
+void ActivateProfile(int slot)
+{
+    g_loggedIn = 1;
+    g_profileIndex = slot;
+
+    if (g_acc.settings.version == g_version) {
+        g_hiscore = g_cfg.best;
+        int savedC8 = g_cfg.alienBuffer;
+        g_cfg = g_acc.settings;
+        ApplyFrameSettings();
+
+        if (g_joyCount == 0 && (g_cfg.device0 == DEVICE_JOYSTICK1 || g_cfg.device0 == DEVICE_JOYSTICK2)) {
+            g_cfg.device0 = DEVICE_KEYBOARD;
+            g_cfg.playerKeys[1][0] = 0;
+            g_cfg.playerKeys[2][0] = 3;
+            g_cfg.playerKeys[3][0] = 1;
+            g_cfg.playerKeys[4][0] = 2;
+            g_cfg.playerKeys[0][0] = 9;
+            g_cfg.playerKeys[5][0] = 0x4d;
+            g_cfg.playerKeys[0][0] = 4;
+            g_cfg.playerKeys[5][0] = 0x32;
+            g_cfg.menuKeys[0][0] = 0x28;
+            g_cfg.menuKeys[1][0] = 0x17;
+            g_cfg.playerKeys[6][0] = 0x30;
+            g_cfg.joy[0][0] = 1;
+            g_cfg.joy[1][0] = 2;
+            g_cfg.joy[2][0] = 4;
+            g_cfg.menuKeys[2][0] = 8;
+            g_cfg.menuKeys[3][0] = 0x10;
+        }
+        FixDuplicateKeys(0);
+
+        if (g_keysChanged != 0) {
+            g_cfg.playerKeys[1][0] = 0;
+            g_cfg.playerKeys[2][0] = 3;
+            g_cfg.playerKeys[3][0] = 1;
+            g_cfg.playerKeys[4][0] = 2;
+            g_cfg.playerKeys[0][0] = 9;
+            g_cfg.playerKeys[5][0] = 0x4d;
+            g_cfg.playerKeys[0][0] = 4;
+            g_cfg.playerKeys[5][0] = 0x32;
+            g_cfg.menuKeys[0][0] = 0x28;
+            g_cfg.menuKeys[1][0] = 0x17;
+            g_cfg.playerKeys[6][0] = 0x30;
+            g_cfg.joy[0][0] = 1;
+            g_cfg.joy[1][0] = 2;
+            g_cfg.joy[2][0] = 4;
+            g_cfg.menuKeys[2][0] = 8;
+            g_cfg.menuKeys[3][0] = 0x10;
+        }
+        FixDuplicateKeys(1);
+
+        if (g_keysChanged != 0) {
+            g_cfg.playerKeys[1][1] = 0x41;
+            g_cfg.playerKeys[2][1] = 0x43;
+            g_cfg.playerKeys[3][1] = 0x45;
+            g_cfg.playerKeys[4][1] = 0x3f;
+            g_cfg.playerKeys[0][1] = 8;
+            g_cfg.playerKeys[5][1] = 6;
+            g_cfg.playerKeys[0][1] = 0x26;
+            g_cfg.playerKeys[5][1] = 0x25;
+            g_cfg.menuKeys[0][1] = 0x28;
+            g_cfg.menuKeys[1][1] = 0x17;
+            g_cfg.playerKeys[6][1] = 7;
+            g_cfg.joy[0][1] = 1;
+            g_cfg.joy[1][1] = 2;
+            g_cfg.joy[2][1] = 4;
+            g_cfg.menuKeys[2][1] = 8;
+            g_cfg.menuKeys[3][1] = 0x10;
+        }
+
+        if (g_hiscore > g_cfg.best)
+            g_cfg.best = g_hiscore;
+        if (g_cfg.best < 0)
+            g_cfg.best = 0;
+        g_cfg.alienBuffer = savedC8;
+    }
+    WriteSettings();
+    if (g_cfg.difficulty == DIFF_EASY && g_acc.easy == 0) {
+        g_cfg.difficulty = DIFF_NORMAL;
+        g_hofMode = HOF_NORMAL;
+        g_cfg.fps = FPS_NORMAL;
+    }
+
+    if (g_cfg.difficulty != DIFF_EASY && g_acc.easy != 0) {
+        g_cfg.difficulty = DIFF_EASY;
+        g_hofMode = HOF_EASY;
+        g_cfg.fps = FPS_EASY;
+    }
+    if (g_cfg.alienBuffer < 5)
+        g_cfg.alienBuffer = 5;
+    if (g_cfg.fps < 50 || g_cfg.fps > 90)
+        g_cfg.fps = FPS_HARD;
+    if (g_cfg.collisionDetail != COLLISION_SIMPLE && g_cfg.collisionDetail != COLLISION_NORMAL)
+        g_cfg.collisionDetail = COLLISION_NORMAL;
+
+    if (g_cfg.sparks < 10.0 || g_cfg.sparks > 150.0)
+        g_cfg.sparks = 50.0f;
+    g_maxSparks = ((int)g_cfg.sparks >> 1 < 5) ? 5 : (int)g_cfg.sparks >> 1;
+    if (g_cfg.numStars < 50.0 || g_cfg.numStars > 3000.0)
+        g_cfg.numStars = 500.0f;
+    if (g_cfg.difficulty < DIFF_EASY || g_cfg.difficulty > DIFF_ACE)
+        g_cfg.difficulty = DIFF_NORMAL;
+    if (g_cfg.bgTint < BG_BRIGHTNESS_MIN || g_cfg.bgTint > BG_BRIGHTNESS_MAX)
+        g_cfg.bgTint = BG_BRIGHTNESS_DEFAULT;
+    if (g_cfg.bgEnabled != 0 && g_cfg.bgEnabled != 1)
+        g_cfg.bgEnabled = 0;
+
+    if (g_cfg.bgStars != 0)
+        g_fnPtr = DrawStarsPlayer;
+    else
+        g_fnPtr = DrawStarsGlow;
+    SetSfxVolume(g_cfg.sfxVol);
+    SetMusicVolTable(g_cfg.musicVol);
+
+    if (g_cfg.sfxOn != 0) {
+        int track;
+        int tries = 0;
+        bool done;
+        if (g_profileIndex != -1)
+            track = GetProfileVoiceIndex(g_profileIndex);
+        else
+            track = g_cfg.voice;
+        if (track < 1 || track > 99)
+            track = 1;
+        done = false;
+        do {
+            if (VoiceExists(track)) {
+
+                if (g_profileIndex != -1)
+                    SetProfileVoiceIndex(g_profileIndex, track);
+                else
+                    g_cfg.voice = track;
+                LoadVoices();
+                done = true;
+            } else {
+                track++;
+                if (track > 99) {
+                    track = 1;
+                    tries++;
+
+                    if (tries > 2)
+                        done = true;
+                }
+            }
+        } while (!done);
+    }
+    g_loginWinOpen = 0;
+    SaveSetPro();
+    LoadProfile();
+    g_musicRestartTime = g_time + 1500;
+}
+
 // Opens the "DO YOU WANT TO CREATE A NEW PLAYER PROFILE?" confirmation window.
 void OpenCreateProfileWin()
 {
+#ifndef __EMSCRIPTEN__
     g_curWin = WinOpen(POS_CENTERED, 225, 600, 150, WIN_MODE_SLIDING);
     WinAddText(POS_CENTERED, 20, g_curWin, "CREATE A NEW PROFILE", 4);
     WinAddText(POS_CENTERED, 35, g_curWin, "DO YOU WANT TO CREATE A NEW PLAYER PROFILE ?", 3);
@@ -98,6 +261,7 @@ void OpenCreateProfileWin()
     WinAddMenuItem(30, 115, g_curWin, MENUID_DIALOG_NO, "  NO  ", 3);
     WinAddMenuItem(500, 115, g_curWin, MENUID_CREATE_PROFILE_YES, "  YES  ", 2);
     WinSetSelected(g_curWin, MENUID_CREATE_PROFILE_YES);
+#endif
 }
 
 // Registers a top-level or sub-menu text label in g_menuEntries (a fixed MAX_MENU_ENTRIES-entry pool).
@@ -262,13 +426,24 @@ void InitMenu()
     // Top-level: HELP, F.A.Q., USER PROFILES, USER MANUAL.
     AddMenuText(g_lastRight + 2, g_lastTop, "HELP", 0, MENUID_HELP, -1, 0, 1);
     AddMenuText(g_lastRight + 2, g_lastTop, "F.A.Q.", 0, MENUID_FAQ, -1, 0, 1);
-    AddMenuText(g_lastRight + 2, g_lastTop, "USER PROFILES", 0, MENUID_USER_PROFILES, -1, 0, 1);
+    AddMenuText(g_lastRight + 2, g_lastTop,
+#ifdef __EMSCRIPTEN__
+                "MY PROFILE",
+#else
+                "USER PROFILES",
+#endif
+                0, MENUID_USER_PROFILES, -1, 0, 1);
     AddMenuText(g_lastRight + 2, g_lastTop, "USER MANUAL", 0, MENUID_USER_MANUAL, -1, 0, 1);
 
-    // Top-level: QUIT (+ its YES confirm submenu).
+    // Top-level: QUIT (+ its YES confirm submenu). A browser tab is closed, not quit: the web
+    // build leaves it out, numbering the items after it as if it were there.
+#ifdef __EMSCRIPTEN__
+    g_nextId = MENUID_QUIT_YES + 1;
+#else
     AddMenuText(g_screenW - 50, g_screenH - 18, "QUIT", 0, g_nextId, -1, 0, 3);
     y = g_nextId - 1;
     AddMenuText(g_lastLeft, g_lastTop - 15, "YES ", 0, MENUID_QUIT_YES, y, 0, 3);
+#endif
 
     // Settings-page items (arrows/toggles), laid out top to bottom at a fixed column.
     x = 0x26c;
@@ -330,7 +505,13 @@ void InitMenu()
     else {
         AddMenuItem(x, g_lastBottom, "USE SEQ MODE", 1, MENUID_TOGGLE_SHUFFLE, -1, 0, 2, 160);
     }
-    AddMenuItem(x, g_lastBottom, "USER PROFILES", 1, MENUID_TOGGLE_PROFILE_LIST, -1, 0, 2, 160);
+    AddMenuItem(x, g_lastBottom,
+#ifdef __EMSCRIPTEN__
+                "MY PROFILE",
+#else
+                "USER PROFILES",
+#endif
+                1, MENUID_TOGGLE_PROFILE_LIST, -1, 0, 2, 160);
     AddMenuItem(x, g_lastBottom + 11, "TOGGLE INPUT", 1, MENUID_TOGGLE_INPUT_SWAP, -1, 0, 2, 160);
     AddMenuItem(x, g_lastBottom, "TOGGLE SCREENMODE", 1, MENUID_TOGGLE_WINDOWED, -1, 0, 2, 160);
 }
@@ -486,6 +667,9 @@ void DrawButtons(int page)
 // that has a focused edit box. `moved` is true when the mouse moved since the last call.
 void MenuUpdate(bool moved)
 {
+#ifdef __EMSCRIPTEN__
+    WebProcessAccountQueue();
+#endif
     int i;
     int j;
     bool overItem = false;
@@ -698,6 +882,31 @@ void MenuUpdate(bool moved)
         g_pressLink = -1;
     }
 
+#ifdef __EMSCRIPTEN__
+    if (g_clickItem == 9003) {
+        if (WebCanPlay() && !WebIsGuest() && g_state == STATE_TITLE &&
+            !g_profileReadOnly && ProfileValid(g_profileIndex)) {
+            g_gameMode = MODE_SINGLE;
+            g_hofMode = g_cfg.difficulty;
+            g_newGameOnClose = 1;
+            g_clickItem = MENUID_CANCEL_ALL;
+        } else {
+            g_clickItem = -1;
+            g_clickWin = -1;
+        }
+    }
+    if (g_clickItem == 9000 && g_clickWin >= 0) {
+        WebQueueCredentials(g_windows[g_clickWin].edits[0].buf,
+                            g_windows[g_clickWin].edits[1].buf, WebLoginMode());
+        g_clickWin = g_clickItem = -1;
+    } else if (g_clickItem == 9002) {
+        WebPlayGuest();
+        g_clickWin = g_clickItem = -1;
+    } else if (g_clickItem == 9001) {
+        WebOpenLogin(!WebLoginMode());
+        g_clickWin = g_clickItem = -1;
+    }
+#endif
     // ---------------- button dispatch ----------------
     // ---- generic window close (CLOSE / LOGIN_CANCEL / CANCEL_ALL) ----
     if (g_clickItem == MENUID_CLOSE) {
@@ -743,8 +952,14 @@ void MenuUpdate(bool moved)
 
     // ---- profile menu: logout, profile select ----
     if (g_clickItem == MENUID_LOGOUT) {
+#ifdef __EMSCRIPTEN__
+        if (WebIsGuest()) WebOpenLogin(0);
+        else WebQueueSignOut();
+#else
         Logout();
+#endif
     }
+#ifndef __EMSCRIPTEN__
     if (g_clickItem == MENUID_TOGGLE_PROFILE_SEL) {
         g_clickWin = -1;
         g_clickItem = -1;
@@ -772,6 +987,7 @@ void MenuUpdate(bool moved)
         WinCloseAll();
     }
 
+#endif
     // ---- profile: reset confirmation / reset-category dialogs ----
     if (g_clickItem == MENUID_OPEN_RESET_CATEGORY) {
         int h = 225;
@@ -1031,6 +1247,9 @@ void MenuUpdate(bool moved)
                 len = LoadAccount(g_profileIndex);
                 if (!DecodeAccount(&g_accBuf[g_profileIndex], g_profileIndex, len))
                     ResetAccount();
+#ifdef __EMSCRIPTEN__
+                WebNormalizeAccount();
+#endif
                 PackAccount(g_profileIndex);
                 SaveAccount(g_profileIndex);
             } else {
@@ -1068,6 +1287,7 @@ void MenuUpdate(bool moved)
     }
 
     // ---- profile: change username / change password ----
+#ifndef __EMSCRIPTEN__
     if (g_clickItem == MENUID_OPEN_CHANGE_USERNAME) {
         int h = 115;
         int w = 500;
@@ -1180,6 +1400,7 @@ void MenuUpdate(bool moved)
         }
     }
 
+#endif
     // ---- jukebox launch / quit-game / quit-to-desktop confirmations ----
     if (g_clickItem == MENUID_JUKEBOX_LAUNCH_CONFIRM) {
         SoundPause();
@@ -1494,6 +1715,7 @@ void MenuUpdate(bool moved)
     }
 
     // ---- new-profile window, quick starts, profile-slot click ranges ----
+#ifndef __EMSCRIPTEN__
     if (g_clickItem == MENUID_PROFILE_NEW || g_clickItem == MENUID_CREATE_PROFILE_YES) {
         WinCloseAll();
         WinHideAll();
@@ -1511,6 +1733,7 @@ void MenuUpdate(bool moved)
         g_clickItem = -1;
     }
 
+#endif
     if (g_clickItem == MENUID_QUICK_START_TIME_TRIAL) {
         WinCloseAll();
         WinHideAll();
@@ -1536,6 +1759,7 @@ void MenuUpdate(bool moved)
         NewGame(true);
         return;
     }
+#ifndef __EMSCRIPTEN__
     if (g_clickItem >= PROFILE_USE_ID_BASE && g_clickItem <= PROFILE_USE_ID_BASE + 10 && !AnyWindowHasEdit()) {
 
         if (g_profileIndex == g_clickItem - PROFILE_USE_ID_BASE) {
@@ -1588,155 +1812,7 @@ void MenuUpdate(bool moved)
             }
         }
         if (ok) {
-            g_loggedIn = 1;
-            g_profileIndex = g_selProfile;
-
-            if (g_acc.settings.version == g_version) {
-                g_hiscore = g_cfg.best;
-                int savedC8 = g_cfg.alienBuffer;
-                g_cfg = g_acc.settings;
-                ApplyFrameSettings();
-
-                if (g_joyCount == 0 && (g_cfg.device0 == DEVICE_JOYSTICK1 || g_cfg.device0 == DEVICE_JOYSTICK2)) {
-                    g_cfg.device0 = DEVICE_KEYBOARD;
-                    g_cfg.playerKeys[1][0] = 0;
-                    g_cfg.playerKeys[2][0] = 3;
-                    g_cfg.playerKeys[3][0] = 1;
-                    g_cfg.playerKeys[4][0] = 2;
-                    g_cfg.playerKeys[0][0] = 9;
-                    g_cfg.playerKeys[5][0] = 0x4d;
-                    g_cfg.playerKeys[0][0] = 4;
-                    g_cfg.playerKeys[5][0] = 0x32;
-                    g_cfg.menuKeys[0][0] = 0x28;
-                    g_cfg.menuKeys[1][0] = 0x17;
-                    g_cfg.playerKeys[6][0] = 0x30;
-                    g_cfg.joy[0][0] = 1;
-                    g_cfg.joy[1][0] = 2;
-                    g_cfg.joy[2][0] = 4;
-                    g_cfg.menuKeys[2][0] = 8;
-                    g_cfg.menuKeys[3][0] = 0x10;
-                }
-                FixDuplicateKeys(0);
-
-                if (g_keysChanged != 0) {
-                    g_cfg.playerKeys[1][0] = 0;
-                    g_cfg.playerKeys[2][0] = 3;
-                    g_cfg.playerKeys[3][0] = 1;
-                    g_cfg.playerKeys[4][0] = 2;
-                    g_cfg.playerKeys[0][0] = 9;
-                    g_cfg.playerKeys[5][0] = 0x4d;
-                    g_cfg.playerKeys[0][0] = 4;
-                    g_cfg.playerKeys[5][0] = 0x32;
-                    g_cfg.menuKeys[0][0] = 0x28;
-                    g_cfg.menuKeys[1][0] = 0x17;
-                    g_cfg.playerKeys[6][0] = 0x30;
-                    g_cfg.joy[0][0] = 1;
-                    g_cfg.joy[1][0] = 2;
-                    g_cfg.joy[2][0] = 4;
-                    g_cfg.menuKeys[2][0] = 8;
-                    g_cfg.menuKeys[3][0] = 0x10;
-                }
-                FixDuplicateKeys(1);
-
-                if (g_keysChanged != 0) {
-                    g_cfg.playerKeys[1][1] = 0x41;
-                    g_cfg.playerKeys[2][1] = 0x43;
-                    g_cfg.playerKeys[3][1] = 0x45;
-                    g_cfg.playerKeys[4][1] = 0x3f;
-                    g_cfg.playerKeys[0][1] = 8;
-                    g_cfg.playerKeys[5][1] = 6;
-                    g_cfg.playerKeys[0][1] = 0x26;
-                    g_cfg.playerKeys[5][1] = 0x25;
-                    g_cfg.menuKeys[0][1] = 0x28;
-                    g_cfg.menuKeys[1][1] = 0x17;
-                    g_cfg.playerKeys[6][1] = 7;
-                    g_cfg.joy[0][1] = 1;
-                    g_cfg.joy[1][1] = 2;
-                    g_cfg.joy[2][1] = 4;
-                    g_cfg.menuKeys[2][1] = 8;
-                    g_cfg.menuKeys[3][1] = 0x10;
-                }
-
-                if (g_hiscore > g_cfg.best)
-                    g_cfg.best = g_hiscore;
-                if (g_cfg.best < 0)
-                    g_cfg.best = 0;
-                g_cfg.alienBuffer = savedC8;
-            }
-            WriteSettings();
-            if (g_cfg.difficulty == DIFF_EASY && g_acc.easy == 0) {
-                g_cfg.difficulty = DIFF_NORMAL;
-                g_hofMode = HOF_NORMAL;
-                g_cfg.fps = FPS_NORMAL;
-            }
-
-            if (g_cfg.difficulty != DIFF_EASY && g_acc.easy != 0) {
-                g_cfg.difficulty = DIFF_EASY;
-                g_hofMode = HOF_EASY;
-                g_cfg.fps = FPS_EASY;
-            }
-            if (g_cfg.alienBuffer < 5)
-                g_cfg.alienBuffer = 5;
-            if (g_cfg.fps < 50 || g_cfg.fps > 90)
-                g_cfg.fps = FPS_HARD;
-            if (g_cfg.collisionDetail != COLLISION_SIMPLE && g_cfg.collisionDetail != COLLISION_NORMAL)
-                g_cfg.collisionDetail = COLLISION_NORMAL;
-
-            if (g_cfg.sparks < 10.0 || g_cfg.sparks > 150.0)
-                g_cfg.sparks = 50.0f;
-            g_maxSparks = ((int)g_cfg.sparks >> 1 < 5) ? 5 : (int)g_cfg.sparks >> 1;
-            if (g_cfg.numStars < 50.0 || g_cfg.numStars > 3000.0)
-                g_cfg.numStars = 500.0f;
-            if (g_cfg.difficulty < DIFF_EASY || g_cfg.difficulty > DIFF_ACE)
-                g_cfg.difficulty = DIFF_NORMAL;
-            if (g_cfg.bgTint < BG_BRIGHTNESS_MIN || g_cfg.bgTint > BG_BRIGHTNESS_MAX)
-                g_cfg.bgTint = BG_BRIGHTNESS_DEFAULT;
-            if (g_cfg.bgEnabled != 0 && g_cfg.bgEnabled != 1)
-                g_cfg.bgEnabled = 0;
-
-            if (g_cfg.bgStars != 0)
-                g_fnPtr = DrawStarsPlayer;
-            else
-                g_fnPtr = DrawStarsGlow;
-            SetSfxVolume(g_cfg.sfxVol);
-            SetMusicVolTable(g_cfg.musicVol);
-
-            if (g_cfg.sfxOn != 0) {
-                int track;
-                int tries = 0;
-                bool done;
-                if (g_profileIndex != -1)
-                    track = GetProfileVoiceIndex(g_profileIndex);
-                else
-                    track = g_cfg.voice;
-                if (track < 1 || track > 99)
-                    track = 1;
-                done = false;
-                do {
-                    if (VoiceExists(track)) {
-
-                        if (g_profileIndex != -1)
-                            SetProfileVoiceIndex(g_profileIndex, track);
-                        else
-                            g_cfg.voice = track;
-                        LoadVoices();
-                        done = true;
-                    } else {
-                        track++;
-                        if (track > 99) {
-                            track = 1;
-                            tries++;
-
-                            if (tries > 2)
-                                done = true;
-                        }
-                    }
-                } while (!done);
-            }
-            g_loginWinOpen = 0;
-            SaveSetPro();
-            LoadProfile();
-            g_musicRestartTime = g_time + 1500;
+            ActivateProfile(g_selProfile);
         }
         ClearAccount();
         g_newGameOnClose = 0;
@@ -1867,6 +1943,7 @@ void MenuUpdate(bool moved)
         WinAddMenuItem(w - 87, h - 40, g_curWin, MENUID_CLOSE, "CLOSE", 5);
         WinSetSelected(g_curWin, MENUID_CLOSE);
     }
+#endif
     // ---- text-link click: open its URL ----
     if (g_clickLink != -1 && g_clickWin != -1) {
         SoundPause();
@@ -1883,7 +1960,8 @@ void MenuUpdate(bool moved)
         bool handled = false;
         int ew = -1;
         for (i = MAX_WINDOWS - 1; i != -1; i--) {
-            if (g_windows[i].firstH != -1)
+            if (g_windows[i].active && g_windows[i].visible && g_windows[i].nH >= 0
+                && g_windows[i].firstH >= 0 && g_windows[i].firstH <= g_windows[i].nH)
                 ew = i;
         }
         if (ew != -1) {
@@ -1926,6 +2004,12 @@ void MenuUpdate(bool moved)
                     g_pressItem = -1;
                     g_pressLink = -1;
                     PlayClick();
+#ifdef __EMSCRIPTEN__
+                    if (g_loginWinOpen && g_windows[ew].selF == 9000 && g_windows[ew].firstH == 1) {
+                        g_clickWin = ew;
+                        g_clickItem = 9000;
+                    } else
+#endif
                     if (g_windows[ew].nH + 1 == 1) {
                         g_clickWin = ew;
                         g_clickItem = g_windows[ew].selF;
@@ -1940,7 +2024,11 @@ void MenuUpdate(bool moved)
             }
             int ch = 0;
 
-            if (!handled) {
+            if (!handled
+#ifdef __EMSCRIPTEN__
+                && !g_loginWinOpen
+#endif
+            ) {
                 GetPressedKeyName();
                 if (g_pressedKey != -1) {
                     g_pressWin = -1;
@@ -2287,6 +2375,14 @@ void MenuHandler()
                 } else {
                     WinCloseAll();
                     PlayClick();
+#ifdef __EMSCRIPTEN__
+                    if (!WebCanPlay())
+                        WebOpenLogin(0);
+                    else {
+                        g_profileReadOnly = 0;
+                        ProfileWindow(false);
+                    }
+#else
                     int winH = PROFILE_LIST_WIN_H;
                     int winW = PROFILE_LIST_WIN_W;
                     WinHideAll();
@@ -2310,6 +2406,7 @@ void MenuHandler()
                         WinAddMenuItem(27, winH - 40, g_curWin, MENUID_PROFILE_NEW, "NEW", 5);
                     WinAddMenuItem(winW - 87, winH - 40, g_curWin, MENUID_CLOSE, "CLOSE", 5);
                     WinSetSelected(g_curWin, MENUID_CLOSE);
+#endif
                 }
                 (&g_keyLatch[K_VK_A])[0] = 0;
             }
@@ -2384,6 +2481,15 @@ void MenuHandler()
 
         // -- button 90: open the profile list window directly --
         if (g_clicked == MENUID_USER_PROFILES) {
+#ifdef __EMSCRIPTEN__
+            WinCloseAll();
+            if (!WebCanPlay())
+                WebOpenLogin(0);
+            else {
+                g_profileReadOnly = 0;
+                ProfileWindow(false);
+            }
+#else
             int winH = PROFILE_LIST_WIN_H;
             int winW = PROFILE_LIST_WIN_W;
             WinHideAll();
@@ -2406,6 +2512,7 @@ void MenuHandler()
                 WinAddMenuItem(27, winH - 40, g_curWin, MENUID_PROFILE_NEW, "NEW", 5);
             WinAddMenuItem(winW - 87, winH - 40, g_curWin, MENUID_CLOSE, "CLOSE", 5);
             WinSetSelected(g_curWin, MENUID_CLOSE);
+#endif
         }
 
         // -- button 100: quit to Windows (from the options screen) --
@@ -2850,9 +2957,11 @@ void MenuHandler()
         if (g_keyLatch[K_VK_ESCAPE] != 0) {
             g_keyLatch[K_VK_ESCAPE] = 0;
             if (!AnyWindowHasEdit() && !AnyWindowActive()) {
+#ifndef __EMSCRIPTEN__      // the browser build has no quitting
                 g_quitToWindowsWinOpen = true;
                 g_buttonsOn = 1;
                 QuitToWindowsDialog();
+#endif
             } else {
                 WinCloseAll();
                 g_profileWinOpen = false;
@@ -3066,6 +3175,7 @@ void MenuHandler()
 
         if (KeyDown(K_VK_F1) && !KeyDown(K_VK_ESCAPE)
             && g_transitionLock == 0) {
+#ifndef __EMSCRIPTEN__
             if (KeyDown(K_VK_MENU)
                 && (KeyDown(K_VK_L_SHIFT) || KeyDown(K_VK_R_SHIFT))) {
                 g_autoplay = true;
@@ -3088,6 +3198,7 @@ void MenuHandler()
                     return;
                 }
             }
+#endif
             PlayClick();
             g_menuIdleTimeout = g_time + MENU_IDLE_MS;
             g_gameMode = MODE_SINGLE;

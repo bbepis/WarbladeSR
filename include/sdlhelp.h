@@ -10,6 +10,11 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+// MSVC's 64-bit integer keyword (MinGW defines it too).
+#if !defined(_MSC_VER) && !defined(__int64)
+#define __int64 long long
+#endif
+
 // Compile-time check (the Win32 SDK's definition, so the two never clash).
 #ifndef C_ASSERT
 #define C_ASSERT(e) typedef char __C_ASSERT__[(e) ? 1 : -1]
@@ -103,6 +108,11 @@ const char *SysUserFolder(void);
 // `rel` resolved against the program's folder (KMiscTools::makeFilePath). Static buffer,
 // overwritten by the next call.
 const char *SysAppPath(const char *rel);
+// The game's Windows-style path ("data\\samples\\x.mp3") as the host OS wants it. On Windows
+// that is `path` itself. Elsewhere backslashes become slashes and each component is matched
+// case-insensitively against what's on disk, as Windows' file system would (a component that
+// doesn't exist yet is kept as written). Returns one of 4 rotating static buffers.
+const char *SysPath(const char *path);
 bool SysFileExists(const char *path);   // a file or folder
 bool SysMakeDir(const char *path);      // true if created
 // Opens `url` in the default browser.
@@ -215,13 +225,27 @@ long JoyX(char joy, char hat);            // hat 0: X axis, else Z; 0x7fff if no
 long JoyY(char joy, char hat);            // hat 0: Y axis, else R
 bool JoyButton(char joy, long mask);      // `mask` is a button bit mask
 
+// Gamepads through SDL's gamepad API (Xbox-style layout, whatever the brand), not part of the
+// original: pad n is the n-th one connected. Each reports the game's standard controls; the left
+// stick and the d-pad move. Pad 0 also includes the virtual pad (the browser page's touch
+// controls, SysSetVirtualPad).
+enum {
+    PAD_LEFT = 1, PAD_RIGHT = 2, PAD_UP = 4, PAD_DOWN = 8,
+    PAD_FIRE = 16,      // A (south), right trigger
+    PAD_ROCKET = 32,    // B (east), X (west), left trigger
+    PAD_PAUSE = 64,     // Start
+    PAD_PROFILE = 128   // Back / Select
+};
+unsigned SysPadState(int pad);            // PAD_* bits held now; 0 if there's no such pad
+void SysSetVirtualPad(unsigned bits);     // PAD_* bits held on the touch controls
+
 // ---------------------------------------------------------------------------------------------
 // Audio (src/core/sdl_audio.c, shaped like BASS). Handles are BASS-style: a sample, a voice
 // playing it, a tracker module or a stream; 0 is "none". A handle that has gone stale (a freed
 // sample, a voice taken over by another sound) is ignored.
 // ---------------------------------------------------------------------------------------------
 
-typedef unsigned long AudioHandle;
+typedef unsigned int AudioHandle;   // 32 bits, as on Windows: it is stored in the game's structs
 
 enum AudioAttrib {
     AUDIO_FREQ = 1,                 // playback rate in Hz (a sample's own rate = normal pitch)

@@ -1,5 +1,7 @@
 // window.c: GUI windows: the window table, widgets (text, rects, menu items, toggles, edit
 // boxes), focus, frames and text boxes, drawing.
+#include <stdio.h>
+#include <string.h>
 #include "globals.h"
 #include "game.h"
 
@@ -393,6 +395,10 @@ void WinAddEdit(int x, int y, int win, int len, unsigned char c, int param, unsi
         g_windows[win].edits[g_windows[win].nH].cursor = 0;
         g_windows[win].edits[g_windows[win].nH].index = g_windows[win].nH;
         g_windows[win].edits[g_windows[win].nH].param = param;
+#ifdef __EMSCRIPTEN__
+        memset(g_windows[win].edits[g_windows[win].nH].buf, 0,
+               sizeof(g_windows[win].edits[g_windows[win].nH].buf));
+#endif
         for (i = 0; i < len; i++) {
             g_windows[win].edits[g_windows[win].nH].buf[i] = 0;
         }
@@ -421,7 +427,8 @@ bool AnyWindowHasEdit()
 {
     int i;
     for (i = 0; i < MAX_WINDOWS; i++) {
-        if (g_windows[i].active != 0 && g_windows[i].firstH != -1) {
+        if (g_windows[i].active && g_windows[i].visible && g_windows[i].nH >= 0
+            && g_windows[i].firstH >= 0 && g_windows[i].firstH <= g_windows[i].nH) {
             return true;
         }
     }
@@ -773,7 +780,22 @@ void WinDraw(int win)
     // ---- edit fields, list H ----
     if (W.nH > -1) {
         for (h = 0; h < W.nH + 1; h++) {
-            for (c = W.edits[h].cursor; c < W.edits[h].len; c++) {
+            int visibleLen = W.edits[h].len;
+            int displayCursor = W.edits[h].cursor;
+            char *displayText = W.edits[h].buf;
+#ifdef __EMSCRIPTEN__
+            // Credential limits exceed their visual width. Keep the insertion
+            // point visible while retaining the complete text in the edit buffer.
+            int capacity = (W.w - W.edits[h].x - 24) / 8;
+            if (capacity < 1) capacity = 1;
+            if (visibleLen > capacity) visibleLen = capacity;
+            int offset = displayCursor >= visibleLen ? displayCursor - visibleLen + 1 : 0;
+            displayCursor -= offset;
+            char visibleText[259];
+            snprintf(visibleText, sizeof(visibleText), "%.*s", visibleLen, W.edits[h].buf + offset);
+            displayText = visibleText;
+#endif
+            for (c = displayCursor; c < visibleLen; c++) {
                 if (W.edits[h].param <= 4)
                     DrawTinyText("_", x1 + W.edits[h].x + c * 8 + (int)slide, y1 + W.edits[h].y,
                                     W.edits[h].param);
@@ -783,7 +805,7 @@ void WinDraw(int win)
             }
 
             if (W.edits[h].masked) {
-                for (z = 0; z < StrLenPlat(W.edits[h].buf); z++) {
+                for (z = 0; z < StrLenPlat(displayText); z++) {
                     if (W.edits[h].param <= 4)
                         DrawTinyText("*", x1 + W.edits[h].x + z * 8 + (int)slide, y1 + W.edits[h].y,
                                         W.edits[h].param);
@@ -793,19 +815,19 @@ void WinDraw(int win)
                 }
             } else {
                 if (W.edits[h].param <= 4)
-                    DrawTinyText(W.edits[h].buf, x1 + W.edits[h].x + (int)slide, y1 + W.edits[h].y,
+                    DrawTinyText(displayText, x1 + W.edits[h].x + (int)slide, y1 + W.edits[h].y,
                                     W.edits[h].param);
                 else
-                    DrawNewsText(W.edits[h].buf, x1 + W.edits[h].x + (int)slide, y1 + W.edits[h].y,
+                    DrawNewsText(displayText, x1 + W.edits[h].x + (int)slide, y1 + W.edits[h].y,
                                     W.edits[h].param);
             }
 
             if (W.blinkOn && W.firstH != -1 && W.edits[h].focused) {
                 if (W.edits[h].param <= 4)
-                    DrawTinyText("#", x1 + W.edits[h].x + W.edits[h].cursor * 8 + (int)slide,
+                    DrawTinyText("#", x1 + W.edits[h].x + displayCursor * 8 + (int)slide,
                                     y1 + W.edits[h].y, W.edits[h].param);
                 else
-                    DrawNewsText("#", x1 + W.edits[h].x + W.edits[h].cursor * 8 + (int)slide,
+                    DrawNewsText("#", x1 + W.edits[h].x + displayCursor * 8 + (int)slide,
                                     y1 + W.edits[h].y, W.edits[h].param);
             }
         }

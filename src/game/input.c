@@ -4,6 +4,10 @@
 #include "globals.h"
 #include "game.h"
 
+// A keyboard player also takes the same control from their gamepad (pad p, SysPadState); pad 0
+// includes the browser page's touch controls. Not in the original.
+#define PAD(p, bit) ((SysPadState(p) & (bit)) != 0)
+
 
 // Finds the lowest (highest y) alive/active item within the horizontal play field and above
 // the current player, for auto-targeting; result in g_targetItemX/g_targetItemY, or (-1, -1)
@@ -166,17 +170,15 @@ unsigned int GetFlagMask(unsigned char joy)
 }
 #undef JOY_BIT
 
-// NOTE: discards JoyX's return value and returns nothing itself; kept as in the
-// original (likely dead/unused code, or the axis reading is consumed via a side effect).
-void GetJoyX(unsigned char joy)
+// Return legacy joystick axes explicitly; callers must not depend on register leftovers.
+long GetJoyX(unsigned char joy)
 {
-    JoyX(joy, 0);
+    return JoyX(joy, 0);
 }
 
-// NOTE: discards JoyY's return value and returns nothing itself; see GetJoyX.
-void GetJoyY(unsigned char joy)
+long GetJoyY(unsigned char joy)
 {
-    JoyY(joy, 0);
+    return JoyY(joy, 0);
 }
 
 // True if player p is pressing "move left" this frame: keyboard, joystick axis (setting
@@ -232,17 +234,17 @@ int InputLeft(int p)
 
     if (g_save.players[p].inputDevice == DEVICE_KEYBOARD) {
         g_joystickSpeedMul = 1.0f;
-        if (KeyDown((enum EKeyboardLayout)g_cfg.left[p]) == true)
+        if (KeyDown((enum EKeyboardLayout)g_cfg.left[p]) == true || PAD(p, PAD_LEFT))
             return 1;
         else
             return 0;
     }
 
     if (g_save.players[p].inputDevice == DEVICE_JOYSTICK1) {
-        if (((int (*)(unsigned char))GetJoyX)(0) < g_joyCenter - g_joyDead) {
+        if (GetJoyX(0) < g_joyCenter - g_joyDead) {
             if (g_joyCenter == 0.0)
                 g_joyCenter = 1.0f;
-            g_joystickSpeedMul = (g_joyCenter - ((int (*)(unsigned char))GetJoyX)(0)) / g_joyCenter;
+            g_joystickSpeedMul = (g_joyCenter - GetJoyX(0)) / g_joyCenter;
             return 1;
         } else {
             g_joystickSpeedMul = 1.0f;
@@ -251,10 +253,10 @@ int InputLeft(int p)
     }
 
     if (g_save.players[p].inputDevice == DEVICE_JOYSTICK2) {
-        if (((int (*)(unsigned char))GetJoyX)(1) < g_joyCenter - g_joyDead) {
+        if (GetJoyX(1) < g_joyCenter - g_joyDead) {
             if (g_joyCenter == 0.0)
                 g_joyCenter = 1.0f;
-            g_joystickSpeedMul = (g_joyCenter - ((int (*)(unsigned char))GetJoyX)(1)) / g_joyCenter;
+            g_joystickSpeedMul = (g_joyCenter - GetJoyX(1)) / g_joyCenter;
             return 1;
         } else {
             g_joystickSpeedMul = 1.0f;
@@ -302,17 +304,17 @@ int InputRight(int p)
     }
 
     if (g_save.players[p].inputDevice == DEVICE_KEYBOARD) {
-        if (KeyDown((enum EKeyboardLayout)g_cfg.right[p]) == true)
+        if (KeyDown((enum EKeyboardLayout)g_cfg.right[p]) == true || PAD(p, PAD_RIGHT))
             return 1;
         else
             return 0;
     }
 
     if (g_save.players[p].inputDevice == DEVICE_JOYSTICK1) {
-        if (((int (*)(unsigned char))GetJoyX)(0) > g_joyCenter + g_joyDead) {
+        if (GetJoyX(0) > g_joyCenter + g_joyDead) {
             if (g_joyCenter == 0.0)
                 g_joyCenter = 1.0f;
-            g_joystickSpeedMul = (((int (*)(unsigned char))GetJoyX)(0) - g_joyCenter) / g_joyCenter;
+            g_joystickSpeedMul = (GetJoyX(0) - g_joyCenter) / g_joyCenter;
             return 1;
         } else {
             g_joystickSpeedMul = 1.0f;
@@ -321,10 +323,10 @@ int InputRight(int p)
     }
 
     if (g_save.players[p].inputDevice == DEVICE_JOYSTICK2) {
-        if (((int (*)(unsigned char))GetJoyX)(1) > g_joyCenter + g_joyDead) {
+        if (GetJoyX(1) > g_joyCenter + g_joyDead) {
             if (g_joyCenter == 0.0)
                 g_joyCenter = 1.0f;
-            g_joystickSpeedMul = (((int (*)(unsigned char))GetJoyX)(1) - g_joyCenter) / g_joyCenter;
+            g_joystickSpeedMul = (GetJoyX(1) - g_joyCenter) / g_joyCenter;
             return 1;
         } else {
             g_joystickSpeedMul = 1.0f;
@@ -340,19 +342,19 @@ int InputDown(int p)
     if (g_autoplay && RandRange(0, 100) < 50)
         return 1;
     if (g_save.players[p].inputDevice == DEVICE_KEYBOARD) {
-        if (KeyDown((enum EKeyboardLayout)g_cfg.down[p]) == true)
+        if (KeyDown((enum EKeyboardLayout)g_cfg.down[p]) == true || PAD(p, PAD_DOWN))
             return 1;
         else
             return 0;
     }
     if (g_save.players[p].inputDevice == DEVICE_JOYSTICK1) {
-        if (((int (*)(unsigned char))GetJoyY)(0) > g_joyCenter + g_joyDead)
+        if (GetJoyY(0) > g_joyCenter + g_joyDead)
             return 1;
         else
             return 0;
     }
     if (g_save.players[p].inputDevice == DEVICE_JOYSTICK2) {
-        if (((int (*)(unsigned char))GetJoyY)(1) > g_joyCenter + g_joyDead)
+        if (GetJoyY(1) > g_joyCenter + g_joyDead)
             return 1;
         else
             return 0;
@@ -375,21 +377,21 @@ int InputUp(int p)
     }
 
     if (g_save.players[p].inputDevice == DEVICE_KEYBOARD) {
-        if (KeyDown((enum EKeyboardLayout)g_cfg.up[p]) == true)
+        if (KeyDown((enum EKeyboardLayout)g_cfg.up[p]) == true || PAD(p, PAD_UP))
             return 1;
         else
             return 0;
     }
 
     if (g_save.players[p].inputDevice == DEVICE_JOYSTICK1) {
-        if (((int (*)(unsigned char))GetJoyY)(0) < g_joyCenter - g_joyDead)
+        if (GetJoyY(0) < g_joyCenter - g_joyDead)
             return 1;
         else
             return 0;
     }
 
     if (g_save.players[p].inputDevice == DEVICE_JOYSTICK2) {
-        if (((int (*)(unsigned char))GetJoyY)(1) < g_joyCenter - g_joyDead)
+        if (GetJoyY(1) < g_joyCenter - g_joyDead)
             return 1;
         else
             return 0;
@@ -425,7 +427,7 @@ int InputFire(int p)
     }
 
     if (g_save.players[p].inputDevice == DEVICE_KEYBOARD) {
-        if (KeyDown((enum EKeyboardLayout)g_cfg.fire[p]) == true)
+        if (KeyDown((enum EKeyboardLayout)g_cfg.fire[p]) == true || PAD(p, PAD_FIRE))
             return 1;
         else
             return 0;
@@ -457,7 +459,7 @@ int InputRocket(int p)
     }
 
     if (g_save.players[p].inputDevice == DEVICE_KEYBOARD) {
-        if (KeyDown((enum EKeyboardLayout)g_cfg.rocket[p]) == true)
+        if (KeyDown((enum EKeyboardLayout)g_cfg.rocket[p]) == true || PAD(p, PAD_ROCKET))
             return 1;
         else
             return 0;
@@ -483,7 +485,7 @@ int InputRocket(int p)
 int InputPause(int p)
 {
     if (g_save.players[p].inputDevice == DEVICE_KEYBOARD) {
-        if (KeyDown((enum EKeyboardLayout)g_cfg.pause[p]) == true)
+        if (KeyDown((enum EKeyboardLayout)g_cfg.pause[p]) == true || PAD(p, PAD_PAUSE))
             return 1;
         else
             return 0;
@@ -507,7 +509,7 @@ int InputPause(int p)
 int InputProfile(int p)
 {
     if (g_save.players[p].inputDevice == DEVICE_KEYBOARD) {
-        if (KeyDown((enum EKeyboardLayout)g_cfg.profile[p]) == true)
+        if (KeyDown((enum EKeyboardLayout)g_cfg.profile[p]) == true || PAD(p, PAD_PROFILE))
             return 1;
         else
             return 0;
@@ -534,7 +536,7 @@ int InputMenuFire(int p)
     if (g_autoplay && g_autoplayCanFire && RandRange(0, 100) < 90)
         return 1;
     if (g_cfg.device[p] == DEVICE_KEYBOARD) {
-        if (KeyDown((enum EKeyboardLayout)g_cfg.fire[p]) == true)
+        if (KeyDown((enum EKeyboardLayout)g_cfg.fire[p]) == true || PAD(p, PAD_FIRE))
             return 1;
         else
             return 0;

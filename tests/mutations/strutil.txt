@@ -1,0 +1,140 @@
+# src/core/strutil.c (tests/test_strutil.c)
+
+== strutil: StrLen off by one
+file: src/core/strutil.c
+- int n = 0;
+-     while (*s != 0) {
++ int n = 1;
++     while (*s != 0) {
+expect: StrLen_counts_characters
+
+== strutil: StrHash multiplier
+file: src/core/strutil.c
+- h = h * 31 + s[i];
++ h = h * 37 + s[i];
+expect: StrHash_is_the_31_polynomial
+
+== strutil: ToLower includes '@'
+file: src/core/strutil.c
+- if (c >= 'A' && c <= 'Z')
++ if (c >= '@' && c <= 'Z')
+expect: ToLower_only_changes_capitals
+
+== strutil: StrToLowerN ignores max
+file: src/core/strutil.c
+- while (i < max && src[i] != 0) {
++ while (src[i] != 0) {
+expect: StrToLowerN_stops_at_max
+
+== strutil: StrToLowerN writes empty
+file: src/core/strutil.c
+-     if (src[i] == 0)
+-         return;
+-     while (i < max
++     while (i < max
+expect: StrToLowerN_leaves_dst_alone_for_empty_src
+
+== strutil: Concat3 drops c
+file: src/core/strutil.c
+-         for (p = c; *p; p++, n++)
+-             g_concatBuf[n] = *p;
++
+expect: Concat3_joins_three_strings
+
+== strutil: Concat3 clears on NULL
+file: src/core/strutil.c
+-     if (b) {
+-         n = 0;
++     n = 0;
++     g_concatBuf[0] = 0;
++     if (b) {
+expect: Concat3_with_null_middle_returns_previous
+
+== strutil: BackslashToSlash only first
+file: src/core/strutil.c
+-         if (*s == '\\')
+-             *s = '/';
++         if (*s == '\\') {
++             *s = '/';
++             return;
++         }
+expect: BackslashToSlash_converts_every_backslash
+
+== strutil: StrUpper no-op
+file: src/core/strutil.c
+- *s = toupper(*s);
++ *s = *s;
+expect: StrLower_and_StrUpper
+
+== strutil: StrContains returns s
+file: src/core/strutil.c
+- return (char *)strstr((const char *)s, sub);
++ return strstr((const char *)s, sub) ? s : NULL;
+expect: StrContains_finds_substrings
+
+== strutil: CopyBytes returns 0
+file: src/core/strutil.c
+-     memcpy(dst, src, size);
+-     return size;
++     memcpy(dst, src, size);
++     return 0;
+expect: CopyBytes_copies_and_returns_size
+
+== strutil: CopyStrAt doesn't terminate
+file: src/core/strutil.c
+-         *dst = *src;
+-     *dst = 0;
++         *dst = *src;
+expect: CopyBytesAt_and_CopyStrAt_write_at_offset
+
+== strutil: ParseInt doesn't skip x
+file: src/core/strutil.c
+-     while (**p == ' ' || **p == '\r' || **p == '\n' || **p == '\t' || **p == 'x')
+-         (*p)++;
+-     return n;
++     while (**p == ' ' || **p == '\r' || **p == '\n' || **p == '\t')
++         (*p)++;
++     return n;
+expect: ParseInt_reads_numbers_and_skips_separators
+
+== strutil: ParseInt default ignored
+file: src/core/strutil.c
+-         return def;
++         return 0;
+expect: ParseInt_returns_default_without_digits
+
+== strutil: grouping every 4
+file: src/core/strutil.c
+- if (grp == 3 && v != 0) {
++ if (grp == 4 && v != 0) {
+expect: Int64ToStrGrouped_puts_dots_between_thousands
+
+== strutil: grouping trailing dot
+file: src/core/strutil.c
+- if (grp == 3 && v != 0) {
++ if (grp == 3) {
+expect: Int64ToStrGrouped_puts_dots_between_thousands
+
+== strutil: Int64ToStr while v > 10
+file: src/core/strutil.c
+-         count++;
+-     } while (v > 0);
+-     p--;
+-     for (grp = 0; grp < count; grp++, out++, p--)
+-         *out = *p;
+-     *out = 0;
+-     return count;
+- }
+- 
+- // Copies n bytes
++         count++;
++     } while (v > 10);
++     p--;
++     for (grp = 0; grp < count; grp++, out++, p--)
++         *out = *p;
++     *out = 0;
++     return count;
++ }
++ 
++ // Copies n bytes
+expect: Int64ToStr_writes_plain_digits

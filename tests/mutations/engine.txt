@@ -1,0 +1,1786 @@
+# src/core/sdl.c and src/core/sdl_audio.c, the real engine (tests/engine_*.c, run by wbengine)
+
+# --- SysPath, files, folders -----------------------------------------------------------------
+
+== engine: SysPath keeps backslashes
+file: src/core/sdl.c
+-         while (*p == '/' || *p == '\\')
+-             p++;
+-         for (n = 0; p[n] && p[n] != '/' && p[n] != '\\'; n++)
++         while (*p == '/')
++             p++;
++         for (n = 0; p[n] && p[n] != '/'; n++)
+expect: engine_SysPath_turns_backslashes_into_slashes
+expect: engine_SysPath_matches_each_existing_component_ignoring_case
+
+== engine: SysPath drops the root
+file: src/core/sdl.c
+-     if (*p == '/' || *p == '\\')
+-         SDL_strlcpy(out, "/", size);
++     if (*p == '/')
++         SDL_strlcpy(out, "/", size);
+expect: engine_SysPath_turns_backslashes_into_slashes
+
+== engine: SysPath skips one separator
+file: src/core/sdl.c
+-         while (*p == '/' || *p == '\\')
+-             p++;
++         if (*p == '/' || *p == '\\')
++             p++;
+expect: engine_SysPath_collapses_repeated_and_trailing_separators
+
+== engine: SysPath case-sensitive
+file: src/core/sdl.c
+-         if (SDL_strcasecmp(e->d_name, name) == 0) {
++         if (SDL_strcmp(e->d_name, name) == 0) {
+expect: engine_SysPath_matches_each_existing_component_ignoring_case
+expect: engine_SysPath_resolves_relative_paths_from_the_current_folder
+expect: engine_SysFileExists_finds_files_and_folders_ignoring_case
+
+== engine: SysPath missing component dropped
+file: src/core/sdl.c
+-                 SDL_strlcat(out, real, size);
+-             else
+-                 SDL_strlcat(out, name, size);
++                 SDL_strlcat(out, real, size);
+expect: engine_SysPath_keeps_missing_components_as_written
+
+== engine: SysPath missing component stops the match
+file: src/core/sdl.c
+-             if (FindNoCase(out, name, real, sizeof(real)))
++             if (len > 0 && FindNoCase(out, name, real, sizeof(real)))
+expect: engine_SysPath_resolves_relative_paths_from_the_current_folder
+
+== engine: SysPath always searches the folder
+file: src/core/sdl.c
+-         if (access(out, F_OK) != 0) {
++         if (1) {
+expect: engine_SysPath_prefers_the_exact_spelling
+
+== engine: SysPath three buffers
+file: src/core/sdl.c
+-     next = (next + 1) % 4;
++     next = (next + 1) % 3;
+expect: engine_SysPath_rotates_four_buffers
+
+== engine: SysPath one buffer
+file: src/core/sdl.c
+-     next = (next + 1) % 4;
++     next = 0;
+expect: engine_SysPath_rotates_four_buffers
+
+== engine: SysFileExists without SysPath
+file: src/core/sdl.c
+-     return SDL_GetPathInfo(SysPath(path), NULL);
+- }
++     return SDL_GetPathInfo(path, NULL);
++ }
+expect: engine_SysFileExists_finds_files_and_folders_ignoring_case
+
+== engine: SysMakeDir without SysPath
+file: src/core/sdl.c
+-     return SDL_CreateDirectory(SysPath(path));
++     return SDL_CreateDirectory(path);
+expect: engine_SysMakeDir_creates_the_folder_at_the_matched_path
+expect: engine_SysMakeDir_fails_without_a_parent
+
+== engine: SysMakeDir always true
+file: src/core/sdl.c
+-     return SDL_CreateDirectory(SysPath(path));
++     SDL_CreateDirectory(SysPath(path));
++     return true;
+expect: engine_SysMakeDir_fails_without_a_parent
+
+== engine: SysAppPath adds a separator
+file: src/core/sdl.c
+-     SDL_snprintf(path, sizeof(path), "%s%s", base ? base : "", rel);
++     SDL_snprintf(path, sizeof(path), "%s/%s", base ? base : "", rel);
+expect: engine_SysAppPath_is_relative_to_the_program_folder
+
+== engine: SysAppPath from the current folder
+file: src/core/sdl.c
+-     SDL_snprintf(path, sizeof(path), "%s%s", base ? base : "", rel);
++     SDL_snprintf(path, sizeof(path), "%s", rel);
+expect: engine_SysAppPath_is_relative_to_the_program_folder
+
+== engine: SysUserFolder keeps the trailing slash
+file: src/core/sdl.c
+-     while (n > 0 && (dst[n - 1] == '\\' || dst[n - 1] == '/'))
++     while (n > 0 && dst[n - 1] == '\\')
+expect: engine_SysUserFolder_is_home_without_a_documents_folder
+expect: engine_SysUserFolder_is_the_documents_folder_when_it_exists
+
+== engine: SysUserFolder trusts a missing documents folder
+file: src/core/sdl.c
+-         if (docs == NULL || !SDL_GetPathInfo(docs, NULL))
++         if (docs == NULL)
+expect: engine_SysUserFolder_skips_a_documents_folder_that_is_missing
+
+== engine: SysUserFolder no home fallback
+file: src/core/sdl.c
+-             docs = SDL_GetUserFolder(SDL_FOLDER_HOME);
++             docs = NULL;
+expect: engine_SysUserFolder_is_home_without_a_documents_folder
+
+== engine: SysUserFolder ignores documents
+file: src/core/sdl.c
+-         const char *docs = SDL_GetUserFolder(SDL_FOLDER_DOCUMENTS);
++         const char *docs = SDL_GetUserFolder(SDL_FOLDER_HOME);
+expect: engine_SysUserFolder_is_the_documents_folder_when_it_exists
+
+== engine: SysUserFolder not cached
+file: src/core/sdl.c
+-     if (folder[0] == 0) {
+-         const char *docs
++     {
++         const char *docs
+expect: engine_SysUserFolder_is_the_documents_folder_when_it_exists
+
+# --- Time ------------------------------------------------------------------------------------
+
+== engine: FILETIME epoch off by a day
+file: src/core/sdl.c
+- #define FILETIME_1970 116444736000000000LL
++ #define FILETIME_1970 116445600000000000LL
+expect: engine_SysFileTimeNow_counts_100ns_from_1601
+
+== engine: SysFileTimeNow without the epoch
+file: src/core/sdl.c
+-     return t / 100 + FILETIME_1970;
++     return t / 100;
+expect: engine_SysFileTimeNow_counts_100ns_from_1601
+
+== engine: SysFileTimeNow in microseconds
+file: src/core/sdl.c
+-     return t / 100 + FILETIME_1970;
++     return t / 1000 + FILETIME_1970;
+expect: engine_SysFileTimeNow_counts_100ns_from_1601
+
+== engine: day of week from Sunday
+file: src/core/sdl.c
+-     out->dayOfWeek = (unsigned short)((days + 1) % 7);
++     out->dayOfWeek = (unsigned short)(days % 7);
+expect: engine_SysFileTimeToDate_converts_known_dates
+expect: engine_SysFileTimeToDate_converts_durations_near_1601
+
+== engine: minutes not wrapped
+file: src/core/sdl.c
+-     out->minute = (unsigned short)(rem / 60 % 60);
++     out->minute = (unsigned short)(rem % 60);
+expect: engine_SysFileTimeToDate_converts_known_dates
+
+== engine: milliseconds in 100us
+file: src/core/sdl.c
+-     out->milliseconds = (unsigned short)(ft / 10000 % 1000);
++     out->milliseconds = (unsigned short)(ft / 1000 % 1000);
+expect: engine_SysFileTimeToDate_converts_known_dates
+
+== engine: hour from the wrong remainder
+file: src/core/sdl.c
+-     out->hour = (unsigned short)(rem / 3600);
++     out->hour = (unsigned short)(rem / 3600 % 12);
+expect: engine_SysFileTimeToDate_converts_known_dates
+
+== engine: civil date epoch
+file: src/core/sdl.c
+-     z = days + 584694;
++     z = days + 584693;
+expect: engine_SysFileTimeToDate_converts_known_dates
+expect: engine_SysFileTimeToDate_converts_durations_near_1601
+
+== engine: no century leap rule
+file: src/core/sdl.c
+-     yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
++     yoe = (doe - doe / 1460 - doe / 146096) / 365;
+expect: engine_SysFileTimeToDate_converts_known_dates
+
+== engine: month numbering
+file: src/core/sdl.c
+-     out->month = (unsigned short)(mp < 10 ? mp + 3 : mp - 9);
++     out->month = (unsigned short)(mp < 10 ? mp + 3 : mp - 10);
+expect: engine_SysFileTimeToDate_converts_known_dates
+
+== engine: year of January
+file: src/core/sdl.c
+-     out->year = (unsigned short)(out->month <= 2 ? y + 1 : y);
++     out->year = (unsigned short)(out->month < 2 ? y + 1 : y);
+expect: engine_SysFileTimeToDate_converts_known_dates
+
+== engine: negative times not zeroed
+file: src/core/sdl.c
+-     memset(out, 0, sizeof(*out));
+-     if (ft < 0)
+-         return;
++     if (ft < 0)
++         return;
+expect: engine_SysFileTimeToDate_zeroes_negative_times
+
+== engine: local date in UTC
+file: src/core/sdl.c
+-     ToSysDate(t, true, out);
++     ToSysDate(t, false, out);
+expect: engine_SysUtcDate_and_SysLocalDate_read_the_clock
+
+== engine: date day of week skipped
+file: src/core/sdl.c
+-     out->dayOfWeek = (unsigned short)dt.day_of_week;
++     out->dayOfWeek = (unsigned short)dt.day;
+expect: engine_SysUtcDate_and_SysLocalDate_read_the_clock
+
+== engine: SysMillis from 0
+file: src/core/sdl.c
+- #define MILLIS_OFFSET 86400000u
++ #define MILLIS_OFFSET 0u
+expect: engine_SysMillis_never_starts_near_0
+
+== engine: SysMillis in 10 ms
+file: src/core/sdl.c
+-     return (unsigned)SDL_GetTicks() + MILLIS_OFFSET;
++     return (unsigned)(SDL_GetTicks() / 10) + MILLIS_OFFSET;
+expect: engine_SysMillis_never_starts_near_0
+
+== engine: SysPerfFreq in ms
+file: src/core/sdl.c
+- long long SysPerfFreq(void)    { return (long long)SDL_GetPerformanceFrequency(); }
++ long long SysPerfFreq(void)    { return (long long)SDL_GetPerformanceFrequency() / 1000; }
+expect: engine_SysPerfCounter_ticks_at_SysPerfFreq
+
+# --- The data archive ------------------------------------------------------------------------
+
+== engine: pac lookup case-sensitive
+file: src/core/sdl.c
+-         if (SDL_strcasecmp(s_pacEntries[i].name, name) == 0)
++         if (SDL_strcmp(s_pacEntries[i].name, name) == 0)
+expect: engine_PacExists_finds_archive_files_ignoring_case
+expect: engine_PacRead_reads_whole_files
+
+== engine: pac lookup skips the last entry
+file: src/core/sdl.c
+-     for (i = 0; i < s_pacCount; i++) {
+-         if (SDL_strcasecmp
++     for (i = 0; i < s_pacCount - 1; i++) {
++         if (SDL_strcasecmp
+expect: engine_PacExists_finds_archive_files_ignoring_case
+expect: engine_PacRead_reads_whole_files
+
+== engine: pac indexes every entry type
+file: src/core/sdl.c
+-         if (type == '0' || type == 0) {
++         if (1) {
+expect: engine_PacExists_ignores_folders_and_links
+
+== engine: pac skips old type 0 files
+file: src/core/sdl.c
+-         if (type == '0' || type == 0) {
++         if (type == '0') {
+expect: engine_PacAddArchive_parses_octal_sizes
+
+== engine: pac size in decimal
+file: src/core/sdl.c
+-         v = v * 8 + (p[i] - '0');
++         v = v * 10 + (p[i] - '0');
+expect: engine_PacRead_reads_whole_files
+expect: engine_PacRead_fills_only_a_shorter_files_length
+expect: engine_PacAddArchive_parses_octal_sizes
+
+== engine: pac size field off by one
+file: src/core/sdl.c
+-         Sint64 size = OctalField(hdr + 124, 12);
++         Sint64 size = OctalField(hdr + 124, 8);
+expect: engine_PacAddArchive_parses_octal_sizes
+
+== engine: pac octal accepts any digit
+file: src/core/sdl.c
+-     for (i = 0; i < n && p[i] >= '0' && p[i] <= '7'; i++)
++     for (i = 0; i < n && p[i] != 0; i++)
+expect: engine_PacAddArchive_parses_octal_sizes
+
+== engine: pac entries not padded to blocks
+file: src/core/sdl.c
+-         pos += 512 + (size + 511) / 512 * 512;
++         pos += 512 + size;
+expect: engine_PacRead_reads_whole_files
+
+== engine: pac entries rounded down
+file: src/core/sdl.c
+-         pos += 512 + (size + 511) / 512 * 512;
++         pos += 512 + size / 512 * 512;
+expect: engine_PacAddArchive_parses_octal_sizes
+
+== engine: pac data offset at the header
+file: src/core/sdl.c
+-             e->offset = pos + 512;
++             e->offset = pos;
+expect: engine_PacRead_reads_whole_files
+
+== engine: pac ignores the ustar prefix
+file: src/core/sdl.c
+-             if (memcmp(hdr + 257, "ustar", 5) == 0 && hdr[345] != 0)
++             if (0)
+expect: engine_PacAddArchive_joins_the_ustar_prefix
+
+== engine: pac prefix without magic
+file: src/core/sdl.c
+-             if (memcmp(hdr + 257, "ustar", 5) == 0 && hdr[345] != 0)
++             if (hdr[345] != 0)
+expect: engine_PacAddArchive_ignores_the_prefix_field_of_old_headers
+
+== engine: pac name runs into the mode field
+file: src/core/sdl.c
+-                 SDL_snprintf(e->name, sizeof(e->name), "%.100s", (const char *)hdr);
++                 SDL_snprintf(e->name, sizeof(e->name), "%s", (const char *)hdr);
+expect: engine_PacAddArchive_reads_a_full_100_character_name
+
+== engine: pac reads past the end block
+file: src/core/sdl.c
+-     while (SDL_ReadIO(s_pac, hdr, 512) == 512 && hdr[0] != 0) {
++     while (SDL_ReadIO(s_pac, hdr, 512) == 512 && (hdr[0] != 0 || hdr[511] == 0)) {
+expect: engine_PacAddArchive_stops_at_the_end_block
+
+== engine: pac index never grows
+file: src/core/sdl.c
+-                 s_pacEntries = (PacEntry *)SDL_realloc(s_pacEntries, cap * sizeof(PacEntry));
++                 s_pacEntries = (PacEntry *)SDL_realloc(s_pacEntries, cap);
+expect: engine_PacAddArchive_indexes_many_files
+
+== engine: pac archive path not converted
+file: src/core/sdl.c
+-     s_pac = SDL_IOFromFile(SysPath(path), "rb");
++     s_pac = SDL_IOFromFile(path, "rb");
+expect: engine_PacExists_finds_archive_files_ignoring_case
+
+== engine: pac no loose files
+file: src/core/sdl.c
+-     if (e == NULL)
+-         return SDL_LoadFile(SysPath(name), size);
++     if (e == NULL)
++         return NULL;
+expect: engine_Pac_falls_back_to_loose_files
+expect: engine_Pac_without_an_archive_reads_loose_files
+
+== engine: pac loose files case-sensitive
+file: src/core/sdl.c
+-         return SDL_LoadFile(SysPath(name), size);
++         return SDL_LoadFile(name, size);
+expect: engine_Pac_falls_back_to_loose_files
+
+== engine: PacExists archive only
+file: src/core/sdl.c
+-     return PacFind(name) != NULL || SDL_GetPathInfo(SysPath(name), NULL);
++     return PacFind(name) != NULL;
+expect: engine_Pac_falls_back_to_loose_files
+expect: engine_Pac_without_an_archive_reads_loose_files
+
+== engine: PacExists disk only
+file: src/core/sdl.c
+-     return PacFind(name) != NULL || SDL_GetPathInfo(SysPath(name), NULL);
++     return SDL_GetPathInfo(SysPath(name), NULL);
+expect: engine_PacExists_finds_archive_files_ignoring_case
+
+== engine: pac loose before archive
+file: src/core/sdl.c
+-     const PacEntry *e = PacFind(name);
+-     void *data;
++     const PacEntry *e = SDL_GetPathInfo(SysPath(name), NULL) ? NULL : PacFind(name);
++     void *data;
+expect: engine_Pac_prefers_the_archive_over_a_loose_file
+
+== engine: PacRead copies the whole file
+file: src/core/sdl.c
+-     memcpy(buf, data, n < size ? n : size);
++     memcpy(buf, data, n);
+expect: engine_PacRead_reads_only_the_size_asked
+
+== engine: PacRead copies the whole buffer
+file: src/core/sdl.c
+-     memcpy(buf, data, n < size ? n : size);
++     memcpy(buf, data, size);
+expect: engine_PacRead_fills_only_a_shorter_files_length
+
+== engine: PacRead succeeds for missing files
+file: src/core/sdl.c
+-     if (data == NULL)
+-         return false;
+-     memcpy(buf
++     if (data == NULL)
++         return true;
++     memcpy(buf
+expect: engine_PacRead_fails_for_missing_files
+
+== engine: ImgLoad from disk only
+file: src/core/sdl.c
+-     data = PacLoad(file, &size);
++     data = SDL_LoadFile(SysPath(file), &size);
+expect: engine_ImgLoad_reads_pictures_from_the_archive
+
+# --- Images and drawing ----------------------------------------------------------------------
+
+== engine: ImgLoad TGA untyped
+file: src/core/sdl.c
+-     surf = IMG_LoadTyped_IO(SDL_IOFromConstMem(data, size), true, ext ? ext + 1 : NULL);
++     surf = IMG_LoadTyped_IO(SDL_IOFromConstMem(data, size), true, NULL);
+expect: engine_ImgLoad_reads_a_tga_and_its_size
+
+== engine: ImgLoad size swapped
+file: src/core/sdl.c
+-     img->w = (float)tex->w;
+-     img->h = (float)tex->h;
++     img->w = (float)tex->h;
++     img->h = (float)tex->w;
+expect: engine_ImgLoad_reads_a_tga_and_its_size
+
+== engine: ImgLoad alpha mode 0
+file: src/core/sdl.c
+-     img->mode = 1;      // KGraphicGL's default
++     img->mode = 0;
+expect: engine_ImgLoad_starts_with_alpha_mode_1_and_no_tint
+
+== engine: ImgSetAlphaMode refuses 6
+file: src/core/sdl.c
+-     if (mode >= 0 && mode <= 6)
++     if (mode >= 0 && mode < 6)
+expect: engine_ImgSetAlphaMode_takes_modes_0_to_6
+
+== engine: ImgSetAlphaMode takes 7
+file: src/core/sdl.c
+-     if (mode >= 0 && mode <= 6)
++     if (mode >= 0 && mode <= 7)
+expect: engine_ImgSetAlphaMode_takes_modes_0_to_6
+
+== engine: ImgSetAlphaMode takes -1
+file: src/core/sdl.c
+-     if (mode >= 0 && mode <= 6)
++     if (mode >= -1 && mode <= 6)
+expect: engine_ImgSetAlphaMode_takes_modes_0_to_6
+
+== engine: ImgFree doesn't mark
+file: src/core/sdl.c
+-     img->freed = true;
++     img->freed = false;
+expect: engine_ImgFree_marks_the_image_freed
+
+== engine: ImgFree keeps the picture
+file: src/core/sdl.c
+-         return;
+-     ImgFreePicture(img);
+-     img->freed = true;
++         return;
++     img->freed = true;
+expect: engine_ImgFree_marks_the_image_freed
+
+== engine: ImgFree twice queues twice
+file: src/core/sdl.c
+-     if (img == NULL || img->freed)
++     if (img == NULL)
+expect: engine_ImgFree_marks_the_image_freed
+
+== engine: ImgFreePicture does nothing
+file: src/core/sdl.c
+-     if (img->tex) {
+-         SDL_DestroyTexture(img->tex);
++     if (0) {
++         SDL_DestroyTexture(img->tex);
+expect: engine_ImgFreePicture_keeps_the_object_but_draws_nothing
+
+== engine: ImgSetBlitColor alpha unclamped
+file: src/core/sdl.c
+-     img->a = SDL_min(a, 1.0f);
++     img->a = a;
+expect: engine_ImgSetBlitColor_clamps_above_1
+
+== engine: ImgSetBlitColor tint ignores alpha
+file: src/core/sdl.c
+-     img->tinted = !(r == 1.0f && g == 1.0f && b == 1.0f && a == 1.0f);
++     img->tinted = !(r == 1.0f && g == 1.0f && b == 1.0f);
+expect: engine_ImgSetBlitColor_alpha_blends
+
+== engine: Draw keeps an old tint
+file: src/core/sdl.c
+-     else
+-         SDL_SetTextureColorModFloat(img->tex, 1.0f, 1.0f, 1.0f);
++     else
++         ;
+expect: engine_ImgSetBlitColor_tints_the_colour
+
+== engine: Draw tints green with blue
+file: src/core/sdl.c
+-         SDL_SetTextureColorModFloat(img->tex, img->r, img->g, img->b);
++         SDL_SetTextureColorModFloat(img->tex, img->r, img->b, img->g);
+expect: engine_ImgSetBlitColor_tints_the_colour
+
+== engine: backwards x not mirrored
+file: src/core/sdl.c
+-         float t = sx1; sx1 = sx2; sx2 = t;
+-         flipX = !flipX;
++         float t = sx1; sx1 = sx2; sx2 = t;
+expect: engine_ImgBlitAlphaRect_mirrors_a_backwards_rect
+expect: engine_ImgBlitAlphaRect_flips
+
+== engine: backwards y not mirrored
+file: src/core/sdl.c
+-         float t = sy1; sy1 = sy2; sy2 = t;
+-         flipY = !flipY;
++         float t = sy1; sy1 = sy2; sy2 = t;
+expect: engine_ImgBlitAlphaRect_mirrors_a_backwards_rect
+
+== engine: backwards destination not mirrored
+file: src/core/sdl.c
+-         px = dst.w - px;
+-         flipX = !flipX;
++         px = dst.w - px;
+expect: engine_ImgStretchAlphaRect_mirrors_a_backwards_destination
+
+== engine: backwards destination height not mirrored
+file: src/core/sdl.c
+-         py = dst.h - py;
+-         flipY = !flipY;
++         py = dst.h - py;
+expect: engine_ImgStretchAlphaRect_mirrors_a_backwards_destination
+
+== engine: backwards destination not moved
+file: src/core/sdl.c
+-         dst.x += dst.w;
++         dst.x -= dst.w;
+expect: engine_ImgStretchAlphaRect_mirrors_a_backwards_destination
+
+== engine: flipX flips vertically
+file: src/core/sdl.c
+-     if (flipX)
+-         flip |= SDL_FLIP_HORIZONTAL;
++     if (flipX)
++         flip |= SDL_FLIP_VERTICAL;
+expect: engine_ImgBlitAlphaRect_flips
+expect: engine_ImgBlitRectF_copies_the_picture
+expect: engine_ImgBlitAlphaRectFx_flips
+
+== engine: rotation clockwise
+file: src/core/sdl.c
+-     SDL_RenderTextureRotated(s_renderer, img->tex, &src, &dst, -angle, &pivot, (SDL_FlipMode)flip);
++     SDL_RenderTextureRotated(s_renderer, img->tex, &src, &dst, angle, &pivot, (SDL_FlipMode)flip);
+expect: engine_ImgBlitAlphaRectFx_rotates_counter_clockwise
+expect: engine_ImgStretchAlphaRect_rotates_about_the_centre
+
+== engine: source rect height from x1
+file: src/core/sdl.c
+-     src.h = sy2 - sy1;
++     src.h = sy2 - sx1;
+expect: engine_ImgBlitAlphaRect_draws_a_source_rect
+
+== engine: ImgSetTextureQuality ignored
+file: src/core/sdl.c
+-     SDL_SetTextureScaleMode(img->tex, img->linear ? SDL_SCALEMODE_LINEAR : SDL_SCALEMODE_NEAREST);
++     SDL_SetTextureScaleMode(img->tex, SDL_SCALEMODE_NEAREST);
+expect: engine_ImgSetTextureQuality_filters_scaled_blits
+
+== engine: ImgSetTextureQuality always linear
+file: src/core/sdl.c
+-     SDL_SetTextureScaleMode(img->tex, img->linear ? SDL_SCALEMODE_LINEAR : SDL_SCALEMODE_NEAREST);
++     SDL_SetTextureScaleMode(img->tex, SDL_SCALEMODE_LINEAR);
+expect: engine_ImgSetTextureQuality_filters_scaled_blits
+
+== engine: ImgBlitAlphaRect ignores the tint alpha
+file: src/core/sdl.c
+-     float w = SDL_fabsf(x2 - x1), h = SDL_fabsf(y2 - y1);
+-     Draw(img, x1, y1, x2, y2, Rect(destX, destY, w, h), 0, 0, 0, flipX, flipY,
+-          img->tinted ? img->a : 1.0f);
+- }
+-
+- // PTK's
++     float w = SDL_fabsf(x2 - x1), h = SDL_fabsf(y2 - y1);
++     Draw(img, x1, y1, x2, y2, Rect(destX, destY, w, h), 0, 0, 0, flipX, flipY, 1.0f);
++ }
++
++ // PTK's
+expect: engine_ImgSetBlitColor_alpha_blends
+
+== engine: ImgBlitRectF ignores the tint alpha
+file: src/core/sdl.c
+-     Draw(img, x1, y1, x2, y2, Rect(destX, destY, w, h), 0, 0, 0, flipX, flipY,
+-          img->tinted ? img->a : 1.0f);
+- }
+-
+- // Rotated and zoomed
++     Draw(img, x1, y1, x2, y2, Rect(destX, destY, w, h), 0, 0, 0, flipX, flipY, 1.0f);
++ }
++
++ // Rotated and zoomed
+expect: engine_ImgSetBlitColor_alpha_blends
+
+== engine: ImgBlitAlphaRect signed width
+file: src/core/sdl.c
+- void ImgBlitAlphaRect(Image *img, float x1, float y1, float x2, float y2,
+-                       short destX, short destY, bool flipX, bool flipY)
+- {
+-     float w = SDL_fabsf(x2 - x1), h = SDL_fabsf(y2 - y1);
++ void ImgBlitAlphaRect(Image *img, float x1, float y1, float x2, float y2,
++                       short destX, short destY, bool flipX, bool flipY)
++ {
++     float w = x2 - x1, h = y2 - y1;
+expect: engine_ImgBlitAlphaRect_mirrors_a_backwards_rect
+
+== engine: ImgBlitRectF x and y swapped
+file: src/core/sdl.c
+-                   float destX, float destY, bool flipX, bool flipY)
+- {
+-     float w = SDL_fabsf(x2 - x1), h = SDL_fabsf(y2 - y1);
+-     Draw(img, x1, y1, x2, y2, Rect(destX, destY, w, h)
++                   float destX, float destY, bool flipX, bool flipY)
++ {
++     float w = SDL_fabsf(x2 - x1), h = SDL_fabsf(y2 - y1);
++     Draw(img, x1, y1, x2, y2, Rect(destY, destX, w, h)
+expect: engine_ImgBlitRectF_copies_the_picture
+
+== engine: Fx zooms from the corner
+file: src/core/sdl.c
+-     Draw(img, x1, y1, x2, y2, Rect(destX + px - px * zoom, destY + py - py * zoom, w * zoom, h * zoom),
++     Draw(img, x1, y1, x2, y2, Rect(destX, destY, w * zoom, h * zoom),
+expect: engine_ImgBlitAlphaRectFx_zooms_about_the_centre
+
+== engine: Fx centre offset ignored
+file: src/core/sdl.c
+-     float px = w / 2 + centerX, py = h / 2 + centerY;
++     float px = w / 2, py = h / 2;
+expect: engine_ImgBlitAlphaRectFx_zooms_about_an_offset_centre
+expect: engine_ImgBlitAlphaRectFx_rotates_about_an_offset_centre
+
+== engine: Fx pivot not zoomed
+file: src/core/sdl.c
+-          angle, px * zoom, py * zoom, flipX, flipY, img->tinted ? img->a * blend : blend);
++          angle, px, py, flipX, flipY, img->tinted ? img->a * blend : blend);
+expect: engine_ImgBlitAlphaRectFx_zooms_and_rotates_about_the_same_centre
+
+== engine: Fx ignores the blend
+file: src/core/sdl.c
+-          angle, px * zoom, py * zoom, flipX, flipY, img->tinted ? img->a * blend : blend);
++          angle, px * zoom, py * zoom, flipX, flipY, img->tinted ? img->a : 1.0f);
+expect: engine_ImgBlitAlphaRectFx_blends_by_the_blend
+expect: engine_ImgSetBlitColor_clamps_above_1
+
+== engine: Fx ignores the tint alpha
+file: src/core/sdl.c
+-          angle, px * zoom, py * zoom, flipX, flipY, img->tinted ? img->a * blend : blend);
++          angle, px * zoom, py * zoom, flipX, flipY, blend);
+expect: engine_ImgBlitAlphaRectFx_blends_by_the_blend
+
+== engine: Fx negative zoom quarter turn
+file: src/core/sdl.c
+-         angle += 180.0f;
++         angle += 90.0f;
+expect: engine_ImgBlitAlphaRectFx_negative_zoom_turns_half_way
+
+== engine: Stretch negative blend draws nothing
+file: src/core/sdl.c
+-         alpha = blend >= 0 ? blend : 1.0f;
++         alpha = blend;
+expect: engine_ImgStretchAlphaRect_blend
+
+== engine: Stretch ignores the tint alpha
+file: src/core/sdl.c
+-         alpha = img->a * blend;
++         alpha = blend;
+expect: engine_ImgStretchAlphaRect_blend
+
+== engine: Stretch alpha by magnitude
+file: src/core/sdl.c
+-     alpha = SDL_clamp(alpha, 0.0f, 1.0f);
++     alpha = SDL_min(SDL_fabsf(alpha), 1.0f);
+expect: engine_ImgStretchAlphaRect_blend
+
+== engine: Stretch centre offset ignored
+file: src/core/sdl.c
+-          angle, (dx2 - dx1) / 2 + centerX, (dy2 - dy1) / 2 + centerY, flipX, flipY, alpha);
++          angle, (dx2 - dx1) / 2, (dy2 - dy1) / 2, flipX, flipY, alpha);
+expect: engine_ImgStretchAlphaRect_rotates_about_the_centre
+
+== engine: Stretch height from y1
+file: src/core/sdl.c
+-     Draw(img, sx1, sy1, sx2, sy2, Rect(dx1, dy1, dx2 - dx1, dy2 - dy1),
++     Draw(img, sx1, sy1, sx2, sy2, Rect(dx1, dy1, dx2 - dx1, dy2 - dx1),
+expect: engine_ImgStretchAlphaRect_stretches_into_the_rect
+
+== engine: primitives never blend
+file: src/core/sdl.c
+-     return a == 1.0f ? SDL_BLENDMODE_NONE : SDL_BLENDMODE_BLEND;
++     return SDL_BLENDMODE_NONE;
+expect: engine_DrawRect_blends_when_not_opaque
+expect: engine_DrawLine_draws_between_whole_pixels
+expect: engine_PlotPixel_sets_one_pixel
+
+== engine: DrawRect one pixel wider
+file: src/core/sdl.c
+-     rect.w = (float)SDL_abs(ix2 - ix1);
++     rect.w = (float)SDL_abs(ix2 - ix1) + 1;
+expect: engine_DrawRect_fills_whole_pixels
+
+== engine: DrawRect height from x
+file: src/core/sdl.c
+-     rect.h = (float)SDL_abs(iy2 - iy1);
++     rect.h = (float)SDL_abs(iy2 - ix1);
+expect: engine_DrawRect_fills_whole_pixels
+
+== engine: DrawRect rounds
+file: src/core/sdl.c
+-     int ix1 = (int)x1, iy1 = (int)y1, ix2 = (int)x2, iy2 = (int)y2;
++     int ix1 = (int)SDL_roundf(x1), iy1 = (int)y1, ix2 = (int)x2, iy2 = (int)y2;
+expect: engine_DrawRect_fills_whole_pixels
+
+== engine: DrawRect corners in order only
+file: src/core/sdl.c
+-     rect.x = (float)SDL_min(ix1, ix2);
++     rect.x = (float)ix1;
+expect: engine_DrawRect_fills_whole_pixels
+
+== engine: DrawRect colour swapped
+file: src/core/sdl.c
+-     SDL_SetRenderDrawColorFloat(s_renderer, SDL_clamp(r, 0.0f, 1.0f), SDL_clamp(g, 0.0f, 1.0f),
+-                                 SDL_clamp(b, 0.0f, 1.0f), SDL_clamp(a, 0.0f, 1.0f));
++     SDL_SetRenderDrawColorFloat(s_renderer, SDL_clamp(b, 0.0f, 1.0f), SDL_clamp(g, 0.0f, 1.0f),
++                                 SDL_clamp(r, 0.0f, 1.0f), SDL_clamp(a, 0.0f, 1.0f));
+expect: engine_DrawRect_fills_whole_pixels
+
+== engine: DrawLine ends at the start row
+file: src/core/sdl.c
+-     SDL_RenderLine(s_renderer, (float)(int)x1, (float)(int)y1, (float)(int)x2, (float)(int)y2);
++     SDL_RenderLine(s_renderer, (float)(int)x1, (float)(int)y1, (float)(int)x2, (float)(int)y1);
+expect: engine_DrawLine_draws_between_whole_pixels
+
+== engine: PlotPixel at x, x
+file: src/core/sdl.c
+-     SDL_RenderPoint(s_renderer, (float)(int)x, (float)(int)y);
++     SDL_RenderPoint(s_renderer, (float)(int)x, (float)(int)x);
+expect: engine_PlotPixel_sets_one_pixel
+
+== engine: PlotPixel rounds
+file: src/core/sdl.c
+-     SDL_RenderPoint(s_renderer, (float)(int)x, (float)(int)y);
++     SDL_RenderPoint(s_renderer, SDL_roundf(x), SDL_roundf(y));
+expect: engine_PlotPixel_sets_one_pixel
+
+== engine: clear ignores the flag
+file: src/core/sdl.c
+-     if (clear) {
++     if (1) {
+expect: engine_SysSetWorldView_clears_to_the_clear_colour
+
+== engine: clear with the clear alpha
+file: src/core/sdl.c
+-         SDL_SetRenderDrawColorFloat(s_renderer, s_clearR, s_clearG, s_clearB, 1.0f);
++         SDL_SetRenderDrawColorFloat(s_renderer, s_clearR, s_clearG, s_clearB, s_clearA);
+expect: engine_SysSetWorldView_clears_to_the_clear_colour
+
+== engine: clear colour green and blue swapped
+file: src/core/sdl.c
+-     s_clearG = g;
+-     s_clearB = b;
++     s_clearG = b;
++     s_clearB = g;
+expect: engine_SysSetWorldView_clears_to_the_clear_colour
+
+== engine: back buffer not cleared at first
+file: src/core/sdl.c
+-     SDL_SetRenderDrawColor(s_renderer, 0, 0, 0, 255);
+-     SDL_RenderClear(s_renderer);
+-     s_lastFlipNs = SDL_GetTicksNS();
+-     return true;
++     s_lastFlipNs = SDL_GetTicksNS();
++     return true;
+expect: engine_SysCreateWindow_starts_with_a_black_back_buffer
+
+== engine: back buffer the window size
+file: src/core/sdl.c
+-     s_canvas = SDL_CreateTexture(s_renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET, w, h);
++     s_canvas = SDL_CreateTexture(s_renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET, w, w);
+expect: engine_SysCreateWindow_starts_with_a_black_back_buffer
+
+== engine: plain flip leaves the window as the target
+file: src/core/sdl.c
+-     SDL_RenderPresent(s_renderer);
+-     SDL_SetRenderTarget(s_renderer, s_canvas);
+-
+-     SysProcessEvents();
++     SDL_RenderPresent(s_renderer);
++
++     SysProcessEvents();
+expect: engine_SysFlip_keeps_the_back_buffer
+
+== engine: SysScreenshot not resized
+file: src/core/sdl.c
+-     if (shot->w != w || shot->h != h) {
++     if (0) {
+expect: engine_SysScreenshot_saves_the_back_buffer_resized
+
+== engine: SysScreenshot without SysPath
+file: src/core/sdl.c
+-     ok = IMG_SaveJPG(shot, SysPath(file), 90);
++     ok = IMG_SaveJPG(shot, file, 90);
+expect: engine_SysScreenshot_saves_the_back_buffer_resized
+
+== engine: SysScreenshot resizes only the width
+file: src/core/sdl.c
+-     if (shot->w != w || shot->h != h) {
++     if (shot->w != w) {
+expect: engine_SysScreenshot_at_the_back_buffer_size
+
+# --- Window, events, frame loop --------------------------------------------------------------
+
+== engine: window always windowed
+file: src/core/sdl.c
+-     flags = windowed ? SDL_WINDOW_RESIZABLE : SDL_WINDOW_RESIZABLE | SDL_WINDOW_FULLSCREEN;
++     flags = SDL_WINDOW_RESIZABLE;
+expect: engine_SysCreateWindow_fullscreen_and_SysSetFullscreen
+
+== engine: window not resizable
+file: src/core/sdl.c
+-     flags = windowed ? SDL_WINDOW_RESIZABLE : SDL_WINDOW_RESIZABLE | SDL_WINDOW_FULLSCREEN;
++     flags = windowed ? 0 : SDL_WINDOW_FULLSCREEN;
+expect: engine_SysCreateWindow_makes_a_window_with_the_renderer_asked
+
+== engine: fullscreen state inverted
+file: src/core/sdl.c
+-     s_fullscreen = !windowed;
++     s_fullscreen = windowed;
+expect: engine_SysCreateWindow_fullscreen_and_SysSetFullscreen
+
+== engine: SysSetFullscreen never changes
+file: src/core/sdl.c
+-     if (s_fullscreen == fullscreen)
+-         return;
++     if (s_fullscreen != fullscreen)
++         return;
+expect: engine_SysCreateWindow_fullscreen_and_SysSetFullscreen
+
+== engine: SysSetFullscreen forgets the state
+file: src/core/sdl.c
+-     SDL_SetWindowFullscreen(s_window, fullscreen);
+-     s_fullscreen = fullscreen;
++     SDL_SetWindowFullscreen(s_window, fullscreen);
+expect: engine_SysCreateWindow_fullscreen_and_SysSetFullscreen
+
+== engine: renderer hint ignored
+file: src/core/sdl.c
+-     SDL_SetHint(SDL_HINT_RENDER_DRIVER, renderDriver);     // NULL clears it
++     SDL_SetHint(SDL_HINT_RENDER_DRIVER, NULL);
+expect: engine_SysCreateWindow_fails_with_an_unknown_renderer
+
+== engine: renderer failure reported as success
+file: src/core/sdl.c
+-         s_window = NULL;
+-         s_renderer = NULL;
+-         return false;
++         s_window = NULL;
++         s_renderer = NULL;
++         return true;
+expect: engine_SysCreateWindow_fails_with_an_unknown_renderer
+
+== engine: SysDestroyWindow keeps the window pointer
+file: src/core/sdl.c
+-         SDL_DestroyWindow(s_window);
+-         s_window = NULL;
++         SDL_DestroyWindow(s_window);
+expect: engine_SysCreateWindow_makes_a_window_with_the_renderer_asked
+
+== engine: SysCreateWindow keeps the old window
+file: src/core/sdl.c
+-     SysDestroyWindow();
+-     SDL_SetHint(SDL_HINT_RENDER_DRIVER, renderDriver);
++     SDL_SetHint(SDL_HINT_RENDER_DRIVER, renderDriver);
+expect: engine_SysCreateWindow_again_replaces_the_window
+
+== engine: SysRendererName empty
+file: src/core/sdl.c
+-     return name ? name : "";
++     return "";
+expect: engine_SysCreateWindow_makes_a_window_with_the_renderer_asked
+
+== engine: new window keeps quit
+file: src/core/sdl.c
+-     s_quit = false;
+-     s_focused = true;
++     s_focused = true;
+expect: engine_SysTerminate_requests_quit
+expect: engine_SysProcessEvents_quits_on_quit_events
+
+== engine: SysTerminate does nothing
+file: src/core/sdl.c
+- void SysTerminate(void)          { s_quit = true; }
++ void SysTerminate(void)          { }
+expect: engine_SysTerminate_requests_quit
+
+== engine: close box ignored
+file: src/core/sdl.c
+-     case SDL_EVENT_QUIT:
+-     case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
+-         s_quit = true;
++     case SDL_EVENT_QUIT:
++         s_quit = true;
+expect: engine_SysProcessEvents_quits_on_quit_events
+
+== engine: quit event ignored
+file: src/core/sdl.c
+-     case SDL_EVENT_QUIT:
+-     case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
++     case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
+expect: engine_SysProcessEvents_quits_on_quit_events
+
+== engine: SysProcessEvents handles one event
+file: src/core/sdl.c
+-     while (SDL_PollEvent(&e))
+-         HandleEvent(&e);
+-     AudioTick();
++     if (SDL_PollEvent(&e))
++         HandleEvent(&e);
++     AudioTick();
+expect: engine_SysProcessEvents_quits_on_quit_events
+
+== engine: focus lost not tracked
+file: src/core/sdl.c
+-         s_focused = false;
++         s_focused = true;
+expect: engine_SysProcessEvents_tracks_focus
+expect: engine_SysFlip_waits_while_in_the_background
+
+== engine: focus lost reported as gained
+file: src/core/sdl.c
+-             s_focusFn(false);
++             s_focusFn(true);
+expect: engine_SysProcessEvents_tracks_focus
+
+== engine: focus gained not tracked
+file: src/core/sdl.c
+-     case SDL_EVENT_WINDOW_FOCUS_GAINED:
+-         s_focused = true;
++     case SDL_EVENT_WINDOW_FOCUS_GAINED:
++         s_focused = false;
+expect: engine_SysProcessEvents_tracks_focus
+
+== engine: focus callback not kept
+file: src/core/sdl.c
+-     s_focusFn = fn;
++     (void)fn;
+expect: engine_SysProcessEvents_tracks_focus
+
+== engine: flip doesn't wait for focus
+file: src/core/sdl.c
+-     while (!s_focused && !s_quit) {
++     while (0) {
+expect: engine_SysFlip_waits_while_in_the_background
+
+== engine: flip waits for focus after quit
+file: src/core/sdl.c
+-     while (!s_focused && !s_quit) {
++     while (!s_focused) {
+expect: engine_SysFlip_doesnt_wait_in_the_background_after_quit
+
+== engine: frame cap rounds up
+file: src/core/sdl.c
+-     s_frameMs = fps > 0 ? 1000 / fps : 0;
++     s_frameMs = fps > 0 ? (1000 + fps - 1) / fps : 0;
+expect: engine_SysFlip_caps_in_whole_milliseconds
+
+== engine: frame cap half
+file: src/core/sdl.c
+-     s_frameMs = fps > 0 ? 1000 / fps : 0;
++     s_frameMs = fps > 0 ? 500 / fps : 0;
+expect: engine_SysFlip_caps_the_frame_rate
+
+== engine: frame cap for negative fps
+file: src/core/sdl.c
+-     s_frameMs = fps > 0 ? 1000 / fps : 0;
++     s_frameMs = fps != 0 ? 1000 / SDL_abs(fps) : 0;
+expect: engine_SysFlip_without_a_cap
+
+== engine: default frame cap 17 ms
+file: src/core/sdl.c
+- static int           s_frameMs = 16;
++ static int           s_frameMs = 17;
+expect: engine_SysFlip_caps_at_60_fps_by_default
+
+== engine: frame cap waits a whole frame
+file: src/core/sdl.c
+-         SDL_DelayPrecise(frameNs - (now - s_lastFlipNs));
++         SDL_DelayPrecise(frameNs);
+expect: engine_SysFlip_cap_counts_the_time_since_the_last_flip
+
+== engine: frame cap from the first flip
+file: src/core/sdl.c
+-     WaitForFocus();
+-     s_lastFlipNs = SDL_GetTicksNS();
+-     s_tickDueNs = s_lastFlipNs;
++     WaitForFocus();
++     s_tickDueNs = s_lastFlipNs;
+expect: engine_SysFlip_caps_the_frame_rate
+
+== engine: vsync never off
+file: src/core/sdl.c
+-     if (s_renderer && !SDL_SetRenderVSync(s_renderer, on ? 1 : SDL_RENDERER_VSYNC_DISABLED))
++     if (s_renderer && !SDL_SetRenderVSync(s_renderer, 1))
+expect: engine_SysSetVSync_paces_the_presents
+
+== engine: vsync not applied to a new window
+file: src/core/sdl.c
+-     SysSetVSync(s_vsync);
+-     s_canvas
++     s_canvas
+expect: engine_SysSetVSync_paces_the_presents
+
+== engine: vsync applied only to the renderer
+file: src/core/sdl.c
+-     s_vsync = on;
+-     if (s_renderer
++     if (s_renderer
+expect: engine_SysSetVSync_before_the_window_applies_to_it
+
+== engine: interpolation ignores off
+file: src/core/sdl.c
+-     if (s_frameMs == 0 || s_base == NULL || s_interpMode == SYS_INTERP_OFF)
++     if (s_frameMs == 0 || s_base == NULL)
+expect: engine_SysInterpolating_on_and_off
+expect: engine_SysFlip_without_interpolation_shows_each_tick_once
+
+== engine: interpolation without a cap
+file: src/core/sdl.c
+-     if (s_frameMs == 0 || s_base == NULL || s_interpMode == SYS_INTERP_OFF)
++     if (s_base == NULL || s_interpMode == SYS_INTERP_OFF)
+expect: engine_SysInterpolating_on_and_off
+
+== engine: interpolation without a window
+file: src/core/sdl.c
+-     if (s_frameMs == 0 || s_base == NULL || s_interpMode == SYS_INTERP_OFF)
++     if (s_frameMs == 0 || s_interpMode == SYS_INTERP_OFF)
+expect: engine_SysInterpolating_needs_a_window
+
+== engine: interpolation on is auto
+file: src/core/sdl.c
+-     if (s_interpMode == SYS_INTERP_ON)
+-         return true;
++     if (s_interpMode == SYS_INTERP_ON)
++         ;
+expect: engine_SysInterpolating_on_and_off
+
+== engine: auto ignores vsync
+file: src/core/sdl.c
+-     return !(s_vsync && hz > 0 && SDL_fabsf(hz - s_fps) < 0.5f);
++     return !(hz > 0 && SDL_fabsf(hz - s_fps) < 0.5f);
+expect: engine_SysInterpolating_auto_skips_a_matching_vsynced_display
+
+== engine: auto rate match too strict
+file: src/core/sdl.c
+-     return !(s_vsync && hz > 0 && SDL_fabsf(hz - s_fps) < 0.5f);
++     return !(s_vsync && hz > 0 && SDL_fabsf(hz - s_fps) < 0.25f);
+expect: engine_SysInterpolating_auto_skips_a_matching_vsynced_display
+
+== engine: auto never interpolates
+file: src/core/sdl.c
+-     return !(s_vsync && hz > 0 && SDL_fabsf(hz - s_fps) < 0.5f);
++     return false;
+expect: engine_SysInterpolating_auto_skips_a_matching_vsynced_display
+expect: engine_SysSetInterpolation_takes_unknown_modes_as_auto
+
+== engine: SysSetMaxFps forgets the rate
+file: src/core/sdl.c
+-     s_fps = fps;
+-     s_frameMs
++     s_frameMs
+expect: engine_SysInterpolating_auto_skips_a_matching_vsynced_display
+
+== engine: unknown interpolation mode kept
+file: src/core/sdl.c
+-     s_interpMode = mode >= 0 && mode < SYS_INTERP_COUNT ? mode : SYS_INTERP_AUTO;
++     if (mode >= 0 && mode < SYS_INTERP_COUNT)
++         s_interpMode = mode;
+expect: engine_SysSetInterpolation_takes_unknown_modes_as_auto
+
+== engine: draws not matched
+file: src/core/sdl.c
+-                         best = d;
+-                         c->prev = j;
++                         best = d;
+expect: engine_SysFlip_interpolates_between_ticks
+
+== engine: matched to the last within reach
+file: src/core/sdl.c
+-                         best = d;
+-                         c->prev = j;
++                         c->prev = j;
+expect: engine_SysFlip_interpolates_each_draw_from_its_nearest
+
+== engine: matched further
+file: src/core/sdl.c
+- #define MATCH_DIST        32.0f
++ #define MATCH_DIST        40.0f
+expect: engine_SysFlip_doesnt_interpolate_a_far_jump
+
+== engine: match ignores blending
+file: src/core/sdl.c
+-     if (a->type != b->type || a->blend != b->blend)
++     if (a->type != b->type)
+expect: engine_SysFlip_doesnt_interpolate_different_draws
+
+== engine: interpolated backwards
+file: src/core/sdl.c
+-         c->x1 = Lerp(p->x1, c->x1, t);
++         c->x1 = Lerp(c->x1, p->x1, t);
+expect: engine_SysFlip_interpolates_between_ticks
+
+== engine: interpolation shows the newest tick
+file: src/core/sdl.c
+-         RenderInterpolated(SDL_clamp(t, 0.0f, 1.0f));
++         RenderInterpolated(1.0f);
+expect: engine_SysFlip_interpolates_between_ticks
+
+== engine: interpolation shows the previous tick
+file: src/core/sdl.c
+-         RenderInterpolated(SDL_clamp(t, 0.0f, 1.0f));
++         RenderInterpolated(0.0f);
+expect: engine_SysFlip_interpolates_between_ticks
+
+== engine: interpolated frames unpaced
+file: src/core/sdl.c
+-             s_nextFrameNs += frameNs;
++             s_nextFrameNs += frameNs / 8;
+expect: engine_SysFlip_interpolates_between_ticks
+
+== engine: interpolation without the back buffer underneath
+file: src/core/sdl.c
+-     SDL_SetTextureScaleMode(s_canvas, SDL_SCALEMODE_NEAREST);
+-     SDL_RenderTexture(s_renderer, s_canvas, NULL, NULL);
++     SDL_SetTextureScaleMode(s_canvas, SDL_SCALEMODE_NEAREST);
+expect: engine_SysFlip_interpolation_keeps_what_isnt_redrawn
+
+== engine: letterbox not centred
+file: src/core/sdl.c
+-     r.x = (pw - r.w) / 2;
++     r.x = 0;
+expect: engine_SysFlip_shows_the_back_buffer_letterboxed
+
+== engine: letterbox stretched
+file: src/core/sdl.c
+-     scale = SDL_min((float)pw / s_width, (float)ph / s_height);
++     scale = SDL_max((float)pw / s_width, (float)ph / s_height);
+expect: engine_SysFlip_shows_the_back_buffer_letterboxed
+
+# --- Input -----------------------------------------------------------------------------------
+
+== engine: key table controls swapped
+file: src/core/sdl.c
+-     SDL_SCANCODE_LSHIFT, SDL_SCANCODE_RSHIFT, SDL_SCANCODE_RETURN, SDL_SCANCODE_RCTRL, SDL_SCANCODE_LCTRL,
++     SDL_SCANCODE_LSHIFT, SDL_SCANCODE_RSHIFT, SDL_SCANCODE_RETURN, SDL_SCANCODE_LCTRL, SDL_SCANCODE_RCTRL,
+expect: engine_KeyDown_reads_every_key_of_the_table
+
+== engine: key table without CLEAR
+file: src/core/sdl.c
+-     SDL_SCANCODE_CLEAR, SDL_SCANCODE_LALT, SDL_SCANCODE_LGUI, SDL_SCANCODE_RGUI,
++     SDL_SCANCODE_LALT, SDL_SCANCODE_LGUI, SDL_SCANCODE_RGUI,
+expect: engine_KeyDown_reads_every_key_of_the_table
+
+== engine: key table letters off by one
+file: src/core/sdl.c
+-             key = SDLK_A + (k - K_VK_A);
++             key = SDLK_A + (k - K_VK_A) + 1;
+expect: engine_KeyDown_reads_every_key_of_the_table
+
+== engine: key table digits from 1
+file: src/core/sdl.c
+-             key = SDLK_0 + (k - K_VK_0);
++             key = SDLK_1 + (k - K_VK_0);
+expect: engine_KeyDown_reads_every_key_of_the_table
+
+== engine: keys by position only
+file: src/core/sdl.c
+-         sc = key != SDLK_UNKNOWN ? SDL_GetScancodeFromKey(key, NULL) : SDL_SCANCODE_UNKNOWN;
++         sc = SDL_SCANCODE_UNKNOWN;
+expect: engine_KeyDown_follows_the_keyboard_layout
+
+== engine: digits by position
+file: src/core/sdl.c
+-         else if (k >= K_VK_0 && k <= K_VK_9)
+-             key = SDLK_0 + (k - K_VK_0);
++         else if (0)
++             key = SDLK_0 + (k - K_VK_0);
+expect: engine_KeyDown_follows_the_keyboard_layout
+
+== engine: punctuation by position
+file: src/core/sdl.c
+-         else if (k >= K_VK_OEM_1 && k <= K_VK_OEM_7)
++         else if (k > K_VK_OEM_1 && k <= K_VK_OEM_7)
+expect: engine_KeyDown_follows_the_keyboard_layout
+
+== engine: punctuation keys shifted
+file: src/core/sdl.c
+-     SDLK_SEMICOLON, SDLK_EQUALS, SDLK_COMMA, SDLK_MINUS, SDLK_PERIOD, SDLK_SLASH, SDLK_GRAVE,
++     SDLK_EQUALS, SDLK_SEMICOLON, SDLK_COMMA, SDLK_MINUS, SDLK_PERIOD, SDLK_SLASH, SDLK_GRAVE,
+expect: engine_KeyDown_reads_every_key_of_the_table
+
+== engine: key table never built
+file: src/core/sdl.c
+-     if (s_keys[0] == SDL_SCANCODE_UNKNOWN)
+-         BuildKeyTable();
++     if (s_keys[0] != SDL_SCANCODE_UNKNOWN)
++         BuildKeyTable();
+expect: engine_KeyDown_reads_every_key_of_the_table
+
+== engine: menu is left alt only
+file: src/core/sdl.c
+-         return state[SDL_SCANCODE_LALT] || state[SDL_SCANCODE_RALT];
++         return state[SDL_SCANCODE_LALT];
+expect: engine_KeyDown_menu_is_either_alt
+
+== engine: keypad enter ignored
+file: src/core/sdl.c
+-     if (key == K_VK_RETURN && state[SDL_SCANCODE_KP_ENTER])
++     if (key == K_VK_ESCAPE && state[SDL_SCANCODE_KP_ENTER])
+expect: engine_KeyDown_return_includes_keypad_enter
+
+== engine: KeyDown reads the no-key code
+file: src/core/sdl.c
+-     if ((int)key < 0 || key >= K_VK_ERROR)
+-         return false;
+-     if (s_keys[0]
++     if ((int)key < 0 || key > K_VK_ERROR)
++         return false;
++     if (key == K_VK_ERROR)
++         return state[s_keys[K_VK_LEFT]];
++     if (s_keys[0]
+expect: engine_KeyDown_is_false_outside_the_table
+
+== engine: mouse ignores the letterbox
+file: src/core/sdl.c
+-     *cx = (wx * pw / ww - r.x) * s_width / r.w;
++     *cx = (wx * pw / ww) * s_width / r.w;
+expect: engine_Mouse_reports_back_buffer_coordinates
+expect: engine_Mouse_with_the_software_renderer_misses_the_letterbox
+
+== engine: mouse y unscaled
+file: src/core/sdl.c
+-     *cy = (wy * ph / wh - r.y) * s_height / r.h;
++     *cy = (wy * ph / wh - r.y);
+expect: engine_Mouse_reports_back_buffer_coordinates
+
+== engine: mouse rounded toward 0
+file: src/core/sdl.c
+-     return (int)SDL_floorf(x);
++     return (int)x;
+expect: engine_Mouse_reports_back_buffer_coordinates
+
+== engine: MouseY reads x
+file: src/core/sdl.c
+-     return (int)SDL_floorf(y);
++     return (int)SDL_floorf(x);
+expect: engine_Mouse_reports_back_buffer_coordinates
+
+== engine: MouseWarp ignores the letterbox
+file: src/core/sdl.c
+-     *wy = (cy * r.h / s_height + r.y) * wh / ph;
++     *wy = (cy * r.h / s_height) * wh / ph;
+expect: engine_MouseWarp_takes_back_buffer_coordinates
+
+== engine: MouseWarp unscaled
+file: src/core/sdl.c
+-     *wx = (cx * r.w / s_width + r.x) * ww / pw;
++     *wx = (cx + r.x) * ww / pw;
+expect: engine_MouseWarp_takes_back_buffer_coordinates
+
+== engine: MouseLeft reads the right button
+file: src/core/sdl.c
+-     return (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON_LMASK) != 0;
++     return (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON_RMASK) != 0;
+expect: engine_Mouse_buttons
+
+== engine: MouseRight reads the middle button
+file: src/core/sdl.c
+-     return (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON_RMASK) != 0;
++     return (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON_MMASK) != 0;
+expect: engine_Mouse_buttons
+
+== engine: missing joystick axis reads 0
+file: src/core/sdl.c
+-     if (j == NULL)
+-         return 0x7fff;
++     if (j == NULL)
++         return 0;
+expect: engine_Joy_without_joysticks
+
+== engine: missing joystick button pressed
+file: src/core/sdl.c
+-     if (j == NULL)
+-         return false;
+-     RefreshInput();
++     if (j == NULL)
++         return true;
++     RefreshInput();
+expect: engine_Joy_without_joysticks
+
+# --- Audio (src/core/sdl_audio.c) ------------------------------------------------------------
+
+== engine: audio generation never changes
+file: src/core/sdl_audio.c
+-     s_lastGen = s_lastGen % 0x3ff + 1;      // 1-1023, never 0
++     s_lastGen = 1;
+expect: engine_SampleFree_makes_its_handles_stale
+expect: engine_SampleGetVoice_takes_over_the_quietest_when_all_play
+
+== engine: stale sample handle accepted
+file: src/core/sdl_audio.c
+-     if (!s->used || (H_TYPE(h) == H_SAMPLE && s->gen != H_GEN(h)))
++     if (!s->used)
+expect: engine_SampleFree_makes_its_handles_stale
+
+== engine: stale voice handle accepted
+file: src/core/sdl_audio.c
+-         return c->track && c->gen == H_GEN(h) ? c : NULL;
++         return c->track ? c : NULL;
+expect: engine_SampleGetVoice_takes_over_the_quietest_when_all_play
+expect: engine_SampleGetVoice_reuses_a_stopped_voice
+
+== engine: voices capped at 2
+file: src/core/sdl_audio.c
+-     s->maxVoices = SDL_clamp(maxVoices, 1, 255);
++     s->maxVoices = SDL_clamp(maxVoices, 1, 2);
+expect: engine_SampleGetVoice_gives_each_voice_its_own_handle
+
+== engine: sample loop flag ignored
+file: src/core/sdl_audio.c
+-     s->loop = (flags & AUDIO_SAMPLE_LOOP) != 0;
++     s->loop = false;
+expect: engine_SampleLoad_loop_flag_loops
+
+== engine: samples always loop
+file: src/core/sdl_audio.c
+-     s->loop = (flags & AUDIO_SAMPLE_LOOP) != 0;
++     s->loop = true;
+expect: engine_sample_plays_once_without_the_loop_flag
+
+== engine: sample path not converted
+file: src/core/sdl_audio.c
+-     audio = MIX_LoadAudio(s_mixer, SysPath(file), true);
++     audio = MIX_LoadAudio(s_mixer, file, true);
+expect: engine_SampleLoad_finds_the_file_ignoring_case
+
+== engine: sample load error code
+file: src/core/sdl_audio.c
+-     audio = MIX_LoadAudio(s_mixer, SysPath(file), true);
+-     if (audio == NULL) {
+-         s_error = ERR_FILEOPEN;
++     audio = MIX_LoadAudio(s_mixer, SysPath(file), true);
++     if (audio == NULL) {
++         s_error = ERR_HANDLE;
+expect: engine_SampleLoad_fails_for_a_missing_file
+
+== engine: AudioShutdown keeps the mixer
+file: src/core/sdl_audio.c
+-     MIX_DestroyMixer(s_mixer);
+-     s_mixer = NULL;
++     MIX_DestroyMixer(s_mixer);
+expect: engine_AudioInit_and_AudioShutdown
+
+== engine: SampleFree takes voice handles
+file: src/core/sdl_audio.c
+-     Sample *s = H_TYPE(sample) == H_SAMPLE ? SampleFromHandle(sample) : NULL;
+-     int j;
+-
+-     if (s == NULL)
+-         return;
++     Sample *s = SampleFromHandle(sample);
++     int j;
++
++     if (s == NULL)
++         return;
+expect: engine_SampleFree_ignores_voice_handles
+
+== engine: SampleGetVoice takes voice handles
+file: src/core/sdl_audio.c
+-     Sample *s = H_TYPE(sample) == H_SAMPLE ? SampleFromHandle(sample) : NULL;
+-     int best = -1;
++     Sample *s = SampleFromHandle(sample);
++     int best = -1;
+expect: engine_SampleGetVoice_rejects_other_handles
+
+== engine: SampleGetVoice no error
+file: src/core/sdl_audio.c
+-     if (s == NULL) {
+-         s_error = ERR_HANDLE;
+-         return 0;
+-     }
+-     // A free voice
++     if (s == NULL) {
++         return 0;
++     }
++     // A free voice
+expect: engine_SampleGetVoice_rejects_other_handles
+
+== engine: handed-out voices are free
+file: src/core/sdl_audio.c
+-         } else if (!c->reserved && !MIX_TrackPlaying(c->track)) {
++         } else if (!MIX_TrackPlaying(c->track)) {
+expect: engine_SampleGetVoice_keeps_handed_out_voices_while_others_are_free
+
+== engine: unplayed voices not taken first
+file: src/core/sdl_audio.c
+-     for (j = 0; j < s->maxVoices && best < 0; j++) {
+-         if (!MIX_TrackPlaying(s->voices[j].track))
+-             best = j;
+-     }
++     for (j = 0; j < s->maxVoices && best < 0; j++) {
++     }
+expect: engine_SampleGetVoice_takes_back_an_unplayed_voice_last
+
+== engine: takes over the loudest
+file: src/core/sdl_audio.c
+-             if (s->voices[j].vol < s->voices[best].vol)
++             if (s->voices[j].vol > s->voices[best].vol)
+expect: engine_SampleGetVoice_takes_over_the_quietest_when_all_play
+
+== engine: takes over the first
+file: src/core/sdl_audio.c
+-         for (j = 1; j < s->maxVoices; j++) {
++         for (j = 1; j < 1; j++) {
+expect: engine_SampleGetVoice_takes_over_the_quietest_when_all_play
+
+== engine: voice volume not reset
+file: src/core/sdl_audio.c
+-     MIX_StopTrack(c->track, 0);
+-     SetVolume(c, 1.0f);
++     MIX_StopTrack(c->track, 0);
+expect: engine_SampleGetVoice_resets_the_voice
+
+== engine: voice pan not reset
+file: src/core/sdl_audio.c
+-     SetVolume(c, 1.0f);
+-     SetPan(c, 0);
++     SetVolume(c, 1.0f);
+expect: engine_SampleGetVoice_resets_the_voice
+
+== engine: voice pitch not reset
+file: src/core/sdl_audio.c
+-     SetPan(c, 0);
+-     MIX_SetTrackFrequencyRatio(c->track, 1.0f);
++     SetPan(c, 0);
+expect: engine_SampleGetVoice_resets_the_voice
+
+== engine: voice start not reset
+file: src/core/sdl_audio.c
+-     c->panSlide.on = false;
+-     c->startFrame = 0;
+-     c->gen = NextGen();
++     c->panSlide.on = false;
++     c->gen = NextGen();
+expect: engine_SampleGetVoice_resets_the_voice
+
+== engine: voice keeps its handle
+file: src/core/sdl_audio.c
+-     c->startFrame = 0;
+-     c->gen = NextGen();
++     c->startFrame = 0;
++     if (c->gen == 0)
++         c->gen = NextGen();
+expect: engine_SampleGetVoice_takes_over_the_quietest_when_all_play
+
+== engine: voice not reserved
+file: src/core/sdl_audio.c
+-     c->gen = NextGen();
+-     c->reserved = true;
++     c->gen = NextGen();
+expect: engine_SampleGetVoice_keeps_handed_out_voices_while_others_are_free
+
+== engine: ChanPlay never loops
+file: src/core/sdl_audio.c
+-     SDL_SetNumberProperty(props, MIX_PROP_PLAY_LOOPS_NUMBER, c->loop ? -1 : 0);
++     SDL_SetNumberProperty(props, MIX_PROP_PLAY_LOOPS_NUMBER, 0);
+expect: engine_SampleLoad_loop_flag_loops
+expect: engine_MusicLoad_loops
+
+== engine: ChanPlay ignores the start
+file: src/core/sdl_audio.c
+-     if (c->startFrame > 0)
+-         SDL_SetNumberProperty
++     if (0)
++         SDL_SetNumberProperty
+expect: engine_ChanSetPos_before_play_sets_the_start
+
+== engine: ChanPlay error code
+file: src/core/sdl_audio.c
+-     if (c == NULL) {
+-         s_error = ERR_HANDLE;
+-         return false;
+-     }
+-     if (!restart
++     if (c == NULL) {
++         s_error = ERR_START;
++         return false;
++     }
++     if (!restart
+expect: engine_ChanPlay_needs_a_channel
+expect: engine_SampleFree_makes_its_handles_stale
+
+== engine: ChanStop doesn't stop
+file: src/core/sdl_audio.c
+-     if (c) {
+-         MIX_StopTrack(c->track, 0);
++     if (c) {
+expect: engine_ChanStop_silences
+expect: engine_SampleGetVoice_reuses_a_stopped_voice
+
+== engine: pan -1 refused
+file: src/core/sdl_audio.c
+-     if (pan >= -1.0f && pan <= 1.0f)
++     if (pan > -1.0f && pan <= 1.0f)
+expect: engine_ChanSet_pan_outside_minus_1_to_1_is_an_error
+expect: engine_ChanSlide_pan_outside_minus_1_to_1_is_an_error
+
+== engine: pan 1 refused
+file: src/core/sdl_audio.c
+-     if (pan >= -1.0f && pan <= 1.0f)
++     if (pan >= -1.0f && pan < 1.0f)
+expect: engine_ChanSet_pan_outside_minus_1_to_1_is_an_error
+
+== engine: pan error not reported
+file: src/core/sdl_audio.c
+-     s_error = ERR_ILLPARAM;
+-     return false;
++     return false;
+expect: engine_ChanSet_pan_outside_minus_1_to_1_is_an_error
+
+== engine: ChanSet clamps the pan
+file: src/core/sdl_audio.c
+-     if (c == NULL)
+-         return;
+-     if (attrib == AUDIO_PAN && !PanValid(value))
+-         return;
+-     switch (attrib) {
+-     case AUDIO_VOL:
+-         SetVolume(c, value);
++     if (c == NULL)
++         return;
++     switch (attrib) {
++     case AUDIO_VOL:
++         SetVolume(c, value);
+expect: engine_ChanSet_pan_outside_minus_1_to_1_keeps_the_old_pan
+expect: engine_ChanSet_pan_outside_minus_1_to_1_is_an_error
+
+== engine: ChanSlide clamps the pan
+file: src/core/sdl_audio.c
+-     if (attrib == AUDIO_PAN && !PanValid(value))
+-         return;
+-     if (ms <= 0) {
++     if (ms <= 0) {
+expect: engine_ChanSet_pan_outside_minus_1_to_1_keeps_the_old_pan
+expect: engine_ChanSlide_pan_outside_minus_1_to_1_is_an_error
+
+== engine: negative volume
+file: src/core/sdl_audio.c
+-     c->vol = c->volTarget = SDL_max(vol, 0.0f);
++     c->vol = c->volTarget = vol;
+expect: engine_ChanSet_negative_volume_is_silence
+
+== engine: ChanSet volume ignored
+file: src/core/sdl_audio.c
+-     case AUDIO_VOL:
+-         SetVolume(c, value);
+-         break;
+-     case AUDIO_FREQ:
+-         c->freqSlide.on = false;
++     case AUDIO_VOL:
++         break;
++     case AUDIO_FREQ:
++         c->freqSlide.on = false;
+expect: engine_ChanSet_volume_scales_the_output
+expect: engine_ChanSet_on_music
+
+== engine: frequency ratio inverted
+file: src/core/sdl_audio.c
+-     float ratio = hz > 0 ? hz / c->rate : 1.0f;
++     float ratio = hz > 0 ? c->rate / hz : 1.0f;
+expect: engine_ChanSet_freq_changes_the_pitch
+
+== engine: frequency 0 not the own rate
+file: src/core/sdl_audio.c
+-     float ratio = hz > 0 ? hz / c->rate : 1.0f;
++     float ratio = hz >= 0 ? hz / c->rate : 1.0f;
+expect: engine_ChanSet_freq_changes_the_pitch
+
+== engine: frequency against the mixer rate
+file: src/core/sdl_audio.c
+-     c->rate = rate;
+-     c->loop = loop;
++     c->rate = 22050;
++     c->loop = loop;
+expect: engine_ChanSet_freq_changes_the_pitch
+
+== engine: pan turns down the near side
+file: src/core/sdl_audio.c
+-     g.left = pan > 0 ? 1.0f - pan : 1.0f;
+-     g.right = pan < 0 ? 1.0f + pan : 1.0f;
++     g.left = pan < 0 ? 1.0f + pan : 1.0f;
++     g.right = pan > 0 ? 1.0f - pan : 1.0f;
+expect: engine_ChanSet_pan_turns_down_the_far_side
+
+== engine: pan is linear both ways
+file: src/core/sdl_audio.c
+-     g.left = pan > 0 ? 1.0f - pan : 1.0f;
++     g.left = 1.0f - pan;
+expect: engine_ChanSet_pan_turns_down_the_far_side
+
+== engine: volume only while sliding
+file: src/core/sdl_audio.c
+-     if (c->volFrames == 0 && vol == 1.0f)
++     if (c->volFrames == 0)
+expect: engine_ChanSet_volume_scales_the_output
+
+== engine: volume slide ten times longer
+file: src/core/sdl_audio.c
+-         Sint64 frames = (Sint64)ms * MIX_RATE / 1000;
++         Sint64 frames = (Sint64)ms * MIX_RATE / 100;
+expect: engine_ChanSlide_volume_ramps_to_the_target
+
+== engine: volume slide jumps
+file: src/core/sdl_audio.c
+-         c->volStep = (c->volTarget - c->vol) / c->volFrames;
++         c->volStep = 0;
+expect: engine_ChanSlide_volume_ramps_to_the_target
+
+== engine: slide of 0 ms not immediate
+file: src/core/sdl_audio.c
+-     if (ms <= 0) {
+-         ChanSet(ch, attrib, value);
+-         return;
+-     }
++     if (ms < 0) {
++         ChanSet(ch, attrib, value);
++         return;
++     }
+expect: engine_ChanSlide_of_0_ms_sets_now
+
+== engine: slides stand still
+file: src/core/sdl_audio.c
+-     *value = s->from + (s->to - s->from) * t;
++     *value = s->from;
+expect: engine_ChanSlide_freq_steps_with_the_game_loop
+expect: engine_ChanSlide_pan_steps_with_the_game_loop
+
+== engine: slides never end
+file: src/core/sdl_audio.c
+-     t = now - s->start >= s->ms ? 1.0f : (float)(now - s->start) / s->ms;
++     t = now - s->start >= s->ms ? 0.9f : (float)(now - s->start) / s->ms;
+expect: engine_ChanSlide_pan_steps_with_the_game_loop
+
+== engine: voices not ticked
+file: src/core/sdl_audio.c
+-             if (s_samples[i].voices[j].track)
+-                 TickChan(&s_samples[i].voices[j], now);
++             if (0)
++                 TickChan(&s_samples[i].voices[j], now);
+expect: engine_ChanSlide_freq_steps_with_the_game_loop
+expect: engine_ChanSlide_pan_steps_with_the_game_loop
+
+== engine: events don't tick the audio
+file: src/core/sdl.c
+-         HandleEvent(&e);
+-     AudioTick();
++         HandleEvent(&e);
+expect: engine_ChanSlide_freq_steps_with_the_game_loop
+
+== engine: AudioUpdate doesn't tick
+file: src/core/sdl_audio.c
+- void AudioUpdate(void)
+- {
+-     AudioTick();
++ void AudioUpdate(void)
++ {
+expect: engine_ChanSlide_pan_steps_with_the_game_loop
+
+== engine: AudioStop leaves channels playing
+file: src/core/sdl_audio.c
+-     MIX_StopAllTracks(s_mixer, 0);
++     (void)0;
+expect: engine_AudioStop_stops_every_channel
+
+== engine: AudioStart does nothing
+file: src/core/sdl_audio.c
+-         SDL_ResumeAudioDevice(s_device);
++         (void)0;
+expect: engine_AudioStart_resumes_the_output
+
+== engine: ChanLength at the mixer rate
+file: src/core/sdl_audio.c
+-     return (double)frames / AudioRate(audio);
++     return (double)frames / MIX_RATE;
+expect: engine_ChanLength_in_seconds
+
+== engine: ChanLength not for voices
+file: src/core/sdl_audio.c
+-     if (H_TYPE(ch) == H_SAMPLE || H_TYPE(ch) == H_VOICE) {
++     if (H_TYPE(ch) == H_SAMPLE) {
+expect: engine_ChanLength_in_seconds
+
+== engine: ChanLength of stale handles 0
+file: src/core/sdl_audio.c
+-     if (audio == NULL)
+-         return -1.0;
++     if (audio == NULL)
++         return 0;
+expect: engine_ChanLength_in_seconds
+expect: engine_SampleFree_makes_its_handles_stale
+
+== engine: ChanSetPos while playing only sets the start
+file: src/core/sdl_audio.c
+-     if (MIX_TrackPlaying(c->track) || MIX_TrackPaused(c->track))
++     if (0)
+expect: engine_ChanSetPos_while_playing_seeks
+
+== engine: ChanGetPos always 0
+file: src/core/sdl_audio.c
+-     return pos > 0 ? (unsigned long)pos : 0;
++     return 0;
+expect: engine_ChanGetPos_advances_while_playing
+
+== engine: music doesn't loop
+file: src/core/sdl_audio.c
+-     if (!InitChan(&m->chan, audio, AudioRate(audio), true)) {
++     if (!InitChan(&m->chan, audio, AudioRate(audio), false)) {
+expect: engine_MusicLoad_loops
+
+== engine: MusicFree keeps the slot
+file: src/core/sdl_audio.c
+-     MIX_DestroyAudio(m->audio);
+-     memset(m, 0, sizeof(*m));
++     MIX_DestroyAudio(m->audio);
++     m->audio = NULL;
+expect: engine_Music_handles
+
+== engine: music load error code
+file: src/core/sdl_audio.c
+-     audio = MIX_LoadAudio(s_mixer, SysPath(file), false);
+-     if (audio == NULL) {
+-         s_error = ERR_FILEOPEN;
++     audio = MIX_LoadAudio(s_mixer, SysPath(file), false);
++     if (audio == NULL) {
++         s_error = ERR_NOCHAN;
+expect: engine_Music_handles
+
+== engine: desktop size swapped
+file: src/core/sdl.c
+- int SysDesktopWidth(void)  { return UsableDesktop().w; }
+- int SysDesktopHeight(void) { return UsableDesktop().h; }
++ int SysDesktopWidth(void)  { return UsableDesktop().h; }
++ int SysDesktopHeight(void) { return UsableDesktop().w; }
+expect: engine_SysDesktopWidth_and_Height_are_the_usable_desktop
+
+== engine: pointer functions swapped
+file: src/core/sdl.c
+- void ShowPointer(void) { SDL_ShowCursor(); }
+- void HidePointer(void) { SDL_HideCursor(); }
++ void ShowPointer(void) { SDL_HideCursor(); }
++ void HidePointer(void) { SDL_ShowCursor(); }
+expect: engine_HidePointer_and_ShowPointer
+
+== engine: virtual pad leaks to player two
+file: src/core/sdl.c
+-     bits = pad == 0 ? s_virtualPad : 0;
++     bits = s_virtualPad;
+expect: engine_SysPadState_virtual_controls_belong_only_to_player_one
+
+== engine: virtual pad ignores updates
+file: src/core/sdl.c
+-     s_virtualPad = bits;
++     s_virtualPad |= bits;
+expect: engine_SysPadState_virtual_controls_belong_only_to_player_one

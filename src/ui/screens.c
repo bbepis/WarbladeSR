@@ -40,7 +40,7 @@ void AboutScreen()
     Blit((g_screenW >> 1) + 0x62, 4, 0, g_gfxLogos, 0x30, 0x11e, 0x30, 0x2c);
 
     g_textCursorY = g_textCursorY + 0x22;
-    DrawMenuText("WARBLADE VERSION 1.34 SR1", POS_CENTERED, g_textAutoY, 0);
+    DrawMenuText("WARBLADE SR VERSION 2.0", POS_CENTERED, g_textAutoY, 0);
     g_textCursorY = g_textCursorY + 8;
     DrawTinyText("  CODING, GFX, SFX AND GAME DESIGN  ", POS_CENTERED, g_textAutoY, 3);
     g_textCursorY = g_textCursorY + 2;
@@ -1253,7 +1253,7 @@ void EmptyScreenStub()
     sprintf(g_logBuf, "CASH LEFT                                           "); \
     DrawMenuText(g_logBuf, POS_CENTERED, g_textAutoY, 6); \
     len = Int64ToStrGrouped(p.cash, g_scoreBuf); \
-    sprintf(g_logBuf, "                         %5d X 100 =              ", p.cash / 100 cashExtra); \
+    sprintf(g_logBuf, "                         %5lld X 100 =              ", p.cash / 100 cashExtra); \
     CopyStrAt(g_logBuf, g_scoreBuf, 13 - len + 39, len); \
     DrawMenuText(g_logBuf, POS_CENTERED, g_curY, 6); \
     g_textCursorY += 10; \
@@ -1275,7 +1275,7 @@ void EmptyScreenStub()
     sprintf(g_logBuf, "PERFECTS                                            "); \
     DrawMenuText(g_logBuf, POS_CENTERED, g_textAutoY, 6); \
     len = Int64ToStrGrouped(p.perfectsBonus, g_scoreBuf); \
-    sprintf(g_logBuf, "                       %3d X 100.000 =              ", p.perfects); \
+    sprintf(g_logBuf, "                       %3lld X 100.000 =              ", p.perfects); \
     CopyStrAt(g_logBuf, g_scoreBuf, 13 - len + 39, len); \
     DrawMenuText(g_logBuf, POS_CENTERED, g_curY, 6); \
     g_textCursorY += 10; \

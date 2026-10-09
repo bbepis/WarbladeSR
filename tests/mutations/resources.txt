@@ -1,0 +1,20 @@
+# Hit-mask resource loading regressions.
+
+== resources: hit mask allocation is not zero filled
+file: src/gfx/resources.c
+-     buf = calloc(maskSize, 1);
++     buf = malloc(maskSize);
++     if (buf) memset(buf, 0xff, maskSize);
+expect: ui_LoadHma_zero_fills_short_files_and_rejects_invalid_dimensions
+
+== resources: hit mask permits zero dimensions
+file: src/gfx/resources.c
+-     if (!name || w <= 0 || h <= 0 || (size_t)w > SIZE_MAX / (size_t)h)
++     if (!name || w < 0 || h <= 0 || (size_t)w > SIZE_MAX / (size_t)h)
+expect: ui_LoadHma_zero_fills_short_files_and_rejects_invalid_dimensions
+
+== resources: missing hit mask is returned as empty
+file: src/gfx/resources.c
+-         if (PacRead(levelname, buf, (unsigned)maskSize)) {
++         if (1) {
+expect: ui_LoadHma_without_the_file_returns_null

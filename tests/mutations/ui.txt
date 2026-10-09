@@ -1,0 +1,4578 @@
+# User interface, graphics and sound: src/ui/*.c, src/game/hud.c, src/gfx/*.c, src/audio/*.c
+# (tests/test_ui_*.c)
+
+# ---- src/ui/window.c ----
+
+== ui: WinInit leaves the index
+file: src/ui/window.c
+- g_windows[i].index = i;
++ g_windows[i].index = 0;
+expect: ui_WinInit_deactivates_and_resets_every_window
+
+== ui: WinInit blink timer
+file: src/ui/window.c
+- g_windows[i].blinkTimer = 25.0f;
++ g_windows[i].blinkTimer = 20.0f;
+expect: ui_WinInit_deactivates_and_resets_every_window
+
+== ui: WinFindFree skips slot 0
+file: src/ui/window.c
+-     for (i = 0; i < MAX_WINDOWS; i++) {
+-         if (g_windows[i].active == 0)
++     for (i = 1; i < MAX_WINDOWS; i++) {
++         if (g_windows[i].active == 0)
+expect: ui_WinOpen_takes_the_first_free_slot
+
+== ui: WinFindFree only nine slots
+file: src/ui/window.c
+-     for (i = 0; i < MAX_WINDOWS; i++) {
+-         if (g_windows[i].active == 0)
++     for (i = 0; i < MAX_WINDOWS - 1; i++) {
++         if (g_windows[i].active == 0)
+expect: ui_WinOpen_returns_minus_one_when_all_ten_are_open
+
+== ui: WinOpen sliding start
+file: src/ui/window.c
+- g_windows[win].slideX = -700.0f;
++ g_windows[win].slideX = -600.0f;
+expect: ui_WinOpen_sliding_window_starts_off_screen
+
+== ui: WinOpen swaps x and y
+file: src/ui/window.c
+-         g_windows[win].x = x;
+-         g_windows[win].y = y;
++         g_windows[win].x = y;
++         g_windows[win].y = x;
+expect: ui_WinOpen_sets_geometry_and_clears_the_lists
+
+== ui: WinOpen keeps old checks
+file: src/ui/window.c
+-             g_windows[win].menuItems[j].checked = 0;
++             ;
+expect: ui_WinOpen_sets_geometry_and_clears_the_lists
+
+== ui: WinOpen selection 0
+file: src/ui/window.c
+- g_windows[win].selF = -1;
++ g_windows[win].selF = 0;
+expect: ui_WinOpen_sets_geometry_and_clears_the_lists
+
+== ui: WinOpen no sound
+file: src/ui/window.c
+- SoundPlay(g_sfxWindow, 30000, 200, 0.0f, 191, g_sndFlags);
++ ;
+expect: ui_Boot_opens_the_presets_window
+
+== ui: WinClose keeps a tiled window active
+file: src/ui/window.c
+-                 g_windows[win].visible = 0;
+-                 g_windows[win].active = 0;
++                 g_windows[win].visible = 0;
+expect: ui_WinClose_tiled_window_closes_at_once
+
+== ui: WinClose slide speed
+file: src/ui/window.c
+-                 g_windows[win].slideX = -5.0f;
++                 g_windows[win].slideX = -4.0f;
+expect: ui_WinClose_sliding_window_slides_out_and_stays_active
+
+== ui: WinCloseAll deactivates sliding windows
+file: src/ui/window.c
+-                 g_windows[i].visible = 0;
+-                 g_windows[i].nD = -1;
++                 g_windows[i].visible = 0;
++                 g_windows[i].active = 0;
++                 g_windows[i].nD = -1;
+expect: ui_WinCloseAll_hides_sliding_windows_and_closes_the_rest
+
+== ui: WinCloseAll keeps tiled windows
+file: src/ui/window.c
+-                 g_windows[i].visible = 0;
+-                 g_windows[i].active = 0;
++                 g_windows[i].visible = 0;
+expect: ui_WinCloseAll_hides_sliding_windows_and_closes_the_rest
+
+== ui: WinHideAll deactivates
+file: src/ui/window.c
+-     for (i = 0; i < MAX_WINDOWS; i++)
+-         g_windows[i].visible = 0;
++     for (i = 0; i < MAX_WINDOWS; i++)
++         g_windows[i].visible = g_windows[i].active = 0;
+expect: ui_WinHideAll_keeps_windows_active
+
+== ui: WinAddText 49 lines max
+file: src/ui/window.c
+- if (g_windows[win].active != 0 && g_windows[win].nE < 50) {
++ if (g_windows[win].active != 0 && g_windows[win].nE < 48) {
+expect: ui_WinAddText_holds_fifty_lines
+
+== ui: WinAddText on inactive windows
+file: src/ui/window.c
+- if (g_windows[win].active != 0 && g_windows[win].nE < 50) {
++ if (g_windows[win].nE < 50) {
+expect: ui_WinAddText_ignores_inactive_windows
+
+== ui: WinAddText color from x
+file: src/ui/window.c
+- g_windows[win].texts[g_windows[win].nE].color = color;
++ g_windows[win].texts[g_windows[win].nE].color = x;
+expect: ui_WinAddText_appends_lines
+
+== ui: WinAddTextPair default id
+file: src/ui/window.c
+- g_windows[win].links[g_windows[win].nD].id = g_windows[win].nD;
++ g_windows[win].links[g_windows[win].nD].id = id;
+expect: ui_WinAddTextPair_uses_the_index_as_default_id
+
+== ui: WinAddTextPair hover color
+file: src/ui/window.c
+- g_windows[win].links[g_windows[win].nD].hoverColor = b;
++ g_windows[win].links[g_windows[win].nD].hoverColor = a;
+expect: ui_WinAddTextPair_uses_the_index_as_default_id
+
+== ui: WinAddMenuItem width
+file: src/ui/window.c
+- g_windows[win].menuItems[g_windows[win].nF].w = i * 8 + 16;
++ g_windows[win].menuItems[g_windows[win].nF].w = i * 8 + 8;
+expect: ui_WinAddMenuItem_sizes_the_item_from_its_text
+
+== ui: WinAddMenuItem len
+file: src/ui/window.c
+- g_windows[win].menuItems[g_windows[win].nF].len = i;
++ g_windows[win].menuItems[g_windows[win].nF].len = i + 1;
+expect: ui_WinAddMenuItem_sizes_the_item_from_its_text
+
+== ui: WinAddMenuItem height
+file: src/ui/window.c
+- g_windows[win].menuItems[g_windows[win].nF].h = 15;
++ g_windows[win].menuItems[g_windows[win].nF].h = 16;
+expect: ui_WinAddMenuItem_sizes_the_item_from_its_text
+
+== ui: WinAddMenuItem 39 items max
+file: src/ui/window.c
+- g_windows[win].nF < MAX_WINDOW_MENU_ITEMS) {
++ g_windows[win].nF < MAX_WINDOW_MENU_ITEMS - 2) {
+expect: ui_WinAddMenuItem_holds_forty_items
+
+== ui: WinAddMenuItem default id
+file: src/ui/window.c
+- g_windows[win].menuItems[g_windows[win].nF].id = g_windows[win].nF;
++ g_windows[win].menuItems[g_windows[win].nF].id = id;
+expect: ui_WinAddMenuItem_sizes_the_item_from_its_text
+
+== ui: WinSetSelected without items
+file: src/ui/window.c
+-     if (g_windows[win].nF == -1) {
+-         return;
+-     }
+-     g_windows[win].selF = sel;
++     g_windows[win].selF = sel;
+expect: ui_WinSetSelected_needs_menu_items
+
+== ui: WinCheckMenuItem wrong id
+file: src/ui/window.c
+- if (g_windows[win].menuItems[i].id == id) {
++ if (g_windows[win].menuItems[i].id != id) {
+expect: ui_WinCheckMenuItem_checks_by_id_and_WinClearMenuChecks_clears
+
+== ui: WinClearMenuChecks first window only
+file: src/ui/window.c
+- for (w = 0; w < MAX_WINDOWS; w++) {
++ for (w = 0; w < 1; w++) {
+expect: ui_WinCheckMenuItem_checks_by_id_and_WinClearMenuChecks_clears
+
+== ui: WinAddToggle counts on as off
+file: src/ui/window.c
+- g_toggleOnCount++;
++ g_toggleOffCount++;
+expect: ui_WinAddToggle_counts_values_and_advances_nextX
+
+== ui: WinAddToggle nextX
+file: src/ui/window.c
+- g_nextX = x + 8;
++ g_nextX = x + 7;
+expect: ui_WinAddToggle_counts_values_and_advances_nextX
+
+== ui: WinAddEdit focus start follows the last field
+file: src/ui/window.c
+-         if (g_windows[win].firstH == -1) {
+-             g_windows[win].firstH = g_windows[win].nH;
++         {
++             g_windows[win].firstH = g_windows[win].nH;
+expect: ui_WinAddEdit_first_field_takes_the_focus_start
+
+== ui: WinAddEdit nextX
+file: src/ui/window.c
+- g_nextX = x + len * 8;
++ g_nextX = x + len * 7;
+expect: ui_WinAddEdit_first_field_takes_the_focus_start
+
+== ui: WinAddEdit leaves the last byte
+file: src/ui/window.c
+-         for (i = 0; i < len; i++) {
+-             g_windows[win].edits[g_windows[win].nH].buf[i] = 0;
++         for (i = 0; i < len - 1; i++) {
++             g_windows[win].edits[g_windows[win].nH].buf[i] = 0;
+expect: ui_WinAddEdit_first_field_takes_the_focus_start
+
+== ui: WinAddEdit always focused
+file: src/ui/window.c
+- g_windows[win].edits[g_windows[win].nH].focused = d;
++ g_windows[win].edits[g_windows[win].nH].focused = 1;
+expect: ui_WinAddEdit_first_field_takes_the_focus_start
+
+== ui: WinFocusNextEdit refocuses a single field
+file: src/ui/window.c
+-     if (g_windows[win].nH + 1 == 1) {
+-         return;
+-     }
++     if (g_windows[win].nH + 1 == 0) {
++         return;
++     }
+expect: ui_WinFocusNextEdit_does_nothing_for_a_single_field
+
+== ui: WinAddRect height as width
+file: src/ui/window.c
+- g_windows[win].imageRects[g_windows[win].nC].w = c;
++ g_windows[win].imageRects[g_windows[win].nC].w = d;
+expect: ui_WinAddRect_and_items_A_B_append
+
+== ui: WinAddRect four rects max
+file: src/ui/window.c
+- g_windows[win].nC < MAX_WINDOW_IMAGE_RECTS) {
++ g_windows[win].nC < MAX_WINDOW_IMAGE_RECTS - 2) {
+expect: ui_WinAddRect_holds_five_rects
+
+== ui: WinAddItemB source x
+file: src/ui/window.c
+- g_windows[win].buttons[g_windows[win].nB].srcX = c;
++ g_windows[win].buttons[g_windows[win].nB].srcX = d;
+expect: ui_WinAddRect_and_items_A_B_append
+
+== ui: AnyWindowActive always true
+file: src/ui/window.c
+-     return false;
+- }
+-
+- // Returns true if any active GUI window has an edit field.
++     return true;
++ }
++
++ // Returns true if any active GUI window has an edit field.
+expect: ui_AnyWindowActive_follows_the_table
+
+== ui: AnyWindowHasEdit counts closed windows
+file: src/ui/window.c
+- if (g_windows[i].active && g_windows[i].visible && g_windows[i].nH >= 0
+-             && g_windows[i].firstH >= 0 && g_windows[i].firstH <= g_windows[i].nH) {
++ if (g_windows[i].firstH != -1) {
+expect: ui_AnyWindowHasEdit_ignores_closed_windows
+
+== ui: WinFocusNextEdit stays on the same row
+file: src/ui/window.c
+- if (g_windows[win].edits[j].y > curY) {
++ if (g_windows[win].edits[j].y >= curY) {
+expect: ui_WinFocusNextEdit_moves_down_then_wraps_to_the_top
+
+== ui: WinFocusNextEdit wraps to the bottom
+file: src/ui/window.c
+- if (g_windows[win].edits[k].y < minY) {
++ if (g_windows[win].edits[k].y > minY) {
+expect: ui_WinFocusNextEdit_moves_down_then_wraps_to_the_top
+
+== ui: WinDraw centering sign
+file: src/ui/window.c
+- x1 = (g_screenW >> 1) - (W.w >> 1);
++ x1 = (g_screenW >> 1) + (W.w >> 1);
+expect: ui_WinDraw_resolves_a_centered_position
+
+== ui: WinDraw centered menu item width
+file: src/ui/window.c
+- i = (W.w >> 1) - ((StrLenPlat(W.menuItems[n].text) * 8 + 16) >> 1);
++ i = (W.w >> 1) - ((StrLenPlat(W.menuItems[n].text) * 8 + 8) >> 1);
+expect: ui_WinDraw_centers_menu_items_once
+
+== ui: WinDraw tiled frame one more column
+file: src/ui/window.c
+-         for (i = 0; i < (x2 - (x1 + 32)) / 32; i++) {
+-             for (j = 0; j < (y2 - (y1 + 32)) / 32; j++)
+-                 Blit(x1 + i * 32 + 32, y1 + j * 32 + 32, 0, g_gfxLogos, 0x70, 0xbe, 0x20, 0x20);
++         for (i = 0; i <= (x2 - (x1 + 32)) / 32; i++) {
++             for (j = 0; j < (y2 - (y1 + 32)) / 32; j++)
++                 Blit(x1 + i * 32 + 32, y1 + j * 32 + 32, 0, g_gfxLogos, 0x70, 0xbe, 0x20, 0x20);
+expect: ui_WinDraw_tiled_frame_blits
+
+== ui: WinDraw menu item one tile too many
+file: src/ui/window.c
+- for (q = 0; q < W.menuItems[n].len; q++)
++ for (q = 0; q <= W.menuItems[n].len; q++)
+expect: ui_WinDraw_menu_item_blits_one_tile_per_letter_and_two_caps
+
+== ui: WinDraw skips the last toggle
+file: src/ui/window.c
+- for (g = 0; g < W.nG + 1; g++) {
++ for (g = 0; g < W.nG; g++) {
+expect: ui_WinDraw_toggles_blit_one_box_each
+
+== ui: WinDraw skips the last text
+file: src/ui/window.c
+- for (e = 0; e < W.nE + 1; e++) {
++ for (e = 0; e < W.nE; e++) {
+expect: ui_WinDraw_texts_draw_glyphs
+
+== ui: WinDraw underscores from 0
+file: src/ui/window.c
+- for (c = displayCursor; c < visibleLen; c++) {
++ for (c = 0; c < visibleLen; c++) {
+expect: ui_WinDraw_masked_edit_shows_stars
+
+== ui: WinDraw one star too many
+file: src/ui/window.c
+- for (z = 0; z < StrLenPlat(displayText); z++) {
++ for (z = 0; z <= StrLenPlat(displayText); z++) {
+expect: ui_WinDraw_masked_edit_shows_stars
+
+== ui: WinDraw blink step
+file: src/ui/window.c
+- W.blinkTimer -= 1.0;
++ W.blinkTimer -= 2.0;
+expect: ui_WinDraw_blink_toggles_every_26_draws
+
+== ui: WinDraw blink reset
+file: src/ui/window.c
+-         W.blinkTimer = 25.0f;
+-         W.blinkOn = !W.blinkOn;
++         W.blinkTimer = 20.0f;
++         W.blinkOn = !W.blinkOn;
+expect: ui_WinDraw_blink_toggles_every_26_draws
+
+== ui: WinDraw no slide
+file: src/ui/window.c
+- W.slideX = W.slideX * W.slideY;
++ ;
+expect: ui_WinDraw_sliding_window_slides_in_to_zero
+
+== ui: WinDraw no snap to zero
+file: src/ui/window.c
+-     if (FabsWindow(W.slideX) < 0.1f)
+-         W.slideX = 0;
++     ;
+expect: ui_WinDraw_sliding_window_slides_in_to_zero
+
+== ui: WinDraw slides further before closing
+file: src/ui/window.c
+- if (W.slideX < -750.0) {
++ if (W.slideX < -900.0) {
+expect: ui_WinDraw_closed_sliding_window_goes_inactive_after_28_draws
+
+== ui: WinUpdateAll draws closed windows
+file: src/ui/window.c
+-         if (g_windows[i].active != 0) {
+-             WinDraw(i);
++         {
++             WinDraw(i);
+expect: ui_WinUpdateAll_draws_only_active_windows
+
+== ui: DrawTextFrame counts link escapes
+file: src/ui/window.c
+-         } else {
+-             count++;
++         }
++         {
++             count++;
+expect: ui_DrawTextFrame_blits_caps_around_the_glyphs
+
+== ui: DrawTextFrame offset
+file: src/ui/window.c
+-     x -= 8;
+-     y -= 2;
++     x -= 7;
++     y -= 2;
+expect: ui_DrawTextFrame_blits_caps_around_the_glyphs
+
+== ui: DrawTextBox rewinds one too far
+file: src/ui/window.c
+- p -= n - lastsp - 1;
++ p -= n - lastsp;
+expect: ui_DrawTextBox_wraps_at_the_last_space
+
+== ui: DrawFrame title centering
+file: src/ui/window.c
+- DrawTinyText(title, (x2 - x1) / 2 + x1 - len * 8 / 2, y1 + 20, 1);
++ DrawTinyText(title, (x2 - x1) / 2 + x1 - len * 8, y1 + 20, 1);
+expect: ui_DrawFrame_blits_tiles_and_centers_title
+
+# ---- src/ui/menu.c: MenuUpdate, popup windows ----
+
+== ui: menu keys down wrap off by one
+file: src/ui/menu.c
+-                             if (sel > g_windows[top].nF)
++                             if (sel >= g_windows[top].nF)
+expect: ui_MenuUpdate_down_key_walks_the_items_and_wraps
+
+== ui: menu keys up wraps to the first
+file: src/ui/menu.c
+-                         else if (--sel < 0)
+-                             sel = g_windows[top].nF;
++                         else if (--sel < 0)
++                             sel = 0;
+expect: ui_MenuUpdate_up_key_wraps_to_the_last_item
+
+== ui: menu keys down repeats while held
+file: src/ui/menu.c
+-                     g_keyLatch[K_VK_DOWN] = 0;
+-                 }
+-             } else {
+-                 g_keyLatch[K_VK_DOWN] = 1;
+-             }
+-         }
+-     }
+- }
++                 }
++             } else {
++                 g_keyLatch[K_VK_DOWN] = 1;
++             }
++         }
++     }
++ }
+expect: ui_MenuUpdate_holding_down_moves_once
+
+== ui: menu return ignores the checked item
+file: src/ui/menu.c
+-                     if (sel != -1) {
+-                         g_clickWin = top;
++                     if (sel == -2) {
++                         g_clickWin = top;
+expect: ui_MenuUpdate_return_activates_the_checked_item
+
+== ui: menu return without a check does nothing
+file: src/ui/menu.c
+-                         g_clickItem = g_windows[top].selF;
+-                     }
+-                     g_keyLatch[K_VK_RETURN] = 0;
++                         g_clickItem = -1;
++                     }
++                     g_keyLatch[K_VK_RETURN] = 0;
+expect: ui_MenuUpdate_return_without_a_check_activates_the_selected_item
+
+== ui: menu keys only see window 0
+file: src/ui/menu.c
+- for (int w = 0; w < MAX_WINDOWS - 1; w++) {
++ for (int w = 0; w < 1; w++) {
+expect: ui_MenuUpdate_keys_drive_the_topmost_window
+
+== ui: menu click ignores which item was pressed
+file: src/ui/menu.c
+-                         if (g_pressWin == g_windows[i].index
+-                             && g_pressItem == g_windows[i].menuItems[j].id) {
++                         if (g_pressWin == g_windows[i].index) {
+expect: ui_MenuUpdate_release_off_the_pressed_item_does_nothing
+
+== ui: menu hover not marked
+file: src/ui/menu.c
+-                         g_windows[i].menuItems[j].state = 1;
+-                         overItem = true;
++                         g_windows[i].menuItems[j].state = 0;
++                         overItem = true;
+expect: ui_MenuUpdate_hover_marks_the_item_under_the_mouse
+
+== ui: menu drag offset
+file: src/ui/menu.c
+- g_dragDX = g_mouseX - g_windows[i].x;
++ g_dragDX = g_mouseX - g_windows[i].x + 1;
+expect: ui_MenuUpdate_mouse_drag_moves_nothing_but_arms_drag
+
+== ui: menu click silent
+file: src/ui/menu.c
+- SoundPlay(g_sfxButtonClick, -1, 150, 0.0f, 127, g_sndFlags);
++ ;
+expect: ui_MenuUpdate_mouse_click_on_an_item_activates_it
+
+== ui: menu dismiss B keeps the window
+file: src/ui/menu.c
+-     if (g_clickItem == MENUID_DIALOG_DISMISS_B) {
+-         g_clickWin = -1;
+-         g_clickItem = -1;
+-         PlaySample();
+-         WinCloseAll();
++     if (g_clickItem == MENUID_DIALOG_DISMISS_B) {
++         g_clickWin = -1;
++         g_clickItem = -1;
++         PlaySample();
+expect: ui_MenuUpdate_return_without_a_check_activates_the_selected_item
+
+== ui: menu dialog NO keeps the windows
+file: src/ui/menu.c
+-     if (g_clickItem == MENUID_DIALOG_NO) {
+-         g_clickWin = -1;
+-         g_clickItem = -1;
+-         PlaySample();
+-         WinCloseAll();
++     if (g_clickItem == MENUID_DIALOG_NO) {
++         g_clickWin = -1;
++         g_clickItem = -1;
++         PlaySample();
+expect: ui_MenuUpdate_keys_drive_the_topmost_window
+
+# ---- src/ui/menu.c: MenuHandler hotkeys ----
+
+== ui: key 1 picks normal
+file: src/ui/menu.c
+-                     g_cfg.difficulty = DIFF_EASY;
+-                     g_hofMode = HOF_EASY;
+-                     g_keyLatch[K_VK_1] = 0;
++                     g_cfg.difficulty = DIFF_NORMAL;
++                     g_hofMode = HOF_EASY;
++                     g_keyLatch[K_VK_1] = 0;
+expect: ui_Menu_number_keys_pick_the_difficulty
+
+== ui: key 3 fps
+file: src/ui/menu.c
+-                     g_keyLatch[K_VK_3] = 0;
+-                     g_cfg.fps = FPS_HARD;
++                     g_keyLatch[K_VK_3] = 0;
++                     g_cfg.fps = FPS_NORMAL;
+expect: ui_Menu_number_keys_pick_the_difficulty
+
+== ui: key 4 fps
+file: src/ui/menu.c
+- g_cfg.fps = FPS_ACE_MENU;
++ g_cfg.fps = FPS_HARD;
+expect: ui_Menu_number_keys_pick_the_difficulty
+
+== ui: hotkeys with a window open
+file: src/ui/menu.c
+-     if (!AnyWindowHasEdit() && !AnyWindowActive()) {
+-         if (KeyDown(K_VK_1)) {
++     if (!AnyWindowHasEdit()) {
++         if (KeyDown(K_VK_1)) {
+expect: ui_Menu_hotkeys_are_ignored_while_a_window_is_open
+
+== ui: hotkeys while typing
+file: src/ui/menu.c
+-     if (!AnyWindowHasEdit() && !AnyWindowActive()) {
+-         if (KeyDown(K_VK_1)) {
++     if (1) {
++         if (KeyDown(K_VK_1)) {
+expect: ui_Menu_hotkeys_are_off_while_typing
+
+== ui: H shows the normal table
+file: src/ui/menu.c
+-                 g_hofMode = g_cfg.difficulty;
+-                 g_keyLatch[K_VK_H] = 0;
++                 g_hofMode = HOF_NORMAL;
++                 g_keyLatch[K_VK_H] = 0;
+expect: ui_Menu_H_shows_the_hall_of_fame_for_the_difficulty
+
+== ui: up passes the last table
+file: src/ui/menu.c
+- if (g_hofMode < HOF_TIME_TRIAL) g_hofMode++;
++ if (g_hofMode <= HOF_TIME_TRIAL) g_hofMode++;
+expect: ui_Menu_up_and_down_browse_the_hall_of_fame_tables
+
+== ui: down passes the first table
+file: src/ui/menu.c
+- if (g_hofMode > HOF_EASY) g_hofMode--;
++ if (g_hofMode >= HOF_EASY) g_hofMode--;
+expect: ui_Menu_up_and_down_browse_the_hall_of_fame_tables
+
+== ui: page up past 255
+file: src/ui/menu.c
+-             g_cfg.sfxVol++;
+-             if (g_cfg.sfxVol > 255) g_cfg.sfxVol = 255;
++             g_cfg.sfxVol++;
++             if (g_cfg.sfxVol > 256) g_cfg.sfxVol = 256;
+expect: ui_Menu_page_keys_change_the_sfx_volume_per_frame
+
+== ui: page down below 0
+file: src/ui/menu.c
+- if (--g_cfg.sfxVol < 0) g_cfg.sfxVol = 0;
++ --g_cfg.sfxVol;
+expect: ui_Menu_page_keys_change_the_sfx_volume_per_frame
+
+== ui: SetSfxVolume table rounds
+file: src/audio/sound.c
+- g_sfxVolTable[i] = (int)(i * scale);
++ g_sfxVolTable[i] = (int)(i * scale + 0.5);
+expect: ui_SetSfxVolume_scales_the_table
+
+== ui: plus past 255
+file: src/ui/menu.c
+-             g_cfg.musicVolume++;
+-             if (g_cfg.musicVolume > 255) g_cfg.musicVolume = 255;
++             g_cfg.musicVolume++;
+expect: ui_Menu_plus_minus_change_the_music_volume
+
+== ui: minus below 0
+file: src/ui/menu.c
+- if (--g_cfg.musicVolume < 0) g_cfg.musicVolume = 0;
++ --g_cfg.musicVolume;
+expect: ui_Menu_plus_minus_change_the_music_volume
+
+== ui: end below 0
+file: src/ui/menu.c
+- if (--g_cfg.musicVol < 0) g_cfg.musicVol = 0;
++ --g_cfg.musicVol;
+expect: ui_Menu_home_end_change_the_voice_volume_table
+
+== ui: home past 255
+file: src/ui/menu.c
+-             g_cfg.musicVol++;
+-
+-             if (g_cfg.musicVol > 255) g_cfg.musicVol = 255;
++             g_cfg.musicVol++;
+expect: ui_Menu_home_end_change_the_voice_volume_table
+
+== ui: SetMusicVolTable rounds
+file: src/audio/music.c
+- g_musVolTable[i] = (int)(i * scale);
++ g_musVolTable[i] = (int)(i * scale + 0.5);
+expect: ui_SetSfxVolume_scales_the_table
+
+== ui: N step
+file: src/ui/menu.c
+- g_cfg.numStars += 10.0;
++ g_cfg.numStars += 5.0;
+expect: ui_Menu_N_changes_the_star_count
+
+== ui: shift N step
+file: src/ui/menu.c
+- g_cfg.numStars -= 10.0;
++ g_cfg.numStars -= 5.0;
+expect: ui_Menu_N_changes_the_star_count
+
+== ui: N clamp
+file: src/ui/menu.c
+-             if (g_cfg.numStars > 3000.0) g_cfg.numStars = 3000.0f;
+-         }
+-         if (KeyDown(K_VK_N)
++         }
++         if (KeyDown(K_VK_N)
+expect: ui_Menu_N_changes_the_star_count
+
+== ui: B border cycle
+file: src/ui/menu.c
+-                     if (g_cfg.borderMode == BORDER_BLACK) {
+-                         g_cfg.borderMode = BORDER_ON;
++                     if (g_cfg.borderMode == BORDER_BLACK) {
++                         g_cfg.borderMode = BORDER_OFF;
+expect: ui_Menu_B_cycles_the_border_mode
+
+== ui: B repeats while held
+file: src/ui/menu.c
+-                     g_keyLatch[K_VK_B] = 0;
+-                     PlayClick();
++                     PlayClick();
+expect: ui_Menu_B_cycles_the_border_mode
+
+== ui: shift B ladder skips 100
+file: src/ui/menu.c
+-                     case 85: g_cfg.bgTint = 100; break;
++                     case 85: g_cfg.bgTint = BG_BRIGHTNESS_MAX; break;
+expect: ui_Menu_shift_B_cycles_the_background_brightness
+
+== ui: shift B ladder default
+file: src/ui/menu.c
+-                     case BG_BRIGHTNESS_MAX: g_cfg.bgTint = BG_BRIGHTNESS_MIN; break;
+-                     default: g_cfg.bgTint = BG_BRIGHTNESS_MIN;
++                     case BG_BRIGHTNESS_MAX: g_cfg.bgTint = BG_BRIGHTNESS_MIN; break;
++                     default: g_cfg.bgTint = BG_BRIGHTNESS_DEFAULT;
+expect: ui_Menu_shift_B_cycles_the_background_brightness
+
+== ui: alt B only switches on
+file: src/ui/menu.c
+-                     if (g_cfg.bgEnabled == 0) g_cfg.bgEnabled = 1;
+-                     else g_cfg.bgEnabled = 0;
++                     if (g_cfg.bgEnabled == 0) g_cfg.bgEnabled = 1;
++                     else g_cfg.bgEnabled = 1;
+expect: ui_Menu_alt_B_toggles_the_background
+
+== ui: U only switches on
+file: src/ui/menu.c
+-                 g_cfg.sfxOn = !g_cfg.sfxOn;
+-                 g_keyLatch[K_VK_U] = 0;
++                 g_cfg.sfxOn = 1;
++                 g_keyLatch[K_VK_U] = 0;
+expect: ui_Menu_U_toggles_the_announcer
+
+== ui: W fullscreen inverted
+file: src/ui/menu.c
+-                 SysSetFullscreen(!g_cfg.windowed);
+-
+-                 g_keyLatch[K_VK_W] = 0;
++                 SysSetFullscreen(g_cfg.windowed);
++
++                 g_keyLatch[K_VK_W] = 0;
+expect: ui_Menu_W_toggles_windowed_and_saves_the_settings
+
+== ui: W doesn't save
+file: src/ui/menu.c
+-                 g_keyLatch[K_VK_W] = 0;
+-                 MergeSettings(g_profileIndex);
+-                 WriteSettings();
++                 g_keyLatch[K_VK_W] = 0;
++                 MergeSettings(g_profileIndex);
+expect: ui_Menu_W_toggles_windowed_and_saves_the_settings
+
+== ui: C key ignored
+file: src/ui/menu.c
+- if (KeyDown(K_VK_C)) {
++ if (KeyDown(K_VK_C) && 0) {
+expect: ui_Menu_C_F_I_Z_toggle_once_per_transition_lock
+
+== ui: C key doesn't lock
+file: src/ui/menu.c
+-             g_transitionLock = 1;
+-         }
+-
+-         if (g_clicked == MENUID_PARTICLES_PREV
++         }
++
++         if (g_clicked == MENUID_PARTICLES_PREV
+expect: ui_Menu_C_F_I_Z_toggle_once_per_transition_lock
+
+== ui: F only switches off
+file: src/ui/menu.c
+-             g_cfg.particlesOn = !g_cfg.particlesOn;
++             g_cfg.particlesOn = 0;
+expect: ui_Menu_C_F_I_Z_toggle_once_per_transition_lock
+
+== ui: bullet intensity wraps early
+file: src/ui/menu.c
+- if (g_cfg.bulletIntensity > BULLETS_FLARE_FX) g_cfg.bulletIntensity = BULLETS_NORMAL;
++ if (g_cfg.bulletIntensity >= BULLETS_FLARE_FX) g_cfg.bulletIntensity = BULLETS_NORMAL;
+expect: ui_Menu_C_F_I_Z_toggle_once_per_transition_lock
+
+== ui: Z star style swapped
+file: src/ui/menu.c
+-             if (g_cfg.bgStars != 0) g_fnPtr = DrawStarsPlayer;
+-             else g_fnPtr = DrawStarsGlow;
++             if (g_cfg.bgStars == 0) g_fnPtr = DrawStarsPlayer;
++             else g_fnPtr = DrawStarsGlow;
+expect: ui_Menu_C_F_I_Z_toggle_once_per_transition_lock
+
+== ui: spark step
+file: src/ui/menu.c
+- g_cfg.sparks += 2.0;
++ g_cfg.sparks += 3.0;
+expect: ui_Menu_E_changes_the_spark_count
+expect: ui_Menu_spark_arrows
+
+== ui: spark lower clamp
+file: src/ui/menu.c
+- if (g_cfg.sparks < 10.0) g_cfg.sparks = 10.0f;
++ if (g_cfg.sparks < 8.0) g_cfg.sparks = 8.0f;
+expect: ui_Menu_E_changes_the_spark_count
+
+== ui: spark max count
+file: src/ui/menu.c
+-         if (g_cfg.sparks > 150.0) g_cfg.sparks = 150.0f;
+-         g_maxSparks = ((int)g_cfg.sparks >> 1) < 5 ? 5 : (int)g_cfg.sparks >> 1;
++         if (g_cfg.sparks > 150.0) g_cfg.sparks = 150.0f;
++         g_maxSparks = ((int)g_cfg.sparks >> 2) < 5 ? 5 : (int)g_cfg.sparks >> 2;
+expect: ui_Menu_E_changes_the_spark_count
+
+== ui: alt M only switches on
+file: src/ui/menu.c
+-                     g_cfg.shuffle = !g_cfg.shuffle;
+-                     if (g_profileIndex != -1
++                     g_cfg.shuffle = 1;
++                     if (g_profileIndex != -1
+expect: ui_Menu_alt_M_toggles_shuffle
+
+== ui: music format without playlist goes to mp3
+file: src/audio/music.c
+-         if (g_playlistBuf != 0)
+-             g_cfg.musicFormat = 2;
+-         else
+-             g_cfg.musicFormat = 0;
++         if (g_playlistBuf != 0)
++             g_cfg.musicFormat = 2;
++         else
++             g_cfg.musicFormat = 1;
+expect: ui_Menu_M_cycles_the_music_format
+
+== ui: music format doesn't restart the music
+file: src/audio/music.c
+-         g_cfg.musicFormat = 0;
+-     }
+-     StartMusic();
++         g_cfg.musicFormat = 0;
++     }
+expect: ui_Menu_M_cycles_the_music_format
+
+== ui: swap bindings keeps left
+file: src/ui/controls.c
+-     t = g_cfg.BV(0x98); g_cfg.BV(0x98) = g_cfg.BV(0x9c); g_cfg.BV(0x9c) = t;
++     ;
+expect: ui_Menu_T_swaps_the_players_bindings
+
+== ui: swap bindings keeps devices
+file: src/ui/controls.c
+-     t2 = g_cfg.BV(0x78); g_cfg.BV(0x78) = g_cfg.BV(0x7c); g_cfg.BV(0x7c) = t2;
++     ;
+expect: ui_Menu_T_swaps_the_players_bindings
+
+== ui: right arrow doesn't advance
+file: src/ui/menu.c
+-                 g_titleResetPending = 1;
+-                 g_save.players[0].keyLatchFire = 0;
++                 g_save.players[0].keyLatchFire = 0;
+expect: ui_Menu_right_arrow_advances_the_attract_screen
+
+== ui: about screen timeout
+file: src/ui/menu.c
+-         case ATTRACT_ABOUT:
+-             g_idleTimeoutMs = 30000;
++         case ATTRACT_ABOUT:
++             g_idleTimeoutMs = 20000;
+expect: ui_Menu_right_arrow_advances_the_attract_screen
+
+== ui: F9 keeps the cursor
+file: src/ui/menu.c
+-                 g_cursor = 0;
+-                 g_state = STATE_INPUT_CONFIG;
+-                 g_f9KeyLatch = 0;
++                 g_state = STATE_INPUT_CONFIG;
++                 g_f9KeyLatch = 0;
+expect: ui_Menu_F9_opens_the_input_configuration
+
+== ui: F9 and CONFIG ignored
+file: src/ui/menu.c
+- if (g_clicked == MENUID_CONFIG || KeyDown(K_VK_F9)) {
++ if (0) {
+expect: ui_Menu_F9_opens_the_input_configuration
+expect: ui_Menu_config_entry_opens_the_input_configuration
+
+== ui: CONFIG entry ignored
+file: src/ui/menu.c
+- if (g_clicked == MENUID_CONFIG || KeyDown(K_VK_F9)) {
++ if (KeyDown(K_VK_F9)) {
+expect: ui_Menu_config_entry_opens_the_input_configuration
+
+# ---- src/ui/menu.c: starting games ----
+
+== ui: space ignores the transition lock
+file: src/ui/menu.c
+-             && !KeyDown(K_VK_ESCAPE) && g_transitionLock == 0) {
+-             if (g_autoplay) {
++             && !KeyDown(K_VK_ESCAPE)) {
++             if (g_autoplay) {
+expect: ui_Menu_space_waits_for_the_transition_lock
+
+== ui: space doesn't start
+file: src/ui/menu.c
+-             g_timeTrialDeadline = g_time + TIME_TRIAL_DURATION_MS;
+-             NewGame(1);
+-             return;
+-         }
+-
+-         if (KeyDown(K_VK_F1)
++             g_timeTrialDeadline = g_time + TIME_TRIAL_DURATION_MS;
++             return;
++         }
++
++         if (KeyDown(K_VK_F1)
+expect: ui_Menu_space_starts_a_game
+
+== ui: time trial duration
+file: src/ui/menu.c
+- TIME_TRIAL_DURATION_MS = 181000,
++ TIME_TRIAL_DURATION_MS = 180000,
+expect: ui_Menu_space_starts_a_game
+
+== ui: F2 starts a duel
+file: src/ui/menu.c
+-             g_gameMode = MODE_TWO_PLAYER;
+-             Logout();
+-             g_hofMode = g_cfg.difficulty;
++             g_gameMode = MODE_DUAL;
++             Logout();
++             g_hofMode = g_cfg.difficulty;
+expect: ui_Menu_F2_and_F3_start_two_player_games
+
+== ui: F3 starts two players
+file: src/ui/menu.c
+-             g_gameMode = MODE_DUAL;
+-             Logout();
+-             g_hofMode = g_cfg.difficulty;
++             g_gameMode = MODE_TWO_PLAYER;
++             Logout();
++             g_hofMode = g_cfg.difficulty;
+expect: ui_Menu_F3_starts_a_duel
+
+== ui: F1 table
+file: src/ui/menu.c
+-             g_gameMode = MODE_SINGLE;
+-             g_hofMode = g_cfg.difficulty;
+-             NewGame(1);
++             g_gameMode = MODE_SINGLE;
++             g_hofMode = HOF_NORMAL;
++             NewGame(1);
+expect: ui_Menu_F1_starts_single_player_at_the_difficulty_table
+
+== ui: idle timeout late
+file: src/ui/menu.c
+- if ((g_clicked == MENUID_DEMO_GAME || g_time > g_menuIdleTimeout) && !KeyDown(K_VK_ESCAPE)) {
++ if ((g_clicked == MENUID_DEMO_GAME || g_time > g_menuIdleTimeout + 1000) && !KeyDown(K_VK_ESCAPE)) {
+expect: ui_Menu_idle_timeout_starts_the_demo
+
+== ui: idle timeout plays a normal game
+file: src/ui/menu.c
+-             g_playerUpdateFn = StateDemo;
+-             PlayClick();
++             PlayClick();
+expect: ui_Menu_idle_timeout_starts_the_demo
+
+== ui: START label ignored
+file: src/ui/menu.c
+- if ((g_clicked == MENUID_START || g_clicked == MENUID_START_1P) && !KeyDown(K_VK_ESCAPE)) {
++ if ((g_clicked == MENUID_START_1P) && !KeyDown(K_VK_ESCAPE)) {
+expect: ui_Menu_click_START_starts_a_game
+
+== ui: duel entry starts two players
+file: src/ui/menu.c
+-             g_gameMode = MODE_DUAL;
+-             NewGame(1);
++             g_gameMode = MODE_TWO_PLAYER;
++             NewGame(1);
+expect: ui_Menu_START_submenu_shows_on_hover
+
+== ui: submenu not revealed
+file: src/ui/menu.c
+-                             if (g_menuEntries[k].parent == g_menuEntries[j].group && g_menuEntries[k].active)
+-                                 g_menuEntries[k].visible = 1;
++                             if (g_menuEntries[k].parent == g_menuEntries[j].group && g_menuEntries[k].active)
++                                 g_menuEntries[k].visible = 0;
+expect: ui_Menu_START_submenu_shows_on_hover
+
+== ui: submenu stays open
+file: src/ui/menu.c
+-     if (!hit) {
+-         for (a = 0; a < MAX_MENU_ENTRIES; a++) {
++     if (0) {
++         for (a = 0; a < MAX_MENU_ENTRIES; a++) {
+expect: ui_Menu_submenu_hides_when_the_mouse_leaves
+
+# ---- src/ui/menu.c: menu entries and the settings page ----
+
+== ui: ABOUT opens the mission
+file: src/ui/menu.c
+-             g_attractScreen = ATTRACT_ABOUT;
+-             g_idleTimeoutMs = 60000;
++             g_attractScreen = ATTRACT_MISSION;
++             g_idleTimeoutMs = 60000;
+expect: ui_Menu_click_ABOUT_STORY_BONUSES_pick_the_attract_screen
+
+== ui: STORY opens about
+file: src/ui/menu.c
+-             g_attractScreen = ATTRACT_MISSION;
+-             g_idleTimeoutMs = 60000;
++             g_attractScreen = ATTRACT_ABOUT;
++             g_idleTimeoutMs = 60000;
+expect: ui_Menu_click_ABOUT_STORY_BONUSES_pick_the_attract_screen
+
+== ui: BONUSES opens the controls
+file: src/ui/menu.c
+-             g_attractScreen = ATTRACT_HELP_BONUSES;
+-             g_idleTimeoutMs = 60000;
++             g_attractScreen = ATTRACT_HELP_CONTROLS;
++             g_idleTimeoutMs = 60000;
+expect: ui_Menu_click_ABOUT_STORY_BONUSES_pick_the_attract_screen
+
+== ui: HISCORE table
+file: src/ui/menu.c
+-             g_idleTimeoutMs = 60000;
+-             g_hofMode = g_cfg.difficulty;
+-         }
++             g_idleTimeoutMs = 60000;
++             g_hofMode = HOF_NORMAL;
++         }
+expect: ui_Menu_click_HISCORE_entries_pick_the_table
+
+== ui: HOF meteorstorm entry
+file: src/ui/menu.c
+- g_hofMode = HOF_METEORSTORM;
++ g_hofMode = HOF_ACE;
+expect: ui_Menu_click_HISCORE_entries_pick_the_table
+
+== ui: settings page never shown
+file: src/ui/menu.c
+-         if (g_menuEntries[i].page == page && g_menuEntries[i].parent == -1)
+-             g_menuEntries[i].visible = 1;
++         if (g_menuEntries[i].page == page && g_menuEntries[i].parent == -1)
++             ;
+expect: ui_Menu_settings_entries_only_take_clicks_on_the_settings_page
+
+== ui: hidden entries take clicks
+file: src/ui/menu.c
+-                 g_menuEntries[i].visible != 0) {
+-                 g_pressed = g_menuEntries[i].group;
+-                 g_mouseClick = 1;
+-                 break;
+-             }
+-         }
+-     }
+-
+-     if (g_mouseClick != 0 && g_pressed != -1) {
+-         for (i = 0; i < MAX_MENU_ENTRIES; i++) {
+-             if (g_mouseX >= g_menuEntries[i].x &&
+-                 g_mouseX < g_menuEntries[i].x + g_menuEntries[i].w &&
+-                 g_mouseY >= g_menuEntries[i].y &&
+-                 g_mouseY < g_menuEntries[i].y + g_menuEntries[i].h &&
+-                 g_menuEntries[i].visible != 0 &&
++                 1) {
++                 g_pressed = g_menuEntries[i].group;
++                 g_mouseClick = 1;
++                 break;
++             }
++         }
++     }
++
++     if (g_mouseClick != 0 && g_pressed != -1) {
++         for (i = 0; i < MAX_MENU_ENTRIES; i++) {
++             if (g_mouseX >= g_menuEntries[i].x &&
++                 g_mouseX < g_menuEntries[i].x + g_menuEntries[i].w &&
++                 g_mouseY >= g_menuEntries[i].y &&
++                 g_mouseY < g_menuEntries[i].y + g_menuEntries[i].h &&
+expect: ui_Menu_settings_entries_only_take_clicks_on_the_settings_page
+
+== ui: difficulty next past ace
+file: src/ui/menu.c
+- if (g_cfg.difficulty < DIFF_ACE) {
++ if (g_cfg.difficulty <= DIFF_ACE) {
+expect: ui_Menu_difficulty_arrows_clamp
+
+== ui: difficulty prev below easy
+file: src/ui/menu.c
+-             if (g_cfg.difficulty > DIFF_EASY) {
+-                 PlayClick();
++             if (g_cfg.difficulty >= DIFF_EASY) {
++                 PlayClick();
+expect: ui_Menu_difficulty_arrows_clamp
+
+== ui: menu entries ignore the transition lock
+file: src/ui/menu.c
+-     if (g_transitionLock == 0 && !AnyWindowHasEdit()) {
++     if (!AnyWindowHasEdit()) {
+expect: ui_Menu_difficulty_arrows_clamp
+
+== ui: music volume step
+file: src/ui/menu.c
+- g_cfg.musicVolume += 4;
++ g_cfg.musicVolume += 5;
+expect: ui_Menu_volume_entries_mute_step_and_max
+
+== ui: music volume down step
+file: src/ui/menu.c
+- if ((g_cfg.musicVolume -= 4) < 0) g_cfg.musicVolume = 0;
++ if ((g_cfg.musicVolume -= 3) < 0) g_cfg.musicVolume = 0;
+expect: ui_Menu_volume_entries_mute_step_and_max
+
+== ui: music volume max
+file: src/ui/menu.c
+-             g_cfg.musicVolume = 255;
+-             ApplyMusicVolume();
+-             g_transitionLockUntil = g_time + TRANSITION_LOCK_MS;
++             g_cfg.musicVolume = 250;
++             ApplyMusicVolume();
++             g_transitionLockUntil = g_time + TRANSITION_LOCK_MS;
+expect: ui_Menu_volume_entries_mute_step_and_max
+
+== ui: music volume mute
+file: src/ui/menu.c
+-             g_cfg.musicVolume = 0;
+-             ApplyMusicVolume();
++             g_cfg.musicVolume = 1;
++             ApplyMusicVolume();
+expect: ui_Menu_volume_entries_mute_step_and_max
+
+== ui: sfx volume down clamp
+file: src/ui/menu.c
+- if ((g_cfg.sfxVol -= 4) < 0) g_cfg.sfxVol = 0;
++ if ((g_cfg.sfxVol -= 4) < -5) g_cfg.sfxVol = 0;
+expect: ui_Menu_volume_entries_mute_step_and_max
+
+== ui: sfx volume max
+file: src/ui/menu.c
+-             g_cfg.sfxVol = 255;
+-             SetSfxVolume(g_cfg.sfxVol);
+-             g_transitionLockUntil = g_time + TRANSITION_LOCK_MS;
++             g_cfg.sfxVol = 254;
++             SetSfxVolume(g_cfg.sfxVol);
++             g_transitionLockUntil = g_time + TRANSITION_LOCK_MS;
+expect: ui_Menu_volume_entries_mute_step_and_max
+
+== ui: sfx volume up clamp
+file: src/ui/menu.c
+-             if (g_cfg.sfxVol > 255) g_cfg.sfxVol = 255;
+-             SetSfxVolume(g_cfg.sfxVol);
+-             g_transitionLockUntil = g_time + TRANSITION_LOCK_FAST_MS;
++             SetSfxVolume(g_cfg.sfxVol);
++             g_transitionLockUntil = g_time + TRANSITION_LOCK_FAST_MS;
+expect: ui_Menu_volume_entries_mute_step_and_max
+
+== ui: sfx volume mute
+file: src/ui/menu.c
+-             g_cfg.sfxVol = 0;
+-             SetSfxVolume(g_cfg.sfxVol);
++             g_cfg.sfxVol = 1;
++             SetSfxVolume(g_cfg.sfxVol);
+expect: ui_Menu_volume_entries_mute_step_and_max
+
+== ui: voice volume up step
+file: src/ui/menu.c
+- g_cfg.musicVol += 4;
++ g_cfg.musicVol += 1;
+expect: ui_Menu_volume_entries_mute_step_and_max
+
+== ui: voice volume down step
+file: src/ui/menu.c
+- if ((g_cfg.musicVol -= 4) < 0) g_cfg.musicVol = 0;
++ if ((g_cfg.musicVol -= 5) < 0) g_cfg.musicVol = 0;
+expect: ui_Menu_volume_entries_mute_step_and_max
+
+== ui: voice volume mute
+file: src/ui/menu.c
+-             g_cfg.musicVol = 0;
+-             SetMusicVolTable(g_cfg.musicVol);
++             g_cfg.musicVol = 10;
++             SetMusicVolTable(g_cfg.musicVol);
+expect: ui_Menu_volume_entries_mute_step_and_max
+
+== ui: voice volume max
+file: src/ui/menu.c
+-             g_cfg.musicVol = 255;
+-             SetMusicVolTable(g_cfg.musicVol);
+-             g_transitionLockUntil = g_time + TRANSITION_LOCK_MS;
++             g_cfg.musicVol = 250;
++             SetMusicVolTable(g_cfg.musicVol);
++             g_transitionLockUntil = g_time + TRANSITION_LOCK_MS;
+expect: ui_Menu_volume_entries_mute_step_and_max
+
+== ui: music volume down no clamp
+file: src/ui/menu.c
+- if ((g_cfg.musicVolume -= 4) < 0) g_cfg.musicVolume = 0;
++ g_cfg.musicVolume -= 4;
+expect: ui_Menu_volume_down_clamps_at_zero
+
+== ui: voice volume down no clamp
+file: src/ui/menu.c
+- if ((g_cfg.musicVol -= 4) < 0) g_cfg.musicVol = 0;
++ g_cfg.musicVol -= 4;
+expect: ui_Menu_volume_down_clamps_at_zero
+
+== ui: music volume up no clamp
+file: src/ui/menu.c
+-             if (g_cfg.musicVolume > 255) g_cfg.musicVolume = 255;
+-             ApplyMusicVolume();
+-             g_transitionLockUntil = g_time + TRANSITION_LOCK_FAST_MS;
++             ApplyMusicVolume();
++             g_transitionLockUntil = g_time + TRANSITION_LOCK_FAST_MS;
+expect: ui_Menu_volume_down_clamps_at_zero
+
+== ui: sfx toggle entry only switches on
+file: src/ui/menu.c
+-             g_cfg.sfxOn = !g_cfg.sfxOn;
+-             PlayClick();
++             g_cfg.sfxOn = 1;
++             PlayClick();
+expect: ui_Menu_toggle_entries
+
+== ui: border entry cycle
+file: src/ui/menu.c
+-             if (g_cfg.borderMode == BORDER_BLACK) {
+-                 g_cfg.borderMode = BORDER_ON;
++             if (g_cfg.borderMode == BORDER_BLACK) {
++                 g_cfg.borderMode = BORDER_OFF;
+expect: ui_Menu_toggle_entries
+
+== ui: background entry only switches on
+file: src/ui/menu.c
+-             if (g_cfg.bgEnabled == 0) g_cfg.bgEnabled = 1;
+-             else g_cfg.bgEnabled = 0;
+-             PlayClick();
++             if (g_cfg.bgEnabled == 0) g_cfg.bgEnabled = 1;
++             else g_cfg.bgEnabled = 1;
++             PlayClick();
+expect: ui_Menu_toggle_entries
+
+== ui: collision prev only goes normal
+file: src/ui/menu.c
+-             else g_cfg.collisionDetail = COLLISION_SIMPLE;
+-             g_transitionLockUntil = g_time + TRANSITION_LOCK_MS;
+-             g_transitionLock = 1;
+-         }
+-         if (g_clicked == MENUID_COLLISION_DETAIL_NEXT) {
++             else g_cfg.collisionDetail = COLLISION_NORMAL;
++             g_transitionLockUntil = g_time + TRANSITION_LOCK_MS;
++             g_transitionLock = 1;
++         }
++         if (g_clicked == MENUID_COLLISION_DETAIL_NEXT) {
+expect: ui_Menu_toggle_entries
+
+== ui: particles prev ignored
+file: src/ui/menu.c
+- if (g_clicked == MENUID_PARTICLES_PREV || g_clicked == MENUID_PARTICLES_NEXT ||
++ if (g_clicked == MENUID_PARTICLES_NEXT ||
+expect: ui_Menu_toggle_entries
+
+== ui: bullets prev ignored
+file: src/ui/menu.c
+- if (g_clicked == MENUID_BULLET_INTENSITY_PREV || g_clicked == MENUID_BULLET_INTENSITY_NEXT || KeyDown(K_VK_I)) {
++ if (g_clicked == MENUID_BULLET_INTENSITY_NEXT || KeyDown(K_VK_I)) {
+expect: ui_Menu_toggle_entries
+
+== ui: star style next ignored
+file: src/ui/menu.c
+- if (g_clicked == MENUID_BG_STARS_PREV || g_clicked == MENUID_BG_STARS_NEXT || KeyDown(K_VK_Z)) {
++ if (g_clicked == MENUID_BG_STARS_PREV || KeyDown(K_VK_Z)) {
+expect: ui_Menu_toggle_entries
+
+== ui: brightness prev skips 85
+file: src/ui/menu.c
+- case 100: g_cfg.bgTint = 85; break;
++ case 100: g_cfg.bgTint = BG_BRIGHTNESS_PRESET; break;
+expect: ui_Menu_brightness_arrows_walk_the_ladder
+
+== ui: brightness prev stops at min
+file: src/ui/menu.c
+- case BG_BRIGHTNESS_MIN: g_cfg.bgTint = BG_BRIGHTNESS_MAX; break;
++ case BG_BRIGHTNESS_MIN: g_cfg.bgTint = BG_BRIGHTNESS_MIN; break;
+expect: ui_Menu_brightness_arrows_walk_the_ladder
+
+== ui: brightness next from min
+file: src/ui/menu.c
+-             case BG_BRIGHTNESS_MIN: g_cfg.bgTint = BG_BRIGHTNESS_DEFAULT; break;
+-             case BG_BRIGHTNESS_DEFAULT: g_cfg.bgTint = BG_BRIGHTNESS_PRESET; break;
+-             case BG_BRIGHTNESS_PRESET: g_cfg.bgTint = 85; break;
+-             case 85: g_cfg.bgTint = 100; break;
+-             case 100: g_cfg.bgTint = BG_BRIGHTNESS_MAX; break;
+-             case BG_BRIGHTNESS_MAX: g_cfg.bgTint = BG_BRIGHTNESS_MIN; break;
++             case BG_BRIGHTNESS_MIN: g_cfg.bgTint = BG_BRIGHTNESS_PRESET; break;
++             case BG_BRIGHTNESS_DEFAULT: g_cfg.bgTint = BG_BRIGHTNESS_PRESET; break;
++             case BG_BRIGHTNESS_PRESET: g_cfg.bgTint = 85; break;
++             case 85: g_cfg.bgTint = 100; break;
++             case 100: g_cfg.bgTint = BG_BRIGHTNESS_MAX; break;
++             case BG_BRIGHTNESS_MAX: g_cfg.bgTint = BG_BRIGHTNESS_MIN; break;
+expect: ui_Menu_brightness_arrows_walk_the_ladder
+
+== ui: star arrows step
+file: src/ui/menu.c
+- g_cfg.numStars += 25.0;
++ g_cfg.numStars += 20.0;
+expect: ui_Menu_star_count_arrows
+
+== ui: star arrows lower clamp
+file: src/ui/menu.c
+-             g_cfg.numStars -= 25.0;
+-
+-             if (g_cfg.numStars < 50.0) g_cfg.numStars = 50.0f;
++             g_cfg.numStars -= 25.0;
++
++             if (g_cfg.numStars < 30.0) g_cfg.numStars = 50.0f;
+expect: ui_Menu_star_count_arrows
+
+== ui: star arrows upper clamp
+file: src/ui/menu.c
+-             if (g_cfg.numStars > 3000.0) g_cfg.numStars = 3000.0f;
+-             g_transitionLockUntil = g_time + TRANSITION_LOCK_FAST_MS;
++             g_transitionLockUntil = g_time + TRANSITION_LOCK_FAST_MS;
+expect: ui_Menu_star_count_arrows
+
+== ui: alien buffer lower clamp
+file: src/ui/menu.c
+- if (g_cfg.alienBuffer < 5) g_cfg.alienBuffer = 5;
+-             g_transitionLockUntil = g_time + 62;
++ g_transitionLockUntil = g_time + 62;
+expect: ui_Menu_alien_buffer_arrows_need_a_restart
+
+== ui: alien buffer upper clamp
+file: src/ui/menu.c
+- if (g_cfg.alienBuffer > 100) g_cfg.alienBuffer = 100;
++ if (g_cfg.alienBuffer > 101) g_cfg.alienBuffer = 101;
+expect: ui_Menu_alien_buffer_arrows_need_a_restart
+
+== ui: alien buffer no restart
+file: src/ui/menu.c
+-             g_restartNeeded = 1;
+-             g_memUntil = g_time + 10000;
+-         }
+-         if (g_clicked == MENUID_ALIEN_BUFFER_UP) {
++             g_memUntil = g_time + 10000;
++         }
++         if (g_clicked == MENUID_ALIEN_BUFFER_UP) {
+expect: ui_Menu_alien_buffer_arrows_need_a_restart
+
+== ui: spark arrows down step
+file: src/ui/menu.c
+- g_cfg.sparks -= 2.0;
++ g_cfg.sparks -= 1.0;
+expect: ui_Menu_spark_arrows
+
+== ui: shuffle keeps the old label
+file: src/ui/menu.c
+-             InitMenu();
+-             g_mouseClick = 0;
++             g_mouseClick = 0;
+expect: ui_Menu_shuffle_entry_rebuilds_the_menu_label
+
+== ui: screenmode entry inverted
+file: src/ui/menu.c
+-             SysSetFullscreen(!g_cfg.windowed);
+-
+-             MergeSettings(g_profileIndex);
++             SysSetFullscreen(g_cfg.windowed);
++
++             MergeSettings(g_profileIndex);
+expect: ui_Menu_screenmode_entry_toggles_fullscreen
+
+== ui: vsync and interpolation entries swapped
+file: src/ui/menu.c
+-             if (g_clicked == MENUID_TOGGLE_VSYNC)
+-                 ToggleVSync();
+-             else
+-                 CycleInterpolation();
++             if (g_clicked != MENUID_TOGGLE_VSYNC)
++                 ToggleVSync();
++             else
++                 CycleInterpolation();
+expect: ui_Menu_vsync_and_interpolation_entries
+
+== ui: S key ignored
+file: src/ui/menu.c
+-                 CycleInterpolation();
+-                 g_keyLatch[K_VK_S] = 0;
++                 g_keyLatch[K_VK_S] = 0;
+expect: ui_Menu_S_cycles_interpolation_and_alt_V_toggles_vsync
+
+== ui: alt V ignored
+file: src/ui/menu.c
+-             ToggleVSync();
+-             g_keyLatch[K_VK_V] = 0;
++             g_keyLatch[K_VK_V] = 0;
+expect: ui_Menu_S_cycles_interpolation_and_alt_V_toggles_vsync
+
+# ---- src/ui/menu.c: quit dialogs ----
+
+== ui: escape opens no dialog
+file: src/ui/menu.c
+-                 g_buttonsOn = 1;
+-                 QuitToWindowsDialog();
++                 g_buttonsOn = 1;
+expect: ui_Menu_escape_opens_the_quit_dialog_and_closes_it_again
+
+== ui: escape doesn't close windows
+file: src/ui/menu.c
+-             } else {
+-                 WinCloseAll();
+-                 g_profileWinOpen = false;
+-                 g_buttonsOn = 0;
++             } else {
++                 g_profileWinOpen = false;
++                 g_buttonsOn = 0;
+expect: ui_Menu_escape_opens_the_quit_dialog_and_closes_it_again
+
+== ui: quit dialog nothing checked
+file: src/ui/menu.c
+-     WinSetSelected(g_curWin, MENUID_QUIT_TO_WINDOWS_YES);
+-     WinCheckMenuItem(g_curWin, MENUID_QUIT_TO_WINDOWS_YES);
++     WinSetSelected(g_curWin, MENUID_QUIT_TO_WINDOWS_YES);
+expect: ui_Menu_escape_opens_the_quit_dialog_and_closes_it_again
+
+== ui: quit dialog wording inverted
+file: src/ui/menu.c
+-     if (g_state != STATE_TITLE)
+-         WinAddMenuItem(POS_CENTERED, 60, g_curWin, MENUID_QUIT_TO_WINDOWS_NO, "  NO!! CONTINUE GAME  ", 3);
++     if (g_state == STATE_TITLE)
++         WinAddMenuItem(POS_CENTERED, 60, g_curWin, MENUID_QUIT_TO_WINDOWS_NO, "  NO!! CONTINUE GAME  ", 3);
+expect: ui_QuitToWindowsDialog_wording_in_a_game
+expect: ui_Menu_escape_opens_the_quit_dialog_and_closes_it_again
+
+== ui: quit dialog NO stays open
+file: src/ui/menu.c
+-     if (g_clickItem == MENUID_QUIT_TO_WINDOWS_NO) {
+-         if (g_state != STATE_TITLE)
+-             ResumeGame();
+-         PlaySample();
+-         WinCloseAll();
++     if (g_clickItem == MENUID_QUIT_TO_WINDOWS_NO) {
++         if (g_state != STATE_TITLE)
++             ResumeGame();
++         PlaySample();
+expect: ui_Menu_quit_dialog_NO_continues
+
+== ui: quit dialog NO keeps the flag
+file: src/ui/menu.c
+-         g_quitToWindowsWinOpen = 0;
+-     }
+-
+-     if (g_clickItem == MENUID_DIALOG_DISMISS_A) {
++     }
++
++     if (g_clickItem == MENUID_DIALOG_DISMISS_A) {
+expect: ui_Menu_quit_dialog_NO_continues
+
+== ui: quit dialog YES doesn't terminate
+file: src/ui/menu.c
+-         SysTerminate();
+-     }
+-     if (g_clickItem == MENUID_QUIT_TO_WINDOWS_NO) {
++     }
++     if (g_clickItem == MENUID_QUIT_TO_WINDOWS_NO) {
+expect: ui_Menu_quit_dialog_YES_saves_and_terminates
+
+== ui: quit dialog YES doesn't save
+file: src/ui/menu.c
+-         g_quitToWindowsWinOpen = 0;
+-         MergeSettings(g_profileIndex);
+-         WriteSettings();
++         g_quitToWindowsWinOpen = 0;
++         MergeSettings(g_profileIndex);
+expect: ui_Menu_quit_dialog_YES_saves_and_terminates
+
+== ui: quit game dialog without retire
+file: src/ui/menu.c
+-     WinAddMenuItem(POS_CENTERED, 60, g_curWin, MENUID_RETIRE_CONFIRM, "RETIRE FROM  GAME", 3);
++     ;
+expect: ui_QuitGameDialog_offers_four_choices
+
+== ui: QUIT YES entry doesn't terminate
+file: src/ui/menu.c
+-             SysTerminate();
+-             return;
+-         }
++             return;
++         }
+expect: ui_Menu_QUIT_YES_entry_terminates
+
+# ---- src/ui/menu.c: presets ----
+
+== ui: preset low stars
+file: src/ui/menu.c
+- g_cfg.numStars = 100.0f;
++ g_cfg.numStars = 150.0f;
+expect: ui_Menu_preset_very_old_pc
+
+== ui: preset low collision
+file: src/ui/menu.c
+-         g_cfg.unused05c = 0;
+-
+-         g_cfg.collisionDetail = COLLISION_SIMPLE;
++         g_cfg.unused05c = 0;
++
++         g_cfg.collisionDetail = COLLISION_NORMAL;
+expect: ui_Menu_preset_very_old_pc
+
+== ui: preset medium sparks
+file: src/ui/menu.c
+- g_cfg.sparks = 30.0f;
++ g_cfg.sparks = 40.0f;
+expect: ui_Menu_preset_old_pc
+
+== ui: preset high sparks
+file: src/ui/menu.c
+- g_cfg.sparks = 100.0f;
++ g_cfg.sparks = 90.0f;
+expect: ui_Menu_preset_normal_pc
+
+== ui: preset high stars
+file: src/ui/menu.c
+- g_cfg.numStars = 750.0f;
++ g_cfg.numStars = 700.0f;
+expect: ui_Menu_preset_normal_pc
+
+== ui: preset ultra bullets
+file: src/ui/menu.c
+- g_cfg.bulletIntensity = BULLETS_FLARE_FX;
++ g_cfg.bulletIntensity = BULLETS_BRIGHT;
+expect: ui_Menu_preset_very_powerful_pc
+
+== ui: preset ultra background
+file: src/ui/menu.c
+-         g_cfg.bgEnabled = 1;
+-         g_cfg.bgTint = BG_BRIGHTNESS_PRESET;
+-         g_cfg.sparks = 150.0f;
++         g_cfg.bgEnabled = 0;
++         g_cfg.bgTint = BG_BRIGHTNESS_PRESET;
++         g_cfg.sparks = 150.0f;
+expect: ui_Menu_preset_very_powerful_pc
+
+== ui: preset low skips the profile question
+file: src/ui/menu.c
+-         OpenCreateProfileWin();
+-     }
+-
+-     if (g_clickItem == MENUID_QUALITY_PRESET_MEDIUM) {
++     }
++
++     if (g_clickItem == MENUID_QUALITY_PRESET_MEDIUM) {
+expect: ui_MenuUpdate_keys_drive_the_topmost_window
+
+# ---- src/ui/menu.c: profiles ----
+
+== ui: A doesn't close the list
+file: src/ui/menu.c
+-                 if (AnyWindowActive()) {
+-                     WinCloseAll();
+-                     PlayClick();
++                 if (AnyWindowActive()) {
++                     PlayClick();
+expect: ui_Menu_A_toggles_the_profile_list
+
+== ui: profile list without NEW
+file: src/ui/menu.c
+-                     if (g_profileCount != 10)
+-                         WinAddMenuItem(27, winH - 40, g_curWin, MENUID_PROFILE_NEW, "NEW", 5);
++                     if (g_profileCount == 10)
++                         WinAddMenuItem(27, winH - 40, g_curWin, MENUID_PROFILE_NEW, "NEW", 5);
+expect: ui_Menu_A_toggles_the_profile_list
+
+== ui: new profile password unmasked
+file: src/ui/menu.c
+- WinAddEdit(115, 50, g_curWin, PASSWORD_LEN, 1, 7, 0);
++ WinAddEdit(115, 50, g_curWin, PASSWORD_LEN, 0, 7, 0);
+expect: ui_Menu_new_profile_window_has_two_fields
+
+== ui: new profile name length
+file: src/ui/menu.c
+-         WinAddEdit(115, 40, g_curWin, 29, 0, 7, 1);
+-         WinAddText(24, 50, g_curWin, "PASSWORD  :", 8);
++         WinAddEdit(115, 40, g_curWin, 28, 0, 7, 1);
++         WinAddText(24, 50, g_curWin, "PASSWORD  :", 8);
+expect: ui_Menu_new_profile_window_has_two_fields
+
+== ui: backspace keeps the cursor
+file: src/ui/menu.c
+-                         g_windows[ew].edits[g_windows[ew].firstH].cursor--;
++                         ;
+expect: ui_Menu_typing_fills_the_focused_field
+
+== ui: leading space typed
+file: src/ui/menu.c
+- if (g_pressedKey == 4 && g_windows[ew].edits[g_windows[ew].firstH].cursor == 0) {
++ if (g_pressedKey == 5 && g_windows[ew].edits[g_windows[ew].firstH].cursor == 0) {
+expect: ui_Menu_typing_fills_the_focused_field
+
+== ui: typing past the field length
+file: src/ui/menu.c
+- && g_windows[ew].edits[g_windows[ew].firstH].cursor < g_windows[ew].edits[g_windows[ew].firstH].len) {
++ && g_windows[ew].edits[g_windows[ew].firstH].cursor <= g_windows[ew].edits[g_windows[ew].firstH].len) {
+expect: ui_Menu_typing_stops_at_the_field_length
+
+== ui: tab doesn't move the focus
+file: src/ui/menu.c
+-                     PlayClick();
+-                     WinFocusNextEdit(ew);
+-                     g_keyLatch[K_VK_TAB] = 0;
++                     PlayClick();
++                     g_keyLatch[K_VK_TAB] = 0;
+expect: ui_Menu_typing_fills_the_focused_field
+
+== ui: enter submits two-field windows
+file: src/ui/menu.c
+-                     if (g_windows[ew].nH + 1 == 1) {
+-                         g_clickWin = ew;
++                     if (g_windows[ew].nH + 1 == 2) {
++                         g_clickWin = ew;
+expect: ui_Menu_typing_fills_the_focused_field
+expect: ui_Menu_use_profile_logs_in_with_the_password
+
+== ui: new profile without password
+file: src/ui/menu.c
+-     if (g_clickItem == MENUID_NEW_PROFILE_OK && StrLenPlat(g_windows[g_clickWin].edits[0].buf) > 0
+-         && StrLenPlat(g_windows[g_clickWin].edits[1].buf) > 0) {
++     if (g_clickItem == MENUID_NEW_PROFILE_OK && StrLenPlat(g_windows[g_clickWin].edits[0].buf) > 0) {
+expect: ui_Menu_new_profile_needs_name_and_password
+
+== ui: new profile named after the password
+file: src/ui/menu.c
+-                 g_acc.name[k] = g_windows[g_clickWin].edits[0].buf[k];
+-             }
+-
+-             for (int k = 0; k < PASSWORD_LEN; k++) {
+-                 g_acc.password[k] = g_windows[g_clickWin].edits[1].buf[k];
++                 g_acc.name[k] = g_windows[g_clickWin].edits[1].buf[k];
++             }
++
++             for (int k = 0; k < PASSWORD_LEN; k++) {
++                 g_acc.password[k] = g_windows[g_clickWin].edits[1].buf[k];
+expect: ui_Menu_create_a_normal_profile
+
+== ui: new profile not saved
+file: src/ui/menu.c
+-             PackAccount(slot);
+-             SaveAccount(slot);
+-         }
+-         ClearAccount();
+-         WinCloseAll();
++             PackAccount(slot);
++         }
++         ClearAccount();
++         WinCloseAll();
+expect: ui_Menu_create_a_normal_profile
+
+== ui: easy profile isn't easy
+file: src/ui/menu.c
+- g_acc.easy = 1;
++ g_acc.easy = 0;
+expect: ui_Menu_create_an_easy_profile
+
+== ui: easy profile name from the password
+file: src/ui/menu.c
+- g_newName[k] = g_windows[g_clickWin].edits[0].buf[k];
++ g_newName[k] = g_windows[g_clickWin].edits[1].buf[k];
+expect: ui_Menu_create_an_easy_profile
+
+== ui: use profile selects the next slot
+file: src/ui/menu.c
+- g_selProfile = g_clickItem - PROFILE_USE_ID_BASE;
++ g_selProfile = g_clickItem - PROFILE_USE_ID_BASE + 1;
+expect: ui_Menu_use_profile_logs_in_with_the_password
+
+== ui: login ignores wrong characters
+file: src/ui/menu.c
+-                 if (g_acc.password[k] != g_windows[g_clickWin].edits[0].buf[k])
+-                     ok = false;
+-             }
+-         }
+-         if (ok) {
+-             ActivateProfile(g_selProfile);
++                 if (g_acc.password[k] != g_windows[g_clickWin].edits[0].buf[k])
++                     ;
++             }
++         }
++         if (ok) {
++             ActivateProfile(g_selProfile);
+expect: ui_Menu_wrong_password_clears_the_field
+
+== ui: login ignores the length
+file: src/ui/menu.c
+-         if (StrLenPlat(g_windows[g_clickWin].edits[0].buf) != StrLenPlat(g_acc.password)) {
+-             ok = false;
+-         } else {
+-             for (int k = 0; k < StrLenPlat(g_windows[g_clickWin].edits[0].buf); k++) {
+-                 if (g_acc.password[k] != g_windows[g_clickWin].edits[0].buf[k])
+-                     ok = false;
+-             }
+-         }
+-         if (ok) {
+-             ActivateProfile(g_selProfile);
++         if (0) {
++             ok = false;
++         } else {
++             for (int k = 0; k < StrLenPlat(g_windows[g_clickWin].edits[0].buf); k++) {
++                 if (g_acc.password[k] != g_windows[g_clickWin].edits[0].buf[k])
++                     ok = false;
++             }
++         }
++         if (ok) {
++             ActivateProfile(g_selProfile);
+expect: ui_Menu_wrong_password_clears_the_field
+
+== ui: wrong password keeps the cursor
+file: src/ui/menu.c
+- g_windows[g_clickWin].edits[0].cursor = 0;
++ ;
+expect: ui_Menu_wrong_password_clears_the_field
+
+== ui: login keeps the old profile
+file: src/ui/menu.c
+-     g_loggedIn = 1;
+-     g_profileIndex = slot;
++     g_loggedIn = 1;
+expect: ui_Menu_use_profile_logs_in_with_the_password
+
+== ui: easy profile login keeps the difficulty
+file: src/ui/menu.c
+-     if (g_cfg.difficulty != DIFF_EASY && g_acc.easy != 0) {
+-         g_cfg.difficulty = DIFF_EASY;
++     if (g_cfg.difficulty != DIFF_EASY && g_acc.easy != 0) {
++         g_cfg.difficulty = DIFF_NORMAL;
+expect: ui_Menu_easy_profile_forces_easy_difficulty_on_login
+
+== ui: CLOSE keeps the window
+file: src/ui/menu.c
+-         PlaySample();
+-         WinClose(g_clickWin);
+-         g_clickWin = -1;
+-         g_clickItem = -1;
+-     }
+-     if (g_clickItem == MENUID_LOGIN_CANCEL) {
++         PlaySample();
++         g_clickWin = -1;
++         g_clickItem = -1;
++     }
++     if (g_clickItem == MENUID_LOGIN_CANCEL) {
+expect: ui_Menu_profile_list_close_button
+
+# ---- src/gfx/text.c ----
+
+== ui: DrawMenuText letter cells
+file: src/gfx/text.c
+- glyph = *p - '7';
++ glyph = *p - '6';
+expect: ui_DrawMenuText_maps_letters_and_digits_to_cells
+
+== ui: DrawMenuText digit cells
+file: src/gfx/text.c
+-                     glyph = *p - '0';
+-                 if (*p >= 'A' && *p <= 'Z')
+-                     glyph = *p - '7';
++                     glyph = *p - '1';
++                 if (*p >= 'A' && *p <= 'Z')
++                     glyph = *p - '7';
+expect: ui_DrawMenuText_maps_letters_and_digits_to_cells
+
+== ui: DrawMenuText colon cell
+file: src/gfx/text.c
+- if (*p == ':')
+-                     glyph = 41;
++ if (*p == ':')
++                     glyph = 40;
+expect: ui_DrawMenuText_punctuation_cells
+
+== ui: DrawMenuText row height
+file: src/gfx/text.c
+- src.y1 = row * 9;
++ src.y1 = row * 8;
+expect: ui_DrawMenuText_maps_letters_and_digits_to_cells
+
+== ui: DrawMenuText cell width
+file: src/gfx/text.c
+- enum { MENU_GLYPH_W = 12, TINY_GLYPH_W = 8 };
++ enum { MENU_GLYPH_W = 13, TINY_GLYPH_W = 8 };
+expect: ui_DrawMenuText_spaces_advance_without_drawing
+
+== ui: DrawMenuText centering width
+file: src/gfx/text.c
+-                     advance = MENU_GLYPH_W;
+-             }
+-             width += advance;
++                     advance = MENU_GLYPH_W;
++             }
++             width += advance + 2;
+expect: ui_DrawMenuText_centers_on_the_screen
+
+== ui: DrawMenuText draws the link end mark
+file: src/gfx/text.c
+-                 g_links[g_linkCount].y2 = (int)fy + 12;
+-                 g_linkCount++;
+-                 p++;
++                 g_links[g_linkCount].y2 = (int)fy + 12;
++                 g_linkCount++;
+expect: ui_DrawMenuText_centering_ignores_link_escapes
+expect: ui_DrawMenuText_records_links
+
+== ui: DrawMenuText link height
+file: src/gfx/text.c
+- g_links[g_linkCount].y2 = (int)fy + 12;
++ g_links[g_linkCount].y2 = (int)fy + 9;
+expect: ui_DrawMenuText_records_links
+
+== ui: DrawMenuText line height
+file: src/gfx/text.c
+- fy = fy + 13.0;
++ fy = fy + 12.0;
+expect: ui_DrawMenuText_newline_returns_to_x
+
+== ui: DrawMenuText next line
+file: src/gfx/text.c
+- g_textCursorY = (int)fy + MENU_GLYPH_W;
++ g_textCursorY = (int)fy + 10;
+expect: ui_DrawMenuText_auto_y_continues_below
+
+== ui: DrawMenuText clip width
+file: src/gfx/text.c
+-                     w = MENU_GLYPH_W;
+-                     h = 9;
++                     w = MENU_GLYPH_W - 1;
++                     h = 9;
+expect: ui_DrawMenuText_clips_at_the_edges
+
+== ui: DrawTinyText row 1
+file: src/gfx/text.c
+-                     if (row == 1)
+-                         src.y1 = 13;
+-                     if (row == 2)
+-                         src.y1 = 21;
+-                     if (row == 3)
+-                         src.y1 = 29;
+-                     if (row == 4)
+-                         src.y1 = 37;
+-                     src.x1 = glyph << 3;
+-                     src.x2 = src.x1 + 8;
+-                     src.y2 = src.y1 + 8;
+-                     dx = (int)fx;
+-                     dy = (int)fy;
+-                     w = advance;
+-                     h = 8;
+-
+-                     if (!(dx < g_clipRight && dy < g_clipBottom &&
+-                           dx + w > g_clipLeft && dy + h > g_clipTop))
+-                         break;
+-
+-                     if (dx < g_clipLeft) {
+-                         src.x1 = g_clipLeft - dx + src.x1;
+-                         w = w - (g_clipLeft - dx);
+-                         dx = g_clipLeft;
+-                     } else if (dx + w >= g_clipRight) {
+-                         w = g_clipRight - dx;
+-                     }
+-
+-                     if (dy < g_clipTop) {
+-                         src.y1 = g_clipTop - dy + src.y1;
+-                         h = h - (g_clipTop - dy);
+-                         dy = g_clipTop;
+-                     } else if (dy + h >= g_clipBottom) {
+-                         h = g_clipBottom - dy;
+-                     }
+-                     src.x2 = src.x1 + w;
+-                     src.y2 = src.y1 + h;
+-                     QueueBlit((float)dx, (float)dy, g_tinyFont, &src);
++                     if (row == 1)
++                         src.y1 = 14;
++                     if (row == 2)
++                         src.y1 = 21;
++                     if (row == 3)
++                         src.y1 = 29;
++                     if (row == 4)
++                         src.y1 = 37;
++                     src.x1 = glyph << 3;
++                     src.x2 = src.x1 + 8;
++                     src.y2 = src.y1 + 8;
++                     dx = (int)fx;
++                     dy = (int)fy;
++                     w = advance;
++                     h = 8;
++
++                     if (!(dx < g_clipRight && dy < g_clipBottom &&
++                           dx + w > g_clipLeft && dy + h > g_clipTop))
++                         break;
++
++                     if (dx < g_clipLeft) {
++                         src.x1 = g_clipLeft - dx + src.x1;
++                         w = w - (g_clipLeft - dx);
++                         dx = g_clipLeft;
++                     } else if (dx + w >= g_clipRight) {
++                         w = g_clipRight - dx;
++                     }
++
++                     if (dy < g_clipTop) {
++                         src.y1 = g_clipTop - dy + src.y1;
++                         h = h - (g_clipTop - dy);
++                         dy = g_clipTop;
++                     } else if (dy + h >= g_clipBottom) {
++                         h = g_clipBottom - dy;
++                     }
++                     src.x2 = src.x1 + w;
++                     src.y2 = src.y1 + h;
++                     QueueBlit((float)dx, (float)dy, g_tinyFont, &src);
+expect: ui_DrawTinyText_rows_and_cells
+
+== ui: DrawNewsText first row
+file: src/gfx/text.c
+- src.y1 = 94;
++ src.y1 = 95;
+expect: ui_DrawNewsText_font_rows
+
+== ui: DrawNewsText last row
+file: src/gfx/text.c
+- src.y1 = 150;
++ src.y1 = 151;
+expect: ui_DrawNewsText_font_rows
+
+== ui: DrawNewsText line height
+file: src/gfx/text.c
+- fy += 11.0;
++ fy += 12.0;
+expect: ui_DrawNewsText_layout_and_centering
+
+== ui: DrawNewsText centering width
+file: src/gfx/text.c
+- fx = (float)((g_screenW >> 1) - total / 2);
++ fx = (float)((g_screenW >> 1) - total);
+expect: ui_DrawNewsText_layout_and_centering
+
+== ui: DrawNewsText centered lines restart at the start
+file: src/gfx/text.c
+-                 if (*p == '\n') {
+-                     fx = (float)x;
+-                     fy += 11.0;
++                 if (*p == '\n') {
++                     fx = (float)g_textStartX;
++                     fy += 11.0;
+expect: ui_DrawNewsText_centered_text_loses_its_second_line
+
+== ui: DrawScoreDigits colon
+file: src/gfx/text.c
+- digit = 10;
++ digit = 11;
+expect: ui_DrawScoreDigits_blits_32px_digits
+
+== ui: DrawScoreDigits digit width
+file: src/gfx/text.c
+- Blit(cx, cy, 0, g_digitFont, digit << 5, 0, 32, 24);
++ Blit(cx, cy, 0, g_digitFont, digit << 4, 0, 32, 24);
+expect: ui_DrawScoreDigits_blits_32px_digits
+
+== ui: DrawScoreDigits centering
+file: src/gfx/text.c
+- cx = (g_screenW >> 1) - (width >> 1);
++ cx = (g_screenW >> 1) - width;
+expect: ui_DrawScoreDigits_blits_32px_digits
+
+== ui: DrawMixedCaseText lowercase cells
+file: src/gfx/text.c
+- idx = *p - 71;
++ idx = *p - 70;
+expect: ui_DrawMixedCaseText_proportional_advance
+
+== ui: DrawMixedCaseText space width
+file: src/gfx/text.c
+- width = 3;
++ width = 4;
+expect: ui_DrawMixedCaseText_proportional_advance
+
+== ui: DrawMixedCaseText advance
+file: src/gfx/text.c
+- fx += width + 1;
++ fx += width + 2;
+expect: ui_DrawMixedCaseText_proportional_advance
+
+== ui: DrawMixedCaseText bold row
+file: src/gfx/text.c
+- src.y1 = 86;
++ src.y1 = 87;
+expect: ui_DrawMixedCaseText_proportional_advance
+
+== ui: DrawMixedCaseText bar isn't a break
+file: src/gfx/text.c
+- if (*p == '\n' || *p == '|') {
++ if (*p == '\n') {
+expect: ui_DrawMixedCaseText_bar_breaks_lines
+
+== ui: DrawNumberRow step
+file: src/gfx/text.c
+- off += 7.0;
++ off += 8.0;
+expect: ui_DrawNumberRow_steps_seven_pixels
+
+== ui: DrawNumberRow row width
+file: src/gfx/text.c
+- row * 160 + pos * 8
++ row * 150 + pos * 8
+expect: ui_DrawNumberRow_steps_seven_pixels
+
+== ui: DrawPleaseWait inverted blink
+file: src/gfx/text.c
+-     if (g_uiBlink != 0)
+-         DrawMenuText("PLEASE WAIT...", POS_CENTERED, g_screenH - 0x37, 5);
++     if (g_uiBlink == 0)
++         DrawMenuText("PLEASE WAIT...", POS_CENTERED, g_screenH - 0x37, 5);
+expect: ui_DrawPleaseWait_blinks
+
+== ui: DrawBigText table
+file: src/gfx/text.c
+-         0, 16, 32, 48, 64, 80, 96, 128, 144, 160, 176, 192, 208, 224, 240,
++         0, 17, 32, 48, 64, 80, 96, 128, 144, 160, 176, 192, 208, 224, 240,
+expect: ui_DrawBigText_proportional_glyphs
+
+== ui: DrawBigText no kerning
+file: src/gfx/text.c
+-                     adv = Twidth[idx] + Tkern[idx];
+-                     dx = x;
++                     adv = Twidth[idx];
++                     dx = x;
+expect: ui_DrawBigText_proportional_glyphs
+
+== ui: DrawBigText no top offset
+file: src/gfx/text.c
+- dy = y + Ttop[idx];
++ dy = y;
+expect: ui_DrawBigText_proportional_glyphs
+
+== ui: DrawBigText space width
+file: src/gfx/text.c
+-                     adv = 8;
+-                 }
+-                 x = x + adv;
++                     adv = 9;
++                 }
++                 x = x + adv;
+expect: ui_DrawBigText_proportional_glyphs
+
+== ui: DrawBigText centering
+file: src/gfx/text.c
+- x = (g_screenW - total) >> 1;
++ x = (g_screenW - total + 2) >> 1;
+expect: ui_DrawBigText_alignment_marks
+
+== ui: DrawBigText right alignment
+file: src/gfx/text.c
+- x = g_screenW - total;
++ x = g_screenW - total - 1;
+expect: ui_DrawBigText_alignment_marks
+
+== ui: DrawBigText line height
+file: src/gfx/text.c
+-                 g_textCursorY = y + 25;
+-                 y = g_textCursorY;
++                 g_textCursorY = y + 26;
++                 y = g_textCursorY;
+expect: ui_DrawBigText_newline_restarts_the_line
+
+== ui: DrawBigText lowercase glyphs
+file: src/gfx/text.c
+-             idx = (ch) - 56;
++             idx = (ch) - 57;
+expect: ui_DrawBigText_digits_and_lowercase
+
+== ui: DrawTinyText2 uses the first queue
+file: src/gfx/text.c
+- QueueBlit2((float)dx, (float)dy, g_tinyFont, &src);
++ QueueBlit((float)dx, (float)dy, g_tinyFont, &src);
+expect: ui_DrawTinyText2_uses_the_second_queue
+
+# ---- src/gfx/render.c ----
+
+== ui: QueueBlit one less
+file: src/gfx/render.c
+-     if (g_blitCount < MAX_BLITS - 1) {
++     if (g_blitCount < MAX_BLITS - 2) {
+expect: ui_QueueBlit_holds_1999_entries
+
+== ui: QueueBlit source limit
+file: src/gfx/render.c
+- BLIT_SRC_MAX       = 2000
++ BLIT_SRC_MAX       = 2001
+expect: ui_QueueBlit_rejects_bad_source_rects
+
+== ui: QueueBlit takes negative x
+file: src/gfx/render.c
+-         } else if (src->x1 < 0) {
+-             g_blitErrors++;
+-         } else if (src->x2 > BLIT_SRC_MAX) {
+-             g_blitErrors++;
+-         } else {
+-             BlitItem *p = &g_blit[g_blitCount];
++         } else if (src->x1 < -1) {
++             g_blitErrors++;
++         } else if (src->x2 > BLIT_SRC_MAX) {
++             g_blitErrors++;
++         } else {
++             BlitItem *p = &g_blit[g_blitCount];
+expect: ui_QueueBlit_rejects_bad_source_rects
+
+== ui: QueueBlit2 takes empty rects
+file: src/gfx/render.c
+-     if (g_blit2Count < MAX_BLITS - 1) {
+-         if (src->x1 == src->x2) {
++     if (g_blit2Count < MAX_BLITS - 1) {
++         if (0) {
+expect: ui_QueueBlit_rejects_bad_source_rects
+
+== ui: QueueBlit y from x
+file: src/gfx/render.c
+-             p->destY = destY;
+-             p->graphic = graphic;
+-             g_blitCount++;
++             p->destY = destX;
++             p->graphic = graphic;
++             g_blitCount++;
+expect: ui_QueueBlit_copies_the_rect_and_position
+
+== ui: FlushBlit draws freed images
+file: src/gfx/render.c
+-             if (p->graphic && p->src.y2 != p->src.y1 && p->src.x1 != p->src.x2 &&
+-                 !ImgIsFreed(p->graphic)) {
+-                 ImgSetTextureQuality(p->graphic, true);
+-                 ImgBlitRectF(p->graphic, p->src.x1, p->src.y1, p->src.x2, p->src.y2,
+-                              p->destX, p->destY, false, false);
+-             }
+-             p++;
+-         }
+-         g_blitCount = 0;
++             if (p->graphic && p->src.y2 != p->src.y1 && p->src.x1 != p->src.x2) {
++                 ImgSetTextureQuality(p->graphic, true);
++                 ImgBlitRectF(p->graphic, p->src.x1, p->src.y1, p->src.x2, p->src.y2,
++                              p->destX, p->destY, false, false);
++             }
++             p++;
++         }
++         g_blitCount = 0;
+expect: ui_FlushBlit_draws_live_images_and_empties_the_queue
+
+== ui: FlushBlit draws flat rects
+file: src/gfx/render.c
+-             if (p->graphic && p->src.y2 != p->src.y1 && p->src.x1 != p->src.x2 &&
+-                 !ImgIsFreed(p->graphic)) {
+-                 ImgSetTextureQuality(p->graphic, true);
+-                 ImgBlitRectF(p->graphic, p->src.x1, p->src.y1, p->src.x2, p->src.y2,
+-                              p->destX, p->destY, false, false);
+-             }
+-             p++;
+-         }
+-         g_blitCount = 0;
++             if (p->graphic && p->src.x1 != p->src.x2 &&
++                 !ImgIsFreed(p->graphic)) {
++                 ImgSetTextureQuality(p->graphic, true);
++                 ImgBlitRectF(p->graphic, p->src.x1, p->src.y1, p->src.x2, p->src.y2,
++                              p->destX, p->destY, false, false);
++             }
++             p++;
++         }
++         g_blitCount = 0;
+expect: ui_FlushBlit_draws_live_images_and_empties_the_queue
+
+== ui: FlushBlit keeps the queue
+file: src/gfx/render.c
+-         g_blitCount = 0;
+-     }
+- }
+-
+- // Draws and empties the QueueBlit2() queue.
++     }
++ }
++
++ // Draws and empties the QueueBlit2() queue.
+expect: ui_FlushBlit_draws_live_images_and_empties_the_queue
+
+== ui: FlushBlit2 keeps the queue
+file: src/gfx/render.c
+-         g_blit2Count = 0;
+-     }
+- }
++     }
++ }
+expect: ui_FlushBlit2_draws_the_second_queue
+
+== ui: QueueStretchI rounds
+file: src/gfx/render.c
+- p->x1 = (int)x1;
++ p->x1 = (int)(x1 + 0.5f);
+expect: ui_QueueStretchI_stores_an_integer_rect
+
+== ui: QueueStretchI alpha from blue
+file: src/gfx/render.c
+-         p->a = a;
+-         g_stretchICount++;
++         p->a = b;
++         g_stretchICount++;
+expect: ui_QueueStretchI_stores_an_integer_rect
+
+== ui: stretch I cap
+file: src/gfx/render.c
+- if (g_stretchICount < MAX_STRETCH_I - 1) {
++ if (g_stretchICount < MAX_STRETCH_I - 2) {
+expect: ui_stretch_queues_have_their_caps
+
+== ui: stretch F cap
+file: src/gfx/render.c
+- if (g_stretchFCount < MAX_STRETCH_F - 1) {
++ if (g_stretchFCount < MAX_STRETCH_F - 2) {
+expect: ui_stretch_queues_have_their_caps
+
+== ui: stretch Rot cap
+file: src/gfx/render.c
+- if (g_stretchRotCount < MAX_STRETCH_ROT - 1) {
++ if (g_stretchRotCount < MAX_STRETCH_ROT - 2) {
+expect: ui_stretch_queues_have_their_caps
+
+== ui: stretch Rot2 cap
+file: src/gfx/render.c
+- if (g_stretchRot2Count < MAX_STRETCH_ROT2 - 1) {
++ if (g_stretchRot2Count < MAX_STRETCH_ROT2 - 2) {
+expect: ui_stretch_queues_have_their_caps
+
+== ui: quad cap
+file: src/gfx/render.c
+- if (g_quadCount < 149) {
++ if (g_quadCount < 99) {
+expect: ui_stretch_queues_have_their_caps
+
+== ui: FlushStretchI draws freed images
+file: src/gfx/render.c
+-         for (int i = 0; i < g_stretchICount; i++) {
+-             if (p->graphic && !ImgIsFreed(p->graphic)) {
++         for (int i = 0; i < g_stretchICount; i++) {
++             if (p->graphic) {
+expect: ui_stretch_flushes_draw_live_images
+
+== ui: FlushStretchF draws null images
+file: src/gfx/render.c
+-         for (int i = 0; i < g_stretchFCount; i++) {
+-             if (p->graphic && !ImgIsFreed(p->graphic)) {
++         for (int i = 0; i < g_stretchFCount; i++) {
++             if (p->graphic || 1) {
+expect: ui_stretch_flushes_draw_live_images
+
+== ui: FlushStretchRot draws freed images
+file: src/gfx/render.c
+-         for (int i = 0; i < g_stretchRotCount; i++) {
+-             if (p->graphic && !ImgIsFreed(p->graphic)) {
++         for (int i = 0; i < g_stretchRotCount; i++) {
++             if (p->graphic) {
+expect: ui_stretch_flushes_draw_live_images
+
+== ui: FlushStretchRot2 draws freed images
+file: src/gfx/render.c
+-         for (int i = 0; i < g_stretchRot2Count; i++) {
+-             if (p->graphic && !ImgIsFreed(p->graphic)) {
++         for (int i = 0; i < g_stretchRot2Count; i++) {
++             if (p->graphic) {
+expect: ui_stretch_flushes_draw_live_images
+
+== ui: FlushStretchI keeps the queue
+file: src/gfx/render.c
+-         g_stretchICount = 0;
+-     }
+- }
++     }
++ }
+expect: ui_stretch_flushes_draw_live_images
+
+== ui: FlushStretchF keeps the queue
+file: src/gfx/render.c
+-         g_stretchFCount = 0;
+-     }
+- }
++     }
++ }
+expect: ui_stretch_flushes_draw_live_images
+
+== ui: FlushStretchRot keeps the queue
+file: src/gfx/render.c
+-         g_stretchRotCount = 0;
+-     }
+- }
++     }
++ }
+expect: ui_stretch_flushes_draw_live_images
+
+== ui: FlushStretchRot2 keeps the queue
+file: src/gfx/render.c
+-         g_stretchRot2Count = 0;
+-     }
+- }
++     }
++ }
+expect: ui_stretch_flushes_draw_live_images
+
+== ui: quad high-water mark
+file: src/gfx/render.c
+- if (g_quadCount > g_quadCountMax) {
++ if (g_quadCount < g_quadCountMax) {
+expect: ui_QueueQuad_and_FlushQuads
+
+== ui: quad width from height
+file: src/gfx/render.c
+- p->dw = dw;
++ p->dw = dh;
+expect: ui_QueueQuad_and_FlushQuads
+
+== ui: FlushQuads draws null images
+file: src/gfx/render.c
+-             if (p->graphic && !ImgIsFreed(p->graphic)) {
+-                 ImgStretchAlphaRect(p->graphic, p->sx
++             if (1) {
++                 ImgStretchAlphaRect(p->graphic, p->sx
+expect: ui_QueueQuad_and_FlushQuads
+
+== ui: FlushQuads keeps the queue
+file: src/gfx/render.c
+-         g_quadCount = 0;
+-     }
+- }
++     }
++ }
+expect: ui_QueueQuad_and_FlushQuads
+
+== ui: Blit doesn't clip
+file: src/gfx/render.c
+-     CLIP_SRC_RECT(x, y, w, h, g_blitSrc);
+-     QueueBlit((float)x, (float)y, graphic, &g_blitSrc);
++     g_blitSrc.x2 = sx + w;
++     g_blitSrc.y2 = sy + h;
++     QueueBlit((float)x, (float)y, graphic, &g_blitSrc);
+expect: ui_Blit_clips_left_and_top
+expect: ui_Blit_clips_right_and_bottom
+
+== ui: clip right edge one short
+file: include/macros.h
+- (w) = g_clipRight - (x);
++ (w) = g_clipRight - (x) - 1;
+expect: ui_Blit_clips_right_and_bottom
+
+== ui: clip top source offset
+file: include/macros.h
+- (src).y1 = g_clipTop - (y) + (src).y1;
++ (src).y1 = g_clipTop - (y) + (src).y1 + 1;
+expect: ui_Blit_clips_left_and_top
+
+== ui: clip visible at the left edge
+file: include/macros.h
+- (x) + (w) > g_clipLeft
++ (x) + (w) >= g_clipLeft
+expect: ui_Blit_skips_what_is_off_the_clip_rect
+
+== ui: clip visible at the right edge
+file: include/macros.h
+- ((x) < g_clipRight
++ ((x) <= g_clipRight
+expect: ui_Blit_skips_what_is_off_the_clip_rect
+
+== ui: Blit2 into the first queue
+file: src/gfx/render.c
+-     CLIP_SRC_RECT(x, y, w, h, g_blitSrc);
+-     QueueBlit2((float)x, (float)y, graphic, &g_blitSrc);
++     CLIP_SRC_RECT(x, y, w, h, g_blitSrc);
++     QueueBlit((float)x, (float)y, graphic, &g_blitSrc);
+expect: ui_Blit2_BlitLocal_BlitLocal2_pick_their_queues
+
+== ui: BlitLocal into the second queue
+file: src/gfx/render.c
+-     QueueBlit((float)dx, (float)dy, graphic, &src);
+- }
+-
+- // Same as BlitLocal(), but queues
++     QueueBlit2((float)dx, (float)dy, graphic, &src);
++ }
++
++ // Same as BlitLocal(), but queues
+expect: ui_Blit2_BlitLocal_BlitLocal2_pick_their_queues
+
+== ui: BlitLocal2 doesn't clip
+file: src/gfx/render.c
+-     CLIP_SRC_RECT(dx, dy, w, h, src);
+-     QueueBlit2((float)dx, (float)dy, graphic, &src);
++     src.x2 = sx + w;
++     src.y2 = sy + h;
++     QueueBlit2((float)dx, (float)dy, graphic, &src);
+expect: ui_Blit2_BlitLocal_BlitLocal2_pick_their_queues
+
+== ui: DrawImage with no image
+file: src/gfx/render.c
+-     if (!g)
+-         return;
+-     float w = ImgWidth(g);
++     float w = ImgWidth(g);
+expect: ui_DrawImage_stretches_and_tints
+
+== ui: SetView fades two steps
+file: src/gfx/render.c
+-         DrawRect(0.0f, 0.0f, (float)g_screenW, (float)g_screenH,
+-             ((float *)&g_colR[g_fadeColorSet])[g_fadeStep],
+-             ((float *)&g_colG[g_fadeColorSet])[g_fadeStep],
+-             ((float *)&g_colB[g_fadeColorSet])[g_fadeStep], 1.0f);
+-         g_fadeStep++;
++         DrawRect(0.0f, 0.0f, (float)g_screenW, (float)g_screenH,
++             ((float *)&g_colR[g_fadeColorSet])[g_fadeStep],
++             ((float *)&g_colG[g_fadeColorSet])[g_fadeStep],
++             ((float *)&g_colB[g_fadeColorSet])[g_fadeStep], 1.0f);
++         g_fadeStep += 2;
+expect: ui_SetView_fades_the_flash_colour_over_30_frames
+
+== ui: SetViewHud fade end
+file: src/gfx/render.c
+-         if (g_fadeStep == 30) g_flashOverlayActive = 0;
+-     }
+- }
+-
+- // Clears the whole screen
++         if (g_fadeStep == 31) g_flashOverlayActive = 0;
++     }
++ }
++
++ // Clears the whole screen
+expect: ui_SetViewHud_skipped_with_the_background_on
+
+== ui: SetViewHud ignores the background
+file: src/gfx/render.c
+- if (g_cfg.bgEnabled == 1) return;
++ if (g_cfg.bgEnabled == 2) return;
+expect: ui_SetViewHud_skipped_with_the_background_on
+
+== ui: ResetClip right edge
+file: src/gfx/render.c
+- g_clipRight = g_screenW;
++ g_clipRight = g_screenW - 1;
+expect: ui_ResetClip_and_counters
+
+== ui: ResetF893 keeps the rot count
+file: src/gfx/render.c
+-     g_stretchRotCount = 0;
+- }
++ }
+expect: ui_ResetClip_and_counters
+
+== ui: FlipBuffer flips twice
+file: src/gfx/render.c
+- void FlipBuffer(int a)
+- {
+-     SysFlip();
++ void FlipBuffer(int a)
++ {
++     SysFlip();
++     SysFlip();
+expect: ui_ResetClip_and_counters
+
+== ui: DrawTinyText link height
+file: src/gfx/text.c
+- void DrawTinyText(const char *text, int x, int y, int row)
+- {
+-     const char *p;
+-     Rect16 src;
+-     int glyph;
+-     int width;
+-     int dx;
+-     int dy;
+-     int w;
+-     int h;
+-     int advance;
+-     float fx;
+-     float fy;
+-
+-     fx = (float)x;
+-     fy = (float)y;
+-     if (y == g_textAutoY)
+-         fy = (float)g_textCursorY;
+-
+-     // Centering: measure the string width (accounting for @-escapes), then start there.
+-     width = 0;
+-     if (x == POS_CENTERED) {
+-         for (p = text; *p != 0; p++) {
+-             advance = 0;
+-
+-             if (*p == '@') {
+-                 switch (p[1]) {
+-                 case '@':
+-                     p++;
+-                     break;
+-                 case 'S':
+-                     p += 4;
+-                     break;
+-                 case 'E':
+-                     p++;
+-                     break;
+-                 }
+-             } else {
+-                 advance = TINY_GLYPH_W;
+-                 if (*p == '.')
+-                     advance = TINY_GLYPH_W;
+-                 if (*p == ',')
+-                     advance = TINY_GLYPH_W;
+-             }
+-             width += advance;
+-         }
+-
+-         fx = (float)((g_screenW >> 1) - width / 2);
+-     }
+-     g_textStartX = (int)fx;
+-
+-     // Draw pass: same @-escape handling, plus recording each link's on-screen box.
+-     for (p = text; *p != 0; p++) {
+-         if (*p == '@') {
+-             switch (p[1]) {
+-             case '@':
+-                 g_linkCount = 0;
+-                 p++;
+-                 break;
+-             case 'S':
+-                 g_links[g_linkCount].id = (p[2] - '0') * 100 + (p[3] - '0') * 10 + p[4] - '0';
+-                 g_links[g_linkCount].x1 = (int)fx;
+-                 g_links[g_linkCount].y1 = (int)fy;
+-                 p += 4;
+-                 break;
+-             case 'E':
+-                 g_links[g_linkCount].x2 = (int)fx;
+-                 g_links[g_linkCount].y2 = (int)fy + 8;
++ void DrawTinyText(const char *text, int x, int y, int row)
++ {
++     const char *p;
++     Rect16 src;
++     int glyph;
++     int width;
++     int dx;
++     int dy;
++     int w;
++     int h;
++     int advance;
++     float fx;
++     float fy;
++
++     fx = (float)x;
++     fy = (float)y;
++     if (y == g_textAutoY)
++         fy = (float)g_textCursorY;
++
++     // Centering: measure the string width (accounting for @-escapes), then start there.
++     width = 0;
++     if (x == POS_CENTERED) {
++         for (p = text; *p != 0; p++) {
++             advance = 0;
++
++             if (*p == '@') {
++                 switch (p[1]) {
++                 case '@':
++                     p++;
++                     break;
++                 case 'S':
++                     p += 4;
++                     break;
++                 case 'E':
++                     p++;
++                     break;
++                 }
++             } else {
++                 advance = TINY_GLYPH_W;
++                 if (*p == '.')
++                     advance = TINY_GLYPH_W;
++                 if (*p == ',')
++                     advance = TINY_GLYPH_W;
++             }
++             width += advance;
++         }
++
++         fx = (float)((g_screenW >> 1) - width / 2);
++     }
++     g_textStartX = (int)fx;
++
++     // Draw pass: same @-escape handling, plus recording each link's on-screen box.
++     for (p = text; *p != 0; p++) {
++         if (*p == '@') {
++             switch (p[1]) {
++             case '@':
++                 g_linkCount = 0;
++                 p++;
++                 break;
++             case 'S':
++                 g_links[g_linkCount].id = (p[2] - '0') * 100 + (p[3] - '0') * 10 + p[4] - '0';
++                 g_links[g_linkCount].x1 = (int)fx;
++                 g_links[g_linkCount].y1 = (int)fy;
++                 p += 4;
++                 break;
++             case 'E':
++                 g_links[g_linkCount].x2 = (int)fx;
++                 g_links[g_linkCount].y2 = (int)fy + 9;
+expect: ui_DrawTinyText_records_links
+
+== ui: DrawTinyText colon cell
+file: src/gfx/text.c
+- void DrawTinyText(const char *text, int x, int y, int row)
+- {
+-     const char *p;
+-     Rect16 src;
+-     int glyph;
+-     int width;
+-     int dx;
+-     int dy;
+-     int w;
+-     int h;
+-     int advance;
+-     float fx;
+-     float fy;
+-
+-     fx = (float)x;
+-     fy = (float)y;
+-     if (y == g_textAutoY)
+-         fy = (float)g_textCursorY;
+-
+-     // Centering: measure the string width (accounting for @-escapes), then start there.
+-     width = 0;
+-     if (x == POS_CENTERED) {
+-         for (p = text; *p != 0; p++) {
+-             advance = 0;
+-
+-             if (*p == '@') {
+-                 switch (p[1]) {
+-                 case '@':
+-                     p++;
+-                     break;
+-                 case 'S':
+-                     p += 4;
+-                     break;
+-                 case 'E':
+-                     p++;
+-                     break;
+-                 }
+-             } else {
+-                 advance = TINY_GLYPH_W;
+-                 if (*p == '.')
+-                     advance = TINY_GLYPH_W;
+-                 if (*p == ',')
+-                     advance = TINY_GLYPH_W;
+-             }
+-             width += advance;
+-         }
+-
+-         fx = (float)((g_screenW >> 1) - width / 2);
+-     }
+-     g_textStartX = (int)fx;
+-
+-     // Draw pass: same @-escape handling, plus recording each link's on-screen box.
+-     for (p = text; *p != 0; p++) {
+-         if (*p == '@') {
+-             switch (p[1]) {
+-             case '@':
+-                 g_linkCount = 0;
+-                 p++;
+-                 break;
+-             case 'S':
+-                 g_links[g_linkCount].id = (p[2] - '0') * 100 + (p[3] - '0') * 10 + p[4] - '0';
+-                 g_links[g_linkCount].x1 = (int)fx;
+-                 g_links[g_linkCount].y1 = (int)fy;
+-                 p += 4;
+-                 break;
+-             case 'E':
+-                 g_links[g_linkCount].x2 = (int)fx;
+-                 g_links[g_linkCount].y2 = (int)fy + 8;
+-                 g_linkCount++;
+-                 p++;
+-                 break;
+-             }
+-
+-         } else {
+-             while (1) {
+-                 glyph = 0;
+-                 if (*p >= '0' && *p <= '9')
+-                     glyph = *p - 22;
+-                 if (*p >= 'A' && *p <= 'Z')
+-                     glyph = *p - 'A';
+-                 if (*p >= 'a' && *p <= 'z')
+-                     glyph = *p - 'a';
+-                 advance = TINY_GLYPH_W;
+-                 if (*p == '.') {
+-                     glyph = 36;
+-                     advance = TINY_GLYPH_W;
+-                 }
+-                 if (*p == ',') {
+-                     glyph = 37;
+-                     advance = TINY_GLYPH_W;
+-                 }
+-
+-                 if (*p == ':')
+-                     glyph = 38;
++ void DrawTinyText(const char *text, int x, int y, int row)
++ {
++     const char *p;
++     Rect16 src;
++     int glyph;
++     int width;
++     int dx;
++     int dy;
++     int w;
++     int h;
++     int advance;
++     float fx;
++     float fy;
++
++     fx = (float)x;
++     fy = (float)y;
++     if (y == g_textAutoY)
++         fy = (float)g_textCursorY;
++
++     // Centering: measure the string width (accounting for @-escapes), then start there.
++     width = 0;
++     if (x == POS_CENTERED) {
++         for (p = text; *p != 0; p++) {
++             advance = 0;
++
++             if (*p == '@') {
++                 switch (p[1]) {
++                 case '@':
++                     p++;
++                     break;
++                 case 'S':
++                     p += 4;
++                     break;
++                 case 'E':
++                     p++;
++                     break;
++                 }
++             } else {
++                 advance = TINY_GLYPH_W;
++                 if (*p == '.')
++                     advance = TINY_GLYPH_W;
++                 if (*p == ',')
++                     advance = TINY_GLYPH_W;
++             }
++             width += advance;
++         }
++
++         fx = (float)((g_screenW >> 1) - width / 2);
++     }
++     g_textStartX = (int)fx;
++
++     // Draw pass: same @-escape handling, plus recording each link's on-screen box.
++     for (p = text; *p != 0; p++) {
++         if (*p == '@') {
++             switch (p[1]) {
++             case '@':
++                 g_linkCount = 0;
++                 p++;
++                 break;
++             case 'S':
++                 g_links[g_linkCount].id = (p[2] - '0') * 100 + (p[3] - '0') * 10 + p[4] - '0';
++                 g_links[g_linkCount].x1 = (int)fx;
++                 g_links[g_linkCount].y1 = (int)fy;
++                 p += 4;
++                 break;
++             case 'E':
++                 g_links[g_linkCount].x2 = (int)fx;
++                 g_links[g_linkCount].y2 = (int)fy + 8;
++                 g_linkCount++;
++                 p++;
++                 break;
++             }
++
++         } else {
++             while (1) {
++                 glyph = 0;
++                 if (*p >= '0' && *p <= '9')
++                     glyph = *p - 22;
++                 if (*p >= 'A' && *p <= 'Z')
++                     glyph = *p - 'A';
++                 if (*p >= 'a' && *p <= 'z')
++                     glyph = *p - 'a';
++                 advance = TINY_GLYPH_W;
++                 if (*p == '.') {
++                     glyph = 36;
++                     advance = TINY_GLYPH_W;
++                 }
++                 if (*p == ',') {
++                     glyph = 37;
++                     advance = TINY_GLYPH_W;
++                 }
++
++                 if (*p == ':')
++                     glyph = 37;
+expect: ui_DrawTinyText_punctuation_cells
+
+== ui: DrawTinyText next line
+file: src/gfx/text.c
+-     g_textCursorY = (int)fy + 8;
+- }
+- 
+- // Identical to DrawTinyText()
++     g_textCursorY = (int)fy + 9;
++ }
++ 
++ // Identical to DrawTinyText()
+expect: ui_DrawTinyText_layout
+
+== ui: DrawTinyTextAlt row 3
+file: src/gfx/text.c
+-                         src.x1 = glyph * 8;
+-                         src.y1 = 29;
++                         src.x1 = glyph * 8;
++                         src.y1 = 30;
+expect: ui_DrawTinyTextAlt_draws_like_DrawTinyText
+
+# ---- src/audio/sound.c ----
+
+== ui: SoundPlay ignores the sound switch
+file: src/audio/sound.c
+- void SoundPlay(AudioHandle sample, int freq, int vol, float pan, int unused1, int unused2)
+- {
+-     AudioHandle ch;
+-     int err;
+-     if (g_soundEnabled && sample) {
++ void SoundPlay(AudioHandle sample, int freq, int vol, float pan, int unused1, int unused2)
++ {
++     AudioHandle ch;
++     int err;
++     if (sample) {
+expect: ui_SoundPlay_is_silent_without_sound_or_sample
+
+== ui: SoundPlay gets no voice
+file: src/audio/sound.c
+- void SoundPlay(AudioHandle sample, int freq, int vol, float pan, int unused1, int unused2)
+- {
+-     AudioHandle ch;
+-     int err;
+-     if (g_soundEnabled && sample) {
+-         ch = SampleGetVoice(sample);
++ void SoundPlay(AudioHandle sample, int freq, int vol, float pan, int unused1, int unused2)
++ {
++     AudioHandle ch;
++     int err;
++     if (g_soundEnabled && sample) {
++         ch = 0;
+expect: ui_SoundPlay_plays_a_new_voice_of_the_sample
+
+== ui: SoundPlayNoFade doesn't play
+file: src/audio/sound.c
+-                 ChanSet(ch, AUDIO_VOL, (float)(g_sfxVolTable[vol] / 255.0));
+-             ChanSet(ch, AUDIO_PAN, pan);
+-             if (!ChanPlay(ch, true)) {
++                 ChanSet(ch, AUDIO_VOL, (float)(g_sfxVolTable[vol] / 255.0));
++             ChanSet(ch, AUDIO_PAN, pan);
++             if (0) {
+expect: ui_SoundPlay_variants_each_play_once
+
+== ui: SoundPlaySlide doesn't play
+file: src/audio/sound.c
+-             ChanSlide(ch, attrib, value, time);
+-             if (!ChanPlay(ch, true)) {
++             ChanSlide(ch, attrib, value, time);
++             if (0) {
+expect: ui_SoundPlay_variants_each_play_once
+
+== ui: SoundPlay2 silent
+file: src/audio/sound.c
+- void SoundPlay2(AudioHandle sample, int freq, int vol, float pan, int unused1, int unused2)
+- {
+-     AudioHandle ch;
+-     int err;
+-     if (g_soundEnabled && sample) {
++ void SoundPlay2(AudioHandle sample, int freq, int vol, float pan, int unused1, int unused2)
++ {
++     AudioHandle ch;
++     int err;
++     if (0) {
+expect: ui_SoundPlay_variants_each_play_once
+
+== ui: SoundPlayVoice doesn't play
+file: src/audio/sound.c
+-             ChanSlide(ch, AUDIO_VOL, (float)(g_musVolTable[vol] / 255.0), 10);
+-             ChanPlay(ch, true);
++             ChanSlide(ch, AUDIO_VOL, (float)(g_musVolTable[vol] / 255.0), 10);
+expect: ui_SoundPlay_variants_each_play_once
+expect: ui_SoundQueueUpdate_plays_the_head_when_due
+
+== ui: SoundPlayChannel returns the old channel
+file: src/audio/sound.c
+-             ChanPlay(ch, true);
+-         }
+-     }
+-     return ch;
++             ChanPlay(ch, true);
++         }
++     }
++     return prev;
+expect: ui_SoundPlayChannel_returns_the_new_channel
+
+== ui: PlaySample plays the window sound
+file: src/audio/sound.c
+- SoundPlay(g_sfxMinimize, -1, 200, 0.0f, 0xbf, g_sndFlags);
++ SoundPlay(g_sfxWindow, -1, 200, 0.0f, 0xbf, g_sndFlags);
+expect: ui_PlaySample_and_PlayClick
+
+== ui: PlayClick idle timeout
+file: src/audio/sound.c
+- g_menuIdleTimeout = g_time + 60000;
++ g_menuIdleTimeout = g_time + 50000;
+expect: ui_PlaySample_and_PlayClick
+
+== ui: pending slots not cleared
+file: src/audio/sound.c
+-             g_pend##n = 0;                                                                      \
++             ;                                                                                   \
+expect: ui_SoundPlayPending_plays_and_clears_the_slots
+
+== ui: SoundResetQueue keeps the count
+file: src/audio/sound.c
+-     g_soundQueueCount = 0;
+-     g_pend0 = 0;
++     g_pend0 = 0;
+expect: ui_SoundResetQueue_clears_queue_and_slots
+
+== ui: SoundResetQueue keeps the last slot
+file: src/audio/sound.c
+-     g_pend5 = 0;
+- }
+-
+- // Returns the playback length
++ }
++
++ // Returns the playback length
+expect: ui_SoundResetQueue_clears_queue_and_slots
+
+== ui: SoundStopAll misses the last column
+file: src/audio/sound.c
+- for (j = 0; j < 150; j++) {
++ for (j = 0; j < 149; j++) {
+expect: ui_SoundStopAll_clears_the_channel_grid
+
+== ui: SoundStopAll leaves the scope hum
+file: src/audio/sound.c
+- g_chanScopeHum = SoundStop(g_chanScopeHum);
++ ;
+expect: ui_SoundStopAll_clears_the_channel_grid
+
+== ui: SoundPause flag
+file: src/audio/sound.c
+-         AudioPause();
+-         g_soundPaused = 1;
++         AudioPause();
++         g_soundPaused = 0;
+expect: ui_SoundPause_and_SoundResume
+
+== ui: SoundResume flag
+file: src/audio/sound.c
+-         AudioStart();
+-         g_soundPaused = 0;
++         AudioStart();
+expect: ui_SoundPause_and_SoundResume
+
+== ui: SoundQueueAdd ignores the announcer switch
+file: src/audio/sound.c
+- if (g_soundEnabled && sample && g_cfg.sfxOn && g_soundQueueCount < MAX_SOUND_QUEUE) {
++ if (g_soundEnabled && sample && g_soundQueueCount < MAX_SOUND_QUEUE) {
+expect: ui_SoundQueueAdd_needs_the_announcer_on
+
+== ui: SoundQueueAdd holds nine
+file: src/audio/sound.c
+- if (g_soundEnabled && sample && g_cfg.sfxOn && g_soundQueueCount < MAX_SOUND_QUEUE) {
++ if (g_soundEnabled && sample && g_cfg.sfxOn && g_soundQueueCount < MAX_SOUND_QUEUE - 1) {
+expect: ui_SoundQueueAdd_holds_ten
+
+== ui: SoundQueueAdd queues while busy
+file: src/audio/sound.c
+- if (g_soundQueueCount == 0 && vol == 0 && g_time > g_soundQueueNext) {
++ if (vol == 0 && g_time > g_soundQueueNext) {
+expect: ui_SoundQueueAdd_queues_one_voice_at_a_time
+
+== ui: SoundQueueAdd at the end time
+file: src/audio/sound.c
+- if (g_soundQueueCount == 0 && vol == 0 && g_time > g_soundQueueNext) {
++ if (g_soundQueueCount == 0 && vol == 0 && g_time >= g_soundQueueNext) {
+expect: ui_SoundQueueAdd_waits_for_the_last_voice_to_end
+
+== ui: SoundQueueAdd forgets the delay
+file: src/audio/sound.c
+-                 g_soundQueueNext = g_soundQueue[g_soundQueueCount].time
+-                     + g_soundQueue[g_soundQueueCount].length + delay;
+-             }
+-             g_soundQueueCount++;
+-         }
+-     }
+- }
++                 g_soundQueueNext = g_soundQueue[g_soundQueueCount].time
++                     + g_soundQueue[g_soundQueueCount].length;
++             }
++             g_soundQueueCount++;
++         }
++     }
++ }
+expect: ui_SoundQueueAdd_queues_one_voice_at_a_time
+
+== ui: SampleLengthMs units
+file: src/audio/sound.c
+- return (int)(ChanLength(sample) * 1000.0);
++ return (int)(ChanLength(sample) * 100.0);
+expect: ui_SoundQueueAdd_queues_one_voice_at_a_time
+
+== ui: SoundQueueUpdate plays early
+file: src/audio/sound.c
+- if (g_soundQueueCount > 0 && g_time > g_soundQueue[0].time) {
++ if (g_soundQueueCount > 0 && g_time >= g_soundQueue[0].time) {
+expect: ui_SoundQueueUpdate_plays_the_head_when_due
+
+== ui: SoundQueueUpdate doesn't shift
+file: src/audio/sound.c
+-         for (i = 0; i < MAX_SOUND_QUEUE - 1; i++)
+-             g_soundQueue[i] = g_soundQueue[i + 1];
++         ;
+expect: ui_SoundQueueUpdate_plays_the_head_when_due
+
+== ui: SoundQueueUpdate ignores the announcer switch
+file: src/audio/sound.c
+- if (g_soundEnabled && g_soundQueue[0].sample && g_cfg.sfxOn)
++ if (g_soundEnabled && g_soundQueue[0].sample)
+expect: ui_SoundQueueUpdate_drops_voices_while_the_announcer_is_off
+
+== ui: FadeLoopSamples every call
+file: src/audio/sound.c
+-     if (!g_fadeOnce--) {
+-         g_fadeOnce = 1;
++     if (!g_fadeOnce--) {
++         g_fadeOnce = 0;
+expect: ui_FadeLoopSamples_plays_every_other_call
+
+== ui: FadeLoopSamples keeps the first sample
+file: src/audio/sound.c
+-             g_fadeQueueSample1 = 0;
++             ;
+expect: ui_FadeLoopSamples_plays_every_other_call
+
+== ui: pan table scale
+file: src/audio/sound.c
+- g_panTable[i] = 255.0 / g_screenW * xf;
++ g_panTable[i] = 256.0 / g_screenW * xf;
+expect: ui_BuildRampTables_pan_and_brightness
+
+== ui: brightness ramp flat part
+file: src/audio/sound.c
+- if (j < (int)g_screenH - 100)
++ if (j < (int)g_screenH - 101)
+expect: ui_BuildRampTables_pan_and_brightness
+
+== ui: brightness ramp slope
+file: src/audio/sound.c
+- g_rampB[j] = (int)(yf * (155.0 / (g_screenH - 100)) + 100.0);
++ g_rampB[j] = (int)(yf * (150.0 / (g_screenH - 100)) + 100.0);
+expect: ui_BuildRampTables_pan_and_brightness
+
+== ui: alien shot pitch
+file: src/audio/sound.c
+- g_sampleRate[1] = 25000;
++ g_sampleRate[1] = 25001;
+expect: ui_InitSampleTable_alien_shot_pitches
+
+== ui: alien shot volume
+file: src/audio/sound.c
+- g_sampleVol[9] = 200;
++ g_sampleVol[9] = 201;
+expect: ui_InitSampleTable_alien_shot_pitches
+
+== ui: LoadSample tries ogg first
+file: src/audio/sound.c
+- sprintf(g_pathBuf, SysAppPath("data\\samples\\%s.wav"), name);
++ sprintf(g_pathBuf, SysAppPath("data\\samples\\%s.ogg"), name);
+expect: ui_LoadSample_tries_wav_first
+
+== ui: VoicePath pack number
+file: src/audio/sound.c
+- sprintf(g_pathBuf, SysAppPath("data\\samples\\voices\\%d\\%s"), g_cfg.voice, name);
++ sprintf(g_pathBuf, SysAppPath("data\\samples\\voices\\%d\\%s"), g_cfg.voice + 1, name);
+expect: ui_VoicePath_uses_the_configured_pack
+expect: ui_LoadVoices_loads_from_the_voice_pack
+
+== ui: LoadVoices wrong name
+file: src/audio/sound.c
+- g_sfxYouAreThe = LoadVoiceSample("youarethe", 1);
++ g_sfxYouAreThe = LoadVoiceSample("youare", 1);
+expect: ui_LoadVoices_loads_from_the_voice_pack
+
+== ui: LoadVoices doesn't free first
+file: src/audio/sound.c
+- void LoadVoices()
+- {
+-     FreeSamples();
++ void LoadVoices()
++ {
+expect: ui_LoadVoices_loads_from_the_voice_pack
+
+== ui: InitSound leaves sound off
+file: src/audio/sound.c
+-     if (AudioInit())
+-         g_soundEnabled = 1;
++     if (AudioInit())
++         g_soundEnabled = 0;
+expect: ui_InitSound_and_SoundShutdown
+
+== ui: InitSound window sound name
+file: src/audio/sound.c
+- g_sfxWindow = LoadSample("maximize", 2);
++ g_sfxWindow = LoadSample("maximise", 2);
+expect: ui_InitSound_and_SoundShutdown
+
+== ui: SoundShutdown leaves sound on
+file: src/audio/sound.c
+-         AudioShutdown();
+-         g_soundEnabled = 0;
++         AudioShutdown();
+expect: ui_InitSound_and_SoundShutdown
+
+== ui: SoundShutdown keeps the voices
+file: src/audio/sound.c
+-         FreeSamples();
+-         LogPrint("SOUNDSYSTEM : Closing down...\r\n");
++         LogPrint("SOUNDSYSTEM : Closing down...\r\n");
+expect: ui_InitSound_and_SoundShutdown
+
+== ui: VoiceExists inverted
+file: src/audio/sound.c
+-     fd = _open(g_pathBuf, 0, 0);
+-     if (fd != -1) {
++     fd = _open(g_pathBuf, 0, 0);
++     if (fd == -1) {
+expect: ui_VoiceExists_looks_for_the_pack_id
+
+== ui: voice search wraps to pack 2
+file: src/ui/menu.c
+-                             if (voiceNo > 99) {
+-                                 voiceNo = 1;
++                             if (voiceNo > 99) {
++                                 voiceNo = 2;
+expect: ui_Menu_V_switches_to_the_next_voice_pack
+
+== ui: voice switch without the announcer
+file: src/ui/menu.c
+-                 g_cfg.sfxOn = 1;
+-                 if (g_cfg.sfxOn != 0) {
++                 if (g_cfg.sfxOn != 0) {
+expect: ui_Menu_V_switches_to_the_next_voice_pack
+
+== ui: voice switch silent
+file: src/ui/menu.c
+- SoundPlayVoice(g_sfxGetReady, -1, 255, 0.0f, 255, g_sndFlags);
++ ;
+expect: ui_Menu_V_switches_to_the_next_voice_pack
+
+== ui: voice switch doesn't load
+file: src/ui/menu.c
+-                             FlipBuffer(0);
+-                             LoadVoices();
+-                             DoNothing();
++                             FlipBuffer(0);
++                             DoNothing();
+expect: ui_Menu_V_switches_to_the_next_voice_pack
+
+# ---- src/audio/music.c ----
+
+== ui: StartMusic module extension
+file: src/audio/music.c
+- Concat3(SysAppPath("data\\music\\"), g_songName, ".mus"));
++ Concat3(SysAppPath("data\\music\\"), g_songName, ".mod"));
+expect: ui_StartMusic_loads_the_module
+
+== ui: StartMusic module end time
+file: src/audio/music.c
+-                         g_songEndTime = g_time + g_songLengthMs;
+-                         g_musicPlaying = 1;
+-                     }
+-                 }
+-
+-                 if (g_musicHandle != 0 && g_musicPos != 0
++                         g_songEndTime = g_time + g_songLengthMs + 1;
++                         g_musicPlaying = 1;
++                     }
++                 }
++
++                 if (g_musicHandle != 0 && g_musicPos != 0
+expect: ui_StartMusic_loads_the_module
+
+== ui: StartMusic mp3 extension
+file: src/audio/music.c
+- Concat3(SysAppPath("data\\music\\"), g_songName, ".mp3"));
++ Concat3(SysAppPath("data\\music\\"), g_songName, ".mp4"));
+expect: ui_StartMusic_streams_mp3
+
+== ui: StartMusic never streams mp3
+file: src/audio/music.c
+- } else if (g_cfg.musicFormat == MUSIC_FMT_MP3) {
++ } else if (g_cfg.musicFormat == 5) {
+expect: ui_StartMusic_streams_mp3
+
+== ui: StartMusic keeps the old stream
+file: src/audio/music.c
+-             } else {
+-                 if (g_musicHandle != 0) {
+-                     ChanStop(g_musicHandle);
+-                     MusicFree(g_musicHandle);
+-                     g_musicHandle = 0;
+-                 }
+-                 if (g_musicStream != 0) {
+-                     ChanStop(g_musicStream);
+-                     StreamFree(g_musicStream);
+-                     g_musicStream = 0;
+-                 }
++             } else {
++                 if (g_musicHandle != 0) {
++                     ChanStop(g_musicHandle);
++                     MusicFree(g_musicHandle);
++                     g_musicHandle = 0;
++                 }
+expect: ui_StartMusic_streams_mp3
+
+== ui: StartMusic without sound
+file: src/audio/music.c
+-     if (g_soundEnabled != 0) {
+-         g_songLengthMs = 0;
++     if (1) {
++         g_songLengthMs = 0;
+expect: ui_StartMusic_is_silent_without_sound
+
+== ui: boss track name
+file: src/audio/music.c
+- PLAY_MUSIC_TRACK("boss", MUSIC_BOSS);
++ PLAY_MUSIC_TRACK("bos", MUSIC_BOSS);
+expect: ui_Play_track_functions_pick_the_song
+
+== ui: hiscore track name
+file: src/audio/music.c
+- g_songName = "hiscore";
++ g_songName = "hiscores";
+expect: ui_Play_track_functions_pick_the_song
+
+== ui: gem drop track mode
+file: src/audio/music.c
+- PLAY_MUSIC_TRACK("gems", MUSIC_GEM_DROP);
++ PLAY_MUSIC_TRACK("gems", MUSIC_METEOR);
+expect: ui_Play_track_functions_pick_the_song
+
+== ui: end track name
+file: src/audio/music.c
+- PLAY_MUSIC_TRACK("end", MUSIC_END);
++ PLAY_MUSIC_TRACK("the_end", MUSIC_END);
+expect: ui_Play_track_functions_pick_the_song
+
+== ui: title track mode
+file: src/audio/music.c
+-     g_songName = "title";
+-     g_musicMode = MUSIC_TITLE;
++     g_songName = "title";
++     g_musicMode = MUSIC_BOSS;
+expect: ui_Play_track_functions_pick_the_song
+
+== ui: game music ignores time trial
+file: src/audio/music.c
+-     g_musicMode = MUSIC_CUSTOM;
+-     if (g_gameMode == MODE_TIME_TRIAL) {
++     g_musicMode = MUSIC_CUSTOM;
++     if (g_gameMode == MODE_DUAL) {
+expect: ui_PlayGameMusic_depends_on_the_mode
+
+== ui: title music over the playlist
+file: src/audio/music.c
+- void PlayTitleMusic()
+- {
+-     if (g_cfg.musicFormat == MUSIC_FMT_PLAYLIST && g_playlistCount != 0)
+-         return;
++ void PlayTitleMusic()
++ {
+expect: ui_track_functions_leave_an_active_playlist_alone
+
+== ui: EnsureTitleMusic always restarts
+file: src/audio/music.c
+-     if (g_musicMode != 0)
+-         PlayTitleMusic();
++     PlayTitleMusic();
+expect: ui_EnsureTitleMusic_only_switches_from_other_tracks
+
+== ui: custom list doesn't wrap
+file: src/audio/music.c
+-                         if (g_songIndex >= g_songCount)
+-                             g_songIndex = 0;
++                         if (g_songIndex > g_songCount)
++                             g_songIndex = 0;
+expect: ui_StartMusic_custom_song_list
+
+== ui: custom boss track name
+file: src/audio/music.c
+-                 if (g_musicMode == MUSIC_BOSS)
+-                     name = g_strB;
++                 if (g_musicMode == MUSIC_BOSS)
++                     name = g_strN;
+expect: ui_StartMusic_custom_song_list
+
+== ui: OpenNextSong doesn't wrap
+file: src/audio/music.c
+-             if (g_songIndex >= g_songCount)
+-                 g_songIndex = 0;
+-             g_curSong = g_songIndex;
+-             if (g_musicMode == MUSIC_CUSTOM)
+-                 name = g_songNames[g_curSong];
+-         }
+-     } else if (g_musicMode == MUSIC_CUSTOM) {
+-         name = g_songNames[g_curSong];
+-     }
+-
+-     if (g_musicMode == MUSIC_TIMETRIAL)
+-         name = g_strI;
+-     if (g_musicMode == MUSIC_BOSS)
+-         name = g_strB;
+-     if (g_musicMode == MUSIC_MEMORY)
++             if (g_songIndex > g_songCount)
++                 g_songIndex = 0;
++             g_curSong = g_songIndex;
++             if (g_musicMode == MUSIC_CUSTOM)
++                 name = g_songNames[g_curSong];
++         }
++     } else if (g_musicMode == MUSIC_CUSTOM) {
++         name = g_songNames[g_curSong];
++     }
++
++     if (g_musicMode == MUSIC_TIMETRIAL)
++         name = g_strI;
++     if (g_musicMode == MUSIC_BOSS)
++         name = g_strB;
++     if (g_musicMode == MUSIC_MEMORY)
+expect: ui_OpenNextSong_steps_through_the_list
+
+== ui: OpenNextSong playlist index
+file: src/audio/music.c
+- g_playlistIdx = -1;
++ g_playlistIdx = 0;
+expect: ui_OpenNextSong_steps_through_the_list
+
+== ui: music format 0 goes to the playlist
+file: src/audio/music.c
+-     if (g_cfg.musicFormat == 0) {
+-         g_cfg.musicFormat = 1;
++     if (g_cfg.musicFormat == 0) {
++         g_cfg.musicFormat = 2;
+expect: ui_CycleMusicFormat_walks_the_formats
+
+== ui: music format playlist goes to mp3
+file: src/audio/music.c
+-     } else {
+-         g_cfg.musicFormat = 0;
+-     }
+-     StartMusic();
++     } else {
++         g_cfg.musicFormat = 1;
++     }
++     StartMusic();
+expect: ui_CycleMusicFormat_walks_the_formats
+
+== ui: playlist lines start at the newline
+file: src/audio/music.c
+-             g_playlistLines[count] = p + 1;
++             g_playlistLines[count] = p;
+expect: ui_LoadPlaylist_and_ParsePlaylist_split_lines
+
+== ui: playlist misses the last byte
+file: src/audio/music.c
+- } while (pos < g_playlistSize);
++ } while (pos < g_playlistSize - 1);
+expect: ui_LoadPlaylist_and_ParsePlaylist_split_lines
+
+== ui: no playlist counts one line
+file: src/audio/music.c
+-     if (g_playlistBuf == 0)
+-         return 0;
+-     char *p = g_playlistBuf;
++     if (g_playlistBuf == 0)
++         return 1;
++     char *p = g_playlistBuf;
+expect: ui_LoadPlaylist_and_ParsePlaylist_split_lines
+
+== ui: playlist size off by one
+file: src/audio/music.c
+- g_playlistSize = _read(fd, g_playlistBuf, 0x100000);
++ g_playlistSize = _read(fd, g_playlistBuf, 0x100000) - 1;
+expect: ui_LoadPlaylist_and_ParsePlaylist_split_lines
+
+== ui: missing playlist keeps the buffer
+file: src/audio/music.c
+-     } else {
+-         FreePlaylist();
+-     }
++     }
+expect: ui_LoadPlaylist_without_a_file
+
+== ui: FreePlaylist keeps the pointer
+file: src/audio/music.c
+-         free(g_playlistBuf);
+-         g_playlistBuf = 0;
++         free(g_playlistBuf);
+expect: ui_LoadPlaylist_and_ParsePlaylist_split_lines
+
+== ui: playlist ignores ogg
+file: src/audio/music.c
+- found = StrContains(StrLower(g_songPath), ".ogg");
++ found = StrContains(StrLower(g_songPath), ".oga");
+expect: ui_PlayRandomPlaylistSong_streams_mp3_and_ogg_lines_only
+
+== ui: playlist keeps the carriage return
+file: src/audio/music.c
+- if (g_songPath[i] == '\n' || g_songPath[i] == '\r') {
++ if (g_songPath[i] == '\n') {
+expect: ui_PlayRandomPlaylistSong_streams_mp3_and_ogg_lines_only
+
+== ui: playlist end time
+file: src/audio/music.c
+-                     } else {
+-                         g_songEndTime = g_time + g_songLengthMs;
+-                     }
++                     } else {
++                         g_songEndTime = g_time + g_songLengthMs + 1;
++                     }
+expect: ui_PlayRandomPlaylistSong_streams_mp3_and_ogg_lines_only
+
+== ui: StartMusic ignores the playlist
+file: src/audio/music.c
+- if (g_playlistBuf != 0 && g_cfg.musicFormat == MUSIC_FMT_PLAYLIST) {
++ if (g_playlistBuf != 0 && g_cfg.musicFormat == 7) {
+expect: ui_StartMusic_plays_from_the_playlist
+
+== ui: SetMusicVolTable scale
+file: src/audio/music.c
+- float scale = vol / 255.0;
++ float scale = vol / 256.0;
+expect: ui_SetSfxVolume_scales_the_table
+
+== ui: SetSfxVolume scale
+file: src/audio/sound.c
+- float scale = vol / 255.0;
++ float scale = vol / 256.0;
+expect: ui_SetSfxVolume_scales_the_table
+
+# ---- src/ui/title.c ----
+
+== ui: AddLogoFlash fills one slot too few
+file: src/ui/title.c
+-     for (i = 0; i < MAX_LOGO_FLASHES; i++) {
+-         if (!g_logoFlashes[i].active) {
++     for (i = 0; i < MAX_LOGO_FLASHES - 1; i++) {
++         if (!g_logoFlashes[i].active) {
+expect: ui_AddLogoFlash_takes_free_slots_until_full
+
+== ui: AddLogoFlash colour
+file: src/ui/title.c
+- g_logoFlashes[i].r = 0xff;
++ g_logoFlashes[i].r = 0xfe;
+expect: ui_AddLogoFlash_takes_free_slots_until_full
+
+== ui: AddLogoFlash fills every slot at once
+file: src/ui/title.c
+-             speed = RandFloat(2.0f, 12.0f);
+-             g_logoFlashes[i].vx = g_cosDeg[g_logoFlashes[i].angle] * speed;
+-             g_logoFlashes[i].vy = 0.0f - g_sinDeg[g_logoFlashes[i].angle] * speed;
+-             return;
++             speed = RandFloat(2.0f, 12.0f);
++             g_logoFlashes[i].vx = g_cosDeg[g_logoFlashes[i].angle] * speed;
++             g_logoFlashes[i].vy = 0.0f - g_sinDeg[g_logoFlashes[i].angle] * speed;
+expect: ui_AddLogoFlash_takes_free_slots_until_full
+
+== ui: ClearFlashes misses the last
+file: src/ui/title.c
+-     for (i = 0; i < MAX_LOGO_FLASHES; i++)
+-         g_logoFlashes[i].active = 0;
++     for (i = 0; i < MAX_LOGO_FLASHES - 1; i++)
++         g_logoFlashes[i].active = 0;
+expect: ui_AddLogoFlash_takes_free_slots_until_full
+
+== ui: UpdateLogoFlashes no clamp
+file: src/ui/title.c
+-             if (g_logoFlashes[i].alpha < 0.0)
+-                 g_logoFlashes[i].alpha = 0;
++             ;
+expect: ui_UpdateLogoFlashes_moves_fades_and_expires
+
+== ui: UpdateLogoFlashes never expires
+file: src/ui/title.c
+-             if (g_logoFlashes[i].life < 0.0)
+-                 g_logoFlashes[i].active = 0;
++             ;
+expect: ui_UpdateLogoFlashes_moves_fades_and_expires
+
+== ui: UpdateLogoFlashes y from vx
+file: src/ui/title.c
+- g_logoFlashes[i].y += g_logoFlashes[i].vy;
++ g_logoFlashes[i].y += g_logoFlashes[i].vx;
+expect: ui_UpdateLogoFlashes_moves_fades_and_expires
+
+== ui: DrawFlashes skips the last
+file: src/ui/title.c
+-     for (i = 0; i < MAX_LOGO_FLASHES; i++) {
+-         if (g_logoFlashes[i].active) {
+-             angle = 0.0 - g_logoFlashes[i].angle;
++     for (i = 0; i < MAX_LOGO_FLASHES - 1; i++) {
++         if (g_logoFlashes[i].active) {
++             angle = 0.0 - g_logoFlashes[i].angle;
+expect: ui_DrawFlashes_draws_each_active_flash
+
+== ui: logo splash shorter
+file: src/ui/title.c
+-     g_splashEnd = g_time + 5000;    // ms: total display time before fade-out is allowed to finish
++     g_splashEnd = g_time + 3000;    // ms: total display time before fade-out is allowed to finish
+expect: ui_ShowLogoSplash_runs_its_five_seconds
+
+== ui: title splash skip delay
+file: src/ui/title.c
+-     g_splashEnd = g_time + 5000;
+-     g_splashMinEnd = g_time + 1000;
++     g_splashEnd = g_time + 5000;
++     g_splashMinEnd = g_time + 1500;
+expect: ui_ShowTitleSplash_click_skips_after_a_second
+
+== ui: logo splash without image loops
+file: src/ui/title.c
+-     g_splash = LoadGraphic("emvsoftware.jpg", true, false);
+-     if (g_splash == 0) return;
++     g_splash = LoadGraphic("emvsoftware.jpg", true, false);
++     if (g_splash == 0) SysFlip();
+expect: ui_ShowLogoSplash_without_the_image
+
+== ui: menu prompt shown behind windows
+file: src/ui/title.c
+-     if (AnyWindowActive())
+-         return;
+-     if (g_timeTrialLocked
++     if (g_timeTrialLocked
+expect: ui_DrawMenuPrompt_hidden_behind_windows
+
+== ui: menu prompt says fire on the keyboard
+file: src/ui/title.c
+- if (g_cfg.device0 == 1 || g_cfg.device0 == 2)
++ if (g_cfg.device0 == 0 || g_cfg.device0 == 2)
+expect: ui_DrawMenuPrompt_space_or_fire
+
+== ui: menu prompt restart warning hidden
+file: src/ui/title.c
+-     if (g_uiBlink != 0 && (g_restartNeeded ||
++     if (g_uiBlink != 0 && (0 ||
+expect: ui_DrawMenuPrompt_space_or_fire
+
+== ui: menu prompt doesn't blink
+file: src/ui/title.c
+-     if (g_uiBlink != 0) {
+-         if (g_cfg.device0
++     {
++         if (g_cfg.device0
+expect: ui_DrawMenuPrompt_space_or_fire
+
+== ui: attract cycle skips the mission
+file: src/ui/menu.c
+-         case ATTRACT_MISSION:
+-             g_idleTimeoutMs = 30000;
++         case ATTRACT_MISSION:
++             g_idleTimeoutMs = 15000;
+expect: ui_Title_attract_screens_cycle_on_idle_timeouts
+
+== ui: attract bonuses timeout
+file: src/ui/menu.c
+-         case ATTRACT_HELP_BONUSES:
+-             g_idleTimeoutMs = 15000;
++         case ATTRACT_HELP_BONUSES:
++             g_idleTimeoutMs = 25000;
+expect: ui_Title_attract_screens_cycle_on_idle_timeouts
+
+== ui: attract hall of fame timeout
+file: src/ui/menu.c
+-         case ATTRACT_HALL_OF_FAME:
+-             g_idleTimeoutMs = 15000;
++         case ATTRACT_HALL_OF_FAME:
++             g_idleTimeoutMs = 25000;
+expect: ui_Title_attract_screens_cycle_on_idle_timeouts
+
+== ui: attract controls timeout
+file: src/ui/menu.c
+-         case ATTRACT_HELP_CONTROLS:
+-             g_idleTimeoutMs = 15000;
+-             g_frameFunc = HelpControls;
+-             return;
++         case ATTRACT_HELP_CONTROLS:
++             g_idleTimeoutMs = 20000;
++             g_frameFunc = HelpControls;
++             return;
+expect: ui_Title_attract_screens_cycle_on_idle_timeouts
+
+== ui: attract idle check off by a lot
+file: src/ui/menu.c
+- if (g_time - g_lastActivityTime > g_idleTimeoutMs) g_titleResetPending = 1;
++ if (g_time - g_lastActivityTime > g_idleTimeoutMs + 1000) g_titleResetPending = 1;
+expect: ui_Title_attract_screens_cycle_on_idle_timeouts
+
+== ui: attract cycle doesn't wrap
+file: src/ui/menu.c
+-         if (g_attractScreen > ATTRACT_HALL_OF_FAME) {
+-             g_attractScreen = ATTRACT_INTRO;
++         if (g_attractScreen > ATTRACT_HALL_OF_FAME + 1) {
++             g_attractScreen = ATTRACT_INTRO;
+expect: ui_Title_attract_screens_cycle_on_idle_timeouts
+
+== ui: attract wrap without a streak
+file: src/ui/menu.c
+-             g_attractScreen = ATTRACT_INTRO;
+-             g_streakActive = 1;
++             g_attractScreen = ATTRACT_INTRO;
+expect: ui_Title_wrap_to_the_intro_starts_a_streak
+
+== ui: attract streak colour may be dark
+file: src/ui/menu.c
+- } while (g_streakColorR + g_streakColorG + g_streakColorB < 50);
++ } while (g_streakColorR + g_streakColorG + g_streakColorB < 0);
+expect: ui_Title_wrap_to_the_intro_starts_a_streak
+
+== ui: intro timeout
+file: src/ui/menu.c
+-         case ATTRACT_INTRO:
+-             g_idleTimeoutMs = 60000;
++         case ATTRACT_INTRO:
++             g_idleTimeoutMs = 50000;
+expect: ui_Title_wrap_to_the_intro_starts_a_streak
+
+== ui: windows don't hold the intro
+file: src/ui/title.c
+-         g_introBlockedByWindow = 1;
+-         g_lastActivityTime = g_time;
++         g_introBlockedByWindow = 1;
+expect: ui_Title_open_windows_hold_the_intro
+
+== ui: ResetToTitle attract timeout
+file: src/ui/title.c
+-     g_attractScreen = 0;
+-     g_idleTimeoutMs = 30000;
++     g_attractScreen = 0;
++     g_idleTimeoutMs = 20000;
+expect: ui_ResetToTitle_returns_to_the_title
+
+== ui: ResetToTitle no title music
+file: src/ui/title.c
+-     g_menuIdleTimeout = g_time + MENU_IDLE_MS;
+-     PlayTitleMusic();
++     g_menuIdleTimeout = g_time + MENU_IDLE_MS;
+expect: ui_ResetToTitle_returns_to_the_title
+
+== ui: ResetToTitle no lock
+file: src/ui/title.c
+-     g_hiscoreEntryReset = 0;
+-     g_transitionLockUntil = g_time + TRANSITION_LOCK_MS;
+-     g_transitionLock = 1;
++     g_hiscoreEntryReset = 0;
+expect: ui_ResetToTitle_returns_to_the_title
+
+== ui: ResetToTitle keeps the demo player
+file: src/ui/title.c
+-     g_playerUpdateFn = UpdatePlayer;
+-     g_menuIdleTimeout = g_time + MENU_IDLE_MS;
++     g_menuIdleTimeout = g_time + MENU_IDLE_MS;
+expect: ui_ResetToTitle_returns_to_the_title
+
+== ui: ResetToTitle silent
+file: src/ui/title.c
+-     SoundPlay(g_sfxZoom, 54000, 200, 0.0f, 255, g_sndFlags);
+-     g_introSoundPlayed[0] = 1;
+-     g_introSoundPlayed[1] = 1;
+-     g_introSoundPlayed[2] = 1;
+-     g_introSoundPlayed[3] = 1;
+-     g_introSoundPlayed[4] = 1;
+-     g_introSoundPlayed[5] = 1;
+-     g_introSoundPlayed[6] = 1;
+-     g_introSoundPlayed[7] = 1;
+-     g_introSoundPlayed[8] = 1;
+-     CLEAR_DRAW_COUNTERS()
++     g_introSoundPlayed[0] = 1;
++     g_introSoundPlayed[1] = 1;
++     g_introSoundPlayed[2] = 1;
++     g_introSoundPlayed[3] = 1;
++     g_introSoundPlayed[4] = 1;
++     g_introSoundPlayed[5] = 1;
++     g_introSoundPlayed[6] = 1;
++     g_introSoundPlayed[7] = 1;
++     g_introSoundPlayed[8] = 1;
++     CLEAR_DRAW_COUNTERS()
+expect: ui_ResetToTitle_returns_to_the_title
+
+== ui: ResetToTitle keeps the time trial difficulty
+file: src/ui/title.c
+-     if (g_gameMode == MODE_TIME_TRIAL)
+-         g_cfg.difficulty = g_savedDifficultyTT;
++     if (g_gameMode == MODE_DUAL)
++         g_cfg.difficulty = g_savedDifficultyTT;
+expect: ui_ResetToTitle_restores_the_time_trial_difficulty
+
+# ---- src/game/hud.c ----
+
+== ui: score popup short life
+file: src/game/hud.c
+- g_popups[i].life = 91.0f;
++ g_popups[i].life = 90.0f;
+expect: ui_AddScorePopup_fills_free_slots
+expect: ui_UpdateScorePopups_rises_and_expires
+
+== ui: score popup big life
+file: src/game/hud.c
+- g_popups[i].life = 221.0f;
++ g_popups[i].life = 220.0f;
+expect: ui_AddScorePopup_fills_free_slots
+
+== ui: score popup fills every slot
+file: src/game/hud.c
+-             g_popups[i].blinkPhase = 0;
+-             break;
++             g_popups[i].blinkPhase = 0;
+expect: ui_AddScorePopup_fills_free_slots
+
+== ui: score popup never expires
+file: src/game/hud.c
+-             if (g_popups[i].life < 0.0)
+-                 g_popups[i].active = 0;
++             ;
+expect: ui_UpdateScorePopups_rises_and_expires
+
+== ui: score popup off the top kept
+file: src/game/hud.c
+-             if (g_popups[i].y < 0.0)
+-                 g_popups[i].active = 0;
++             ;
+expect: ui_UpdateScorePopups_rises_and_expires
+
+== ui: big popup blinks early
+file: src/game/hud.c
+- if (g_popups[i].big && g_popups[i].life < 78.0) {
++ if (g_popups[i].big && g_popups[i].life < 79.0) {
+expect: ui_UpdateScorePopups_big_ones_blink_late
+
+== ui: big popup blink phase step
+file: src/game/hud.c
+- g_popups[i].blinkPhase += 4;
++ g_popups[i].blinkPhase += 1;
+expect: ui_UpdateScorePopups_big_ones_blink_late
+
+== ui: popup colour band
+file: src/game/hud.c
+-             if (g_popups[i].value > 4999)
+-                 color = 2;
++             if (g_popups[i].value > 5000)
++                 color = 2;
+expect: ui_DrawScorePopups_small_digits_and_colors
+
+== ui: popup top colour
+file: src/game/hud.c
+-             if (g_popups[i].value > 29999)
+-                 color = 0;
++             if (g_popups[i].value > 29999)
++                 color = 3;
+expect: ui_DrawScorePopups_small_digits_and_colors
+
+== ui: popup dot spacing
+file: src/game/hud.c
+-                 if (*p == '.')
+-                     xoff += 4.0;
++                 if (*p == '.')
++                     xoff += 5.0;
+expect: ui_DrawScorePopups_small_digits_and_colors
+
+== ui: popup frame
+file: src/game/hud.c
+- frame = 7 - (int)(g_popups[i].life / 13.0);
++ frame = 6 - (int)(g_popups[i].life / 13.0);
+expect: ui_DrawScorePopups_small_digits_and_colors
+
+== ui: DrawRow spacing
+file: src/game/hud.c
+- Blit(x + i * 19, y, 0, g_gfxLogos, col << 4, 160, 16, 15);
++ Blit(x + i * 18, y, 0, g_gfxLogos, col << 4, 160, 16, 15);
+expect: ui_DrawRow_and_NewRank
+
+== ui: NewRank duration
+file: src/game/hud.c
+-     g_msgColor = 8;
+-     g_msgTimer = g_time + 5000;
++     g_msgColor = 8;
++     g_msgTimer = g_time + 4000;
+expect: ui_DrawRow_and_NewRank
+
+== ui: DrawFps samples early
+file: src/game/hud.c
+- if (elapsed > 1000) {  // 1000 ms since the last FPS sample
++ if (elapsed > 900) {  // 1000 ms since the last FPS sample
+expect: ui_DrawFps_samples_once_a_second
+
+== ui: DrawFps keeps counting
+file: src/game/hud.c
+-         g_lastFpsTime = SysMillis();
+-         g_frameCount = 0;
++         g_lastFpsTime = SysMillis();
+expect: ui_DrawFps_samples_once_a_second
+
+== ui: DrawFps position
+file: src/game/hud.c
+- DrawMenuText(buff, (g_screenW >> 1) - 25, 30, 0);
++ DrawMenuText(buff, (g_screenW >> 1) - 20, 30, 0);
+expect: ui_DrawFps_samples_once_a_second
+
+== ui: boss bar frame
+file: src/game/hud.c
+-         for (i = 0; i < 15; i++)
+-             Blit(x + i * 8, y, 0, g_gfxLogos, 0x30, 0x39, 8, 0xd);
++         for (i = 0; i < 14; i++)
++             Blit(x + i * 8, y, 0, g_gfxLogos, 0x30, 0x39, 8, 0xd);
+expect: ui_DrawBossBar_fill_follows_health
+
+== ui: boss bar colour band
+file: src/game/hud.c
+-         if (ratio < 0.66)
+-             sy = 0x40;
++         if (ratio < 0.5)
++             sy = 0x40;
+expect: ui_DrawBossBar_fill_follows_health
+
+== ui: boss bar fill length
+file: src/game/hud.c
+- for (j = 0; j < (int)(ratio * 80.0) / 2; j++)
++ for (j = 0; j < (int)(ratio * 80.0) / 3; j++)
+expect: ui_DrawBossBar_fill_follows_health
+
+# ---- src/gfx/particles.c ----
+
+== ui: AddParticle ignores the setting
+file: src/gfx/particles.c
+-     if (g_cfg.particlesOn == 0)
+-         return;
+-     for (int i = 0; i < MAX_PARTICLES - 1; i++) {
+-         if (g_particles[i].active == 0) {
++     for (int i = 0; i < MAX_PARTICLES - 1; i++) {
++         if (g_particles[i].active == 0) {
+expect: ui_AddParticle_needs_particles_on
+
+== ui: AddParticle alpha step
+file: src/gfx/particles.c
+- g_particles[i].alphaStep = alpha / life;
++ g_particles[i].alphaStep = alpha / (life + 1);
+expect: ui_AddParticle_needs_particles_on
+
+== ui: particle pool one smaller
+file: src/gfx/particles.c
+-     for (int i = 0; i < MAX_PARTICLES - 1; i++) {
+-         if (g_particles[i].active == 0) {
++     for (int i = 0; i < MAX_PARTICLES - 2; i++) {
++         if (g_particles[i].active == 0) {
+expect: ui_AddParticle_pool_holds_999
+
+== ui: CountParticles misses the first
+file: src/gfx/particles.c
+-     for (int i = 0; i < MAX_PARTICLES - 1; i++) {
+-         if (g_particles[i].active != 0) {
+-             count++;
++     for (int i = 1; i < MAX_PARTICLES - 1; i++) {
++         if (g_particles[i].active != 0) {
++             count++;
+expect: ui_AddParticle_needs_particles_on
+
+== ui: ClearParticles keeps the first
+file: src/gfx/particles.c
+-     for (int i = 0; i < MAX_PARTICLES - 1; i++) {
+-         g_particles[i].active = 0;
++     for (int i = 1; i < MAX_PARTICLES - 1; i++) {
++         g_particles[i].active = 0;
+expect: ui_AddParticle_needs_particles_on
+
+== ui: particle size floor
+file: src/gfx/particles.c
+-             if (g_particles[i].size < 1.0)
+-                 g_particles[i].size = 1.0f;
++             if (g_particles[i].size < 0.0)
++                 g_particles[i].size = 1.0f;
+expect: ui_UpdateParticles_moves_by_mode_and_expires
+
+== ui: particle angle wrap
+file: src/gfx/particles.c
+-             if (g_particles[i].angle > 360.0)
+-                 g_particles[i].angle -= 360.0;
++             ;
+expect: ui_UpdateParticles_moves_by_mode_and_expires
+
+== ui: particle gravity ignored
+file: src/gfx/particles.c
+-                 g_particles[i].y += g_particles[i].vy * g_dt;
+-                 g_particles[i].vy += g_particles[i].gravity * g_dt;
+-             }
+-             if (g_particles[i].mode == 1) {
++                 g_particles[i].y += g_particles[i].vy * g_dt;
++             }
++             if (g_particles[i].mode == 1) {
+expect: ui_UpdateParticles_moves_by_mode_and_expires
+
+== ui: vertical particles move sideways
+file: src/gfx/particles.c
+-             if (g_particles[i].mode == 1) {
+-                 g_particles[i].y += g_particles[i].vy * g_dt;
++             if (g_particles[i].mode == 1) {
++                 g_particles[i].x += g_particles[i].vx * g_dt;
++                 g_particles[i].y += g_particles[i].vy * g_dt;
+expect: ui_UpdateParticles_moves_by_mode_and_expires
+
+== ui: horizontal particles don't move
+file: src/gfx/particles.c
+-             if (g_particles[i].mode == 2) {
+-                 g_particles[i].x += g_particles[i].vx * g_dt;
+-             }
++             if (g_particles[i].mode == 2) {
++             }
+expect: ui_UpdateParticles_moves_by_mode_and_expires
+
+== ui: particle never expires
+file: src/gfx/particles.c
+-             if (g_particles[i].life < 0.0)
+-                 g_particles[i].active = 0;
++             ;
+expect: ui_UpdateParticles_moves_by_mode_and_expires
+
+== ui: particle kill flag ignored
+file: src/gfx/particles.c
+-             if (g_particles[i].kill && *g_particles[i].kill) {
++             if (0) {
+expect: ui_UpdateParticles_kill_flag_clears_everything
+
+== ui: particle kill flag kept
+file: src/gfx/particles.c
+-                 *g_particles[i].kill = 0;
+-                 ClearParticles();
++                 ClearParticles();
+expect: ui_UpdateParticles_kill_flag_clears_everything
+
+== ui: particle draw size
+file: src/gfx/particles.c
+- s = g_particles[i].size * 0.6f;
++ s = g_particles[i].size * 0.5f;
+expect: ui_DrawParticles_queues_one_stretch_each
+
+== ui: particle alpha not clamped
+file: src/gfx/particles.c
+- a = (int)g_particles[i].alpha > 255 ? 255 : (int)g_particles[i].alpha;
++ a = (int)g_particles[i].alpha;
+expect: ui_DrawParticles_queues_one_stretch_each
+
+== ui: particle ignores xref
+file: src/gfx/particles.c
+-             if (g_particles[i].xref)
+-                 x = *g_particles[i].xref;
++             ;
+expect: ui_DrawParticles_queues_one_stretch_each
+
+== ui: particles drawn when off
+file: src/gfx/particles.c
+-     if (g_cfg.particlesOn == 0)
+-         return;
+-     for (i = 0; i < MAX_PARTICLES - 1; i++) {
+-         if (g_particles[i].active != 0) {
+-             a = (int)
++     for (i = 0; i < MAX_PARTICLES - 1; i++) {
++         if (g_particles[i].active != 0) {
++             a = (int)
+expect: ui_DrawParticles_queues_one_stretch_each
+
+== ui: SpawnSlots spawns n
+file: src/gfx/particles.c
+-             if (!n--)
+-                 break;
++             if (!--n)
++                 break;
+expect: ui_SpawnSlots_spawns_one_more_than_asked
+
+== ui: ClearSlots keeps the count
+file: src/gfx/particles.c
+-         g_slots[i].active = 0;
+-     g_slotCount = 0;
++         g_slots[i].active = 0;
+expect: ui_SpawnSlots_spawns_one_more_than_asked
+
+== ui: slot colour from red
+file: src/gfx/particles.c
+- g_slots[i].g = (float)g;
++ g_slots[i].g = (float)r;
+expect: ui_SpawnSlots_spawns_one_more_than_asked
+
+== ui: slots never stop
+file: src/gfx/particles.c
+-                 if (g_slots[i].vel < 0.0 ||
++                 if (g_slots[i].vel < -10.0 ||
+expect: ui_UpdateSlots_fades_and_stops
+
+== ui: slot colour not clamped
+file: src/gfx/particles.c
+-                 if (g_slots[i].g < 0.0)
+-                     g_slots[i].g = 0;
++                 ;
+expect: ui_UpdateSlots_fades_and_stops
+
+== ui: slot acceleration ignored
+file: src/gfx/particles.c
+- g_slots[i].vel -= g_slots[i].accel * dt;
++ g_slots[i].vel -= g_slots[i].accel * dt * 0.5f;
+expect: ui_UpdateSlots_fades_and_stops
+
+== ui: slots plotted outside
+file: src/gfx/particles.c
+- if (px > minX && px < maxX && py < maxY && py > minY)
++ if (px > minX && py < maxY && py > minY)
+expect: ui_DrawSlots_plots_inside_the_rect
+
+== ui: spark trail full size
+file: src/gfx/particles.c
+- g_sparks[j].size = g_sparks[i].size >> 1;
++ g_sparks[j].size = g_sparks[i].size;
+expect: ui_SpawnSpark_and_UpdateSparks
+
+== ui: spark fade ignores delay
+file: src/gfx/particles.c
+-                 if (g_sparks[i].delay < 1) {
++                 if (1) {
+expect: ui_SpawnSpark_and_UpdateSparks
+
+== ui: spark gravity
+file: src/gfx/particles.c
+- g_sparks[i].vy += 0.04f;
++ g_sparks[i].vy += 0.05f;
+expect: ui_SpawnSpark_and_UpdateSparks
+
+== ui: sparks always drawn as sprites
+file: src/gfx/particles.c
+-             if (g_cfg.particlesOn != 0) {
+-                 QueueStretchF(graphic,
++             if (1) {
++                 QueueStretchF(graphic,
+expect: ui_SpawnSpark_and_UpdateSparks
+
+== ui: SpawnSparks one extra
+file: src/gfx/particles.c
+-             g_explosionParticles[i].b = 255;
+-             count--;
+-             if (count < 1)
++             g_explosionParticles[i].b = 255;
++             count--;
++             if (count < 0)
+expect: ui_SpawnSparks_takes_count_slots
+
+== ui: SpawnSparksRGB colour
+file: src/gfx/particles.c
+-             g_explosionParticles[i].g = g;
++             g_explosionParticles[i].g = r;
+expect: ui_SpawnSparks_takes_count_slots
+
+# ---- src/gfx/explosions.c ----
+
+== ui: small explosion one frame longer
+file: src/gfx/explosions.c
+- EXPLOSION_SMALL_FRAMES = 12,
++ EXPLOSION_SMALL_FRAMES = 13,
+expect: ui_SpawnSmall_runs_13_frames
+
+== ui: shared explosion one frame shorter
+file: src/gfx/explosions.c
+- EXPLOSION_LAST_FRAME   = 13
++ EXPLOSION_LAST_FRAME   = 12
+expect: ui_explosion_types_end_differently
+
+== ui: fade explosion step
+file: src/gfx/explosions.c
+- g_explosions[i].alpha = g_explosions[i].alpha - 5;
++ g_explosions[i].alpha = g_explosions[i].alpha - 4;
+expect: ui_explosion_types_end_differently
+
+== ui: spinning explosion angle wrap
+file: src/gfx/explosions.c
+-                     if (g_explosions[i].angle >= 360.0f)
+-                         g_explosions[i].angle = g_explosions[i].angle - 360.0f;
++                     ;
+expect: ui_explosion_types_end_differently
+
+== ui: spinning explosion lingers
+file: src/gfx/explosions.c
+-                         if (g_explosions[i].scale < 20.0f) {
++                         if (g_explosions[i].scale < 10.0f) {
+expect: ui_explosion_types_end_differently
+
+== ui: SpawnSmall type
+file: src/gfx/explosions.c
+- g_explosions[i].type = EXPLOSION_TYPE_SMALL;
++ g_explosions[i].type = 3;
+expect: ui_SpawnSmall_runs_13_frames
+
+== ui: SpawnExplosion not centred
+file: src/gfx/explosions.c
+-     float hw = w / 2.0;
++     float hw = w;
+expect: ui_SpawnExplosion_centers_and_sparks
+
+== ui: SpawnExplosion spark colour
+file: src/gfx/explosions.c
+-                                1.5f, 5.0f, 1.0f, 4.0f, r2, g2, b2);
++                                1.5f, 5.0f, 1.0f, 4.0f, r, g2, b2);
+expect: ui_SpawnExplosion_centers_and_sparks
+
+== ui: big explosion sparks
+file: src/gfx/explosions.c
+- SpawnSparksRGB((int)g_cfg.sparks * 2, cx, cy, 2.0f, 8.0f, 2.0f, 5.0f, r, g, b);
++ SpawnSparksRGB((int)g_cfg.sparks * 3, cx, cy, 2.0f, 8.0f, 2.0f, 5.0f, r, g, b);
+expect: ui_SpawnExplosion_centers_and_sparks
+
+== ui: huge explosion fills every ring
+file: src/gfx/explosions.c
+-             if (g_flash[j].active == 0 && !found) {
++             if (g_flash[j].active == 0) {
+expect: ui_SpawnHugeExplosion_flashes_the_screen
+
+== ui: huge explosion bomb graphic
+file: src/gfx/explosions.c
+-                 if (mode == 2) {
+-                     g_flash[j].gfx = g_gfxFlareBomb3;
++                 if (mode == 2) {
++                     g_flash[j].gfx = g_gfxFlareBomb2;
+expect: ui_SpawnHugeExplosion_flashes_the_screen
+
+== ui: huge explosion ring without mode
+file: src/gfx/explosions.c
+-     if (mode > 0) {
++     if (mode >= 0) {
+expect: ui_SpawnHugeExplosion_flashes_the_screen
+
+# ---- src/gfx/resources.c, frames.c, stars.c ----
+
+== ui: LoadGraphic keeps the case
+file: src/gfx/resources.c
+-     StrToLowerN(name, g_gfxPath, 1024);
+-     gfx = ImgLoad(g_gfxPath, maskAlpha, hiQuality);
+-     if (gfx == 0) {
+-         sprintf(g_msgBuf, "ERROR: Could not load %s file\n", name);
+-         LogPrint(g_msgBuf);
+-         return 0;
+-     }
+-     ImgSetTextureQuality(gfx, true);
+-     ImgSetAlphaMode(gfx, 1);
++     StrToLowerN(name, g_gfxPath, 1024);
++     gfx = ImgLoad(name, maskAlpha, hiQuality);
++     if (gfx == 0) {
++         sprintf(g_msgBuf, "ERROR: Could not load %s file\n", name);
++         LogPrint(g_msgBuf);
++         return 0;
++     }
++     ImgSetTextureQuality(gfx, true);
++     ImgSetAlphaMode(gfx, 1);
+expect: ui_LoadGraphic_lowercases_the_name
+
+== ui: LoadHma returns an empty mask
+file: src/gfx/resources.c
+-             free(buf);
+-             return NULL;
++             return buf;
+expect: ui_LoadHma_without_the_file_returns_null
+
+== ui: DrawFlash ignores the background setting
+file: src/gfx/frames.c
+-     if (g_cfg.bgEnabled != 1) return;
++     if (g_cfg.bgEnabled == 2) return;
+expect: ui_DrawFlash_fades_over_30_frames
+
+== ui: DrawFlash never ends
+file: src/gfx/frames.c
+-         if (g_fadeStep == 30) g_flashOverlayActive = 0;
++         if (g_fadeStep == 31) g_flashOverlayActive = 0;
+expect: ui_DrawFlash_fades_over_30_frames
+
+== ui: menu stars X wrap
+file: src/gfx/stars.c
+-         if (g_starX[i] > g_starXMax)
+-             g_starX[i] -= g_starXMax - g_starXMin;
++         if (g_starX[i] > g_starXMax)
++             g_starX[i] = g_starXMin;
+expect: ui_UpdateMenuStars_wraps_the_field
+
+== ui: menu stars Y wrap
+file: src/gfx/stars.c
+-         if (g_starY[i] < g_starYMin)
+-             g_starY[i] += g_starYMax - g_starYMin;
++         if (g_starY[i] < g_starYMin)
++             g_starY[i] = g_starYMax;
+expect: ui_UpdateMenuStars_wraps_the_field
+
+== ui: menu stars Z wrap
+file: src/gfx/stars.c
+-         if (g_starZ[i] > g_starZFar)
+-             g_starZ[i] = g_starZNear;
++         if (g_starZ[i] > g_starZFar)
++             g_starZ[i] = g_starZFar;
+expect: ui_UpdateMenuStars_wraps_the_field
+
+== ui: menu stars angle wrap
+file: src/gfx/stars.c
+-     if (!(g_angX < 360.0)) {
+-         g_angX -= 360.0;
++     if (!(g_angX < 360.0)) {
++         g_angX -= 359.0;
+expect: ui_UpdateMenuStars_angle_wraps
+
+== ui: menu stars negative angle
+file: src/gfx/stars.c
+-     if (g_angY < 0.0)
+-         g_angY += 360.0;
++     if (g_angY < 0.0)
++         g_angY = 0;
+expect: ui_UpdateMenuStars_angle_wraps
+
+== ui: dot glyph one dot short
+file: src/gfx/stars.c
+-     for (i = 0; i < count; i++) {
+-         px = xs[i] * scale + x;
++     for (i = 1; i < count; i++) {
++         px = xs[i] * scale + x;
+expect: ui_DrawDotGlyph_plots_each_point
+
+== ui: dot signature misses a letter
+file: src/gfx/stars.c
+-     DrawDotGlyph(x + s * 82, y, s, 6, xr, yr);
++     ;
+expect: ui_DrawDotGlyph_plots_each_point
+
+== ui: star rotation renderer swapped
+file: src/gfx/stars.c
+-     if (g_cfg.bgStars != 0)
+-         g_fnPtr = DrawStarsStill;
+-     else
+-         g_fnPtr = DrawStarsGlow;
+- }
++     if (g_cfg.bgStars == 0)
++         g_fnPtr = DrawStarsStill;
++     else
++         g_fnPtr = DrawStarsGlow;
++ }
+expect: ui_InitStarRotation_picks_the_star_renderer
+
+# ---- src/ui/controls.c ----
+
+== ui: KeyToChar M
+file: src/ui/controls.c
+- if (key == K_VK_M) c = 'M';
++ if (key == K_VK_M) c = 'N';
+expect: ui_KeyToChar_maps_letters_digits_and_punctuation
+
+== ui: KeyToChar numpad 7
+file: src/ui/controls.c
+- if (key == K_VK_NUM7) c = '7';
++ if (key == K_VK_NUM7) c = '8';
+expect: ui_KeyToChar_maps_letters_digits_and_punctuation
+
+== ui: KeyToChar decimal
+file: src/ui/controls.c
+- if (key == K_VK_DECIMAL) c = '.';
++ if (key == K_VK_DECIMAL) c = ',';
+expect: ui_KeyToChar_maps_letters_digits_and_punctuation
+
+== ui: KeyToChar space
+file: src/ui/controls.c
+- if (key == K_VK_SPACE) c = ' ';
++ if (key == K_VK_SPACE) c = 0;
+expect: ui_KeyToChar_maps_letters_digits_and_punctuation
+
+== ui: KeyName right ctrl
+file: src/ui/controls.c
+- } else if (key == K_VK_R_CONTROL) {
+-         sprintf(g_keyName, "RIGHT CTRL   ");
++ } else if (key == K_VK_R_CONTROL) {
++         sprintf(g_keyName, "RIGHT CTRL  ");
+expect: ui_KeyName_pads_names
+
+== ui: KeyName numpad 3
+file: src/ui/controls.c
+-     } else if (key == K_VK_NUM3) {
++     } else if (key == K_VK_NUM4) {
+expect: ui_KeyName_pads_names
+
+== ui: KeyName default
+file: src/ui/controls.c
+-         sprintf(g_keyName, "UNDEFINED    ");
++         sprintf(g_keyName, "UNDEFINED");
+expect: ui_KeyName_pads_names
+
+== ui: ButtonName bit 2
+file: src/ui/controls.c
+- case 4: sprintf(g_keyName, "BUTTON 3"); break;
++ case 4: sprintf(g_keyName, "BUTTON 4"); break;
+expect: ui_ButtonName_joystick_bits
+
+== ui: ButtonName keyboard
+file: src/ui/controls.c
+-     if (type == 0) {
+-         KeyName(button);
++     if (type == 1) {
++         KeyName(button);
+expect: ui_ButtonName_joystick_bits
+
+== ui: TrimSpaces leading
+file: src/ui/controls.c
+-             while (isspace(*p))
+-                 p++;
++             ;
+expect: ui_TrimSpaces_both_ends
+
+== ui: TrimSpaces trailing
+file: src/ui/controls.c
+-             while (p >= s && isspace(*p))
+-                 p--;
++             ;
+expect: ui_TrimSpaces_both_ends
+
+== ui: ControlsText player number
+file: src/ui/controls.c
+- player + 1, b1, b2, b3, b4);
++ player, b1, b2, b3, b4);
+expect: ui_ControlsText_keyboard_and_joystick
+
+== ui: ControlsText joystick fire from rocket
+file: src/ui/controls.c
+-         ButtonName((&g_cfg.device0)[player], g_cfg.joy[0][player]);
++         ButtonName((&g_cfg.device0)[player], g_cfg.joyRocket[player]);
+expect: ui_ControlsText_keyboard_and_joystick
+
+== ui: GetPressedKeyName misses Q
+file: src/ui/controls.c
+-     else if (KeyDown(K_VK_Q)) {
+-         g_pressedKey = K_VK_Q;
++     else if (KeyDown(K_VK_Q)) {
++         g_pressedKey = K_VK_W;
+expect: ui_GetPressedKeyName_reports_the_first_held_key
+
+== ui: ResetFlags misses the last digit
+file: src/ui/controls.c
+-     (&g_keyLatch[K_VK_A])[35] = 1;
++     ;
+expect: ui_ResetFlags_sets_the_letter_and_digit_latches
+
+== ui: FixDuplicateKeys flags nothing
+file: src/ui/controls.c
+-         if (g_cfg.left[player] == g_cfg.rocket[player]) {
+-             g_cfg.rocket[player] = K_VK_Q;
+-             g_keysChanged = 1;
++         if (g_cfg.left[player] == g_cfg.rocket[player]) {
++             g_cfg.rocket[player] = K_VK_Q;
+expect: ui_FixDuplicateKeys_flags_a_single_keyboard_collision
+
+== ui: FixDuplicateKeys resets the wrong key
+file: src/ui/controls.c
+-         if (g_cfg.up[player] == g_cfg.profile[player]) {
+-             g_cfg.profile[player] = K_VK_Q;
++         if (g_cfg.up[player] == g_cfg.profile[player]) {
++             g_cfg.up[player] = K_VK_Q;
+expect: ui_FixDuplicateKeys_resets_the_later_key_to_Q
+
+== ui: FixDuplicateKeys right and down
+file: src/ui/controls.c
+-         if (g_cfg.right[player] == g_cfg.down[player]) {
++         if (g_cfg.right[player] == g_cfg.up[player] + 1000) {
+expect: ui_FixDuplicateKeys_resets_the_later_key_to_Q
+
+== ui: FixDuplicateKeys always flags
+file: src/ui/controls.c
+-     if ((&g_cfg.device0)[player] == DEVICE_KEYBOARD) {
+-         // Every pair of keyboard bindings, later one reset to Q (K_VK_Q) on a clash
++     g_keysChanged = 1;
++     if ((&g_cfg.device0)[player] == DEVICE_KEYBOARD) {
++         // Every pair of keyboard bindings, later one reset to Q (K_VK_Q) on a clash
+expect: ui_FixDuplicateKeys_leaves_distinct_keys
+
+== ui: FixDuplicateKeys joystick rocket and pause
+file: src/ui/controls.c
+-         if (g_cfg.joyRocket[player] == g_cfg.joyPause[player]) {
+-             g_cfg.joyPause[player] = -1;
++         if (g_cfg.joyRocket[player] == g_cfg.joyPause[player]) {
++             g_cfg.joyPause[player] = 0;
+expect: ui_FixDuplicateKeys_unbinds_joystick_buttons
+
+== ui: IsKeyFree ignores rocket
+file: src/ui/controls.c
+-         if (g_cfg.rocket[0] == key)
+-             return false;
++         ;
+expect: ui_IsKeyFree_checks_the_playing_players
+
+== ui: IsKeyFree ignores player 2
+file: src/ui/controls.c
+-     if ((g_gameMode == MODE_TWO_PLAYER || g_gameMode == MODE_DUAL || g_gameMode == MODE_TEAM) &&
++     if ((g_gameMode == MODE_DUAL || g_gameMode == MODE_TEAM) &&
+expect: ui_IsKeyFree_checks_the_playing_players
+
+== ui: IsKeyFree player 2 device
+file: src/ui/controls.c
+-         g_save.players[1].inputDevice == DEVICE_KEYBOARD) {
++         1) {
+expect: ui_IsKeyFree_checks_the_playing_players
+
+== ui: config cursor past the last row
+file: src/ui/controls.c
+- if (g_cursor < NUM_CONFIG_ROWS - 1)
++ if (g_cursor < NUM_CONFIG_ROWS)
+expect: ui_ConfigInputMenu_cursor_moves_and_clamps
+
+== ui: config cursor below zero
+file: src/ui/controls.c
+-                 if (g_cursor > 0)
+-                     g_cursor = g_cursor - 1;
++                 if (g_cursor > -1)
++                     g_cursor = g_cursor - 1;
+expect: ui_ConfigInputMenu_cursor_moves_and_clamps
+
+== ui: config binds left to right
+file: src/ui/controls.c
+-             case 1:
+-                 if (g_cfg.device[0] == DEVICE_KEYBOARD)
+-                     g_cfg.left[0] = g_pressedKey;
++             case 1:
++                 if (g_cfg.device[0] == DEVICE_KEYBOARD)
++                     g_cfg.right[0] = g_pressedKey;
+expect: ui_ConfigInputMenu_rebinds_a_key
+
+== ui: config stays editing
+file: src/ui/controls.c
+-                     g_cfg.left[0] = g_pressedKey;
+-                 g_editing = 0;
++                     g_cfg.left[0] = g_pressedKey;
+expect: ui_ConfigInputMenu_rebinds_a_key
+
+== ui: config player 2 rocket
+file: src/ui/controls.c
+-                 if (g_cfg.device[1] == DEVICE_KEYBOARD)
+-                     g_cfg.rocket[1] = g_pressedKey;
++                 if (g_cfg.device[1] == DEVICE_KEYBOARD)
++                     g_cfg.fire[1] = g_pressedKey;
+expect: ui_ConfigInputMenu_rebinds_player_two
+
+== ui: config player 2 profile
+file: src/ui/controls.c
+-                 if (g_cfg.device[1] == DEVICE_KEYBOARD)
+-                     g_cfg.profile[1] = g_pressedKey;
++                 if (g_cfg.device[1] == DEVICE_KEYBOARD)
++                     g_cfg.profile[0] = g_pressedKey;
+expect: ui_ConfigInputMenu_rebinds_player_two
+
+== ui: config device rows take keys
+file: src/ui/controls.c
+-         if (KeyDown(K_VK_RETURN) && g_cursor != P1_DEVICE_ROW && g_cursor != P2_DEVICE_ROW &&
++         if (KeyDown(K_VK_RETURN) && g_cursor != P1_DEVICE_ROW &&
+expect: ui_ConfigInputMenu_device_rows_take_no_key
+
+== ui: config doesn't fix duplicates
+file: src/ui/controls.c
+-     // ---- fixups ----
+-     FixDuplicateKeys(0);
++     // ---- fixups ----
+expect: ui_ConfigInputMenu_rebinding_to_a_used_key_resets_the_other
+
+== ui: config escape keeps editing
+file: src/ui/controls.c
+-         if (g_editing != 0) {
+-             g_editing = 0;
+-             g_inputCooldown = 10;
++         if (g_editing != 0) {
++             g_inputCooldown = 10;
+expect: ui_ConfigInputMenu_escape_cancels_editing
+
+== ui: config device without joysticks
+file: src/ui/controls.c
+- if (g_keyLatch[K_VK_RIGHT] != 0) {
+-                 PlayClick();
+-                 if (g_cursor == P1_DEVICE_ROW) {
+-                 if (g_cfg.device[0] == DEVICE_KEYBOARD && g_joyCount > 0)
++ if (g_keyLatch[K_VK_RIGHT] != 0) {
++                 PlayClick();
++                 if (g_cursor == P1_DEVICE_ROW) {
++                 if (g_cfg.device[0] == DEVICE_KEYBOARD && g_joyCount >= 0)
+expect: ui_ConfigInputMenu_left_right_pick_the_device
+
+== ui: config one joystick offers the second
+file: src/ui/controls.c
+-             if (g_keyLatch[K_VK_RIGHT] != 0) {
+-                 PlayClick();
+-                 if (g_cursor == P1_DEVICE_ROW) {
+-                 if (g_cfg.device[0] == DEVICE_KEYBOARD && g_joyCount > 0)
+-                     g_cfg.device[0] = DEVICE_JOYSTICK1;
+-                 else if (g_cfg.device[0] == DEVICE_JOYSTICK1 && g_joyCount > 1)
+-                     g_cfg.device[0] = DEVICE_JOYSTICK2;
+-                 else
+-                     g_cfg.device[0] = DEVICE_KEYBOARD;
+-                 }
+-                 if (g_cursor == P2_DEVICE_ROW) {
+-                 if (g_cfg.device[1] == DEVICE_KEYBOARD && g_joyCount > 0)
+-                     g_cfg.device[1] = DEVICE_JOYSTICK1;
+-                 else if (g_cfg.device[1] == DEVICE_JOYSTICK1 && g_joyCount > 1)
++             if (g_keyLatch[K_VK_RIGHT] != 0) {
++                 PlayClick();
++                 if (g_cursor == P1_DEVICE_ROW) {
++                 if (g_cfg.device[0] == DEVICE_KEYBOARD && g_joyCount > 0)
++                     g_cfg.device[0] = DEVICE_JOYSTICK1;
++                 else if (g_cfg.device[0] == DEVICE_JOYSTICK1 && g_joyCount > 1)
++                     g_cfg.device[0] = DEVICE_JOYSTICK2;
++                 else
++                     g_cfg.device[0] = DEVICE_KEYBOARD;
++                 }
++                 if (g_cursor == P2_DEVICE_ROW) {
++                 if (g_cfg.device[1] == DEVICE_KEYBOARD && g_joyCount > 0)
++                     g_cfg.device[1] = DEVICE_JOYSTICK1;
++                 else if (g_cfg.device[1] == DEVICE_JOYSTICK1 && g_joyCount > 0)
+expect: ui_ConfigInputMenu_left_right_pick_the_device
+
+== ui: config left ignored
+file: src/ui/controls.c
+-         if (KeyDown(K_VK_LEFT)) {
+-             if (g_keyLatch[0] != 0) {
++         if (KeyDown(K_VK_LEFT)) {
++             if (0) {
+expect: ui_ConfigInputMenu_left_right_pick_the_device
+
+== ui: config T keeps fire
+file: src/ui/controls.c
+-             swapKeyBind = g_cfg.fire[0];
+-             g_cfg.fire[0] = g_cfg.fire[1];
+-             g_cfg.fire[1] = swapKeyBind;
++             swapKeyBind = g_cfg.fire[0];
+expect: ui_ConfigInputMenu_T_swaps_the_players
+
+== ui: config T keeps pause
+file: src/ui/controls.c
+-             swapKeyBind = g_cfg.pause[0];
+-             g_cfg.pause[0] = g_cfg.pause[1];
++             swapKeyBind = g_cfg.pause[0];
++             g_cfg.pause[0] = g_cfg.pause[0];
+expect: ui_ConfigInputMenu_T_swaps_the_players
+
+== ui: config T keeps joystick fire
+file: src/ui/controls.c
+-             swapDeviceBind = g_cfg.joyFire[0];
+-             g_cfg.joyFire[0] = g_cfg.joyFire[1];
+-             g_cfg.joyFire[1] = swapDeviceBind;
++             swapDeviceBind = g_cfg.joyFire[0];
+expect: ui_ConfigInputMenu_T_swaps_the_players
+
+== ui: config T keeps devices
+file: src/ui/controls.c
+-             swapDeviceBind = g_cfg.device[0];
+-             g_cfg.device[0] = g_cfg.device[1];
+-             g_cfg.device[1] = swapDeviceBind;
++             swapDeviceBind = g_cfg.device[0];
+expect: ui_ConfigInputMenu_T_swaps_the_players
+
+== ui: config cursor mark row
+file: src/ui/controls.c
+-     int lines[NUM_CONFIG_ROWS] = { 100, 0x7a,
++     int lines[NUM_CONFIG_ROWS] = { 101, 0x7a,
+expect: ui_ConfigInputMenu_draws_the_bindings
+
+# ---- src/ui/screens.c ----
+
+== ui: about link opens nothing
+file: src/ui/screens.c
+-     if (g_linkHover && g_mouseClick != 0) {
++     if (g_linkHover && g_mouseClick != 0 && 0) {
+expect: ui_AboutScreen_credit_link_opens_a_window
+expect: ui_AboutScreen_engine_link_opens_the_sdl_site
+
+== ui: about Edgar picture
+file: src/ui/screens.c
+- g_creditPic = LoadGraphic("edgar.jpg", true, true);
++ g_creditPic = LoadGraphic("edgar.png", true, true);
+expect: ui_AboutScreen_credit_link_opens_a_window
+
+== ui: about Wayne web page
+file: src/ui/screens.c
+- WinAddTextPair(0xb4, 0xf6, g_curWin, LINK_WEB, "WEB PAGE", "http://karthesios.tripod.com", 4, 3);
++ WinAddTextPair(0xb4, 0xf6, g_curWin, LINK_EMAIL, "WEB PAGE", "http://karthesios.tripod.com", 4, 3);
+expect: ui_AboutScreen_window_link_opens_its_url
+
+== ui: window link opens the next link
+file: src/ui/menu.c
+- OpenUrl(g_windows[g_clickWin].links[g_clickLink - 1].text2);
++ OpenUrl(g_windows[g_clickWin].links[g_clickLink].text2);
+expect: ui_AboutScreen_window_link_opens_its_url
+
+== ui: about SDL link
+file: src/ui/screens.c
+- OpenUrl("https://www.libsdl.org/");
++ OpenUrl("https://libsdl.org/");
+expect: ui_AboutScreen_engine_link_opens_the_sdl_site
+
+== ui: about play time minutes
+file: src/ui/screens.c
+- sprintf(g_logBuf, "TOTAL GAME TIME : %02d MINUTES. %02d SECONDS", minutes, seconds);
++ sprintf(g_logBuf, "TOTAL GAME TIME : %02d MINUTES. %02d SECONDS", seconds, minutes);
+expect: ui_AboutScreen_shows_the_total_play_time
+
+== ui: about no time recorded
+file: src/ui/screens.c
+-     if (minutes == 0 && seconds == 0)
+-         sprintf(g_logBuf, "NO GAME TIME RECORDED");
++     if (minutes == 0 && seconds == 1)
++         sprintf(g_logBuf, "NO GAME TIME RECORDED");
+expect: ui_AboutScreen_shows_the_total_play_time
+
+== ui: about link hit test
+file: src/ui/screens.c
+-         if (g_mouseX > g_links[i].x1 && g_mouseX < g_links[i].x2 &&
++         if (g_mouseX > g_links[i].x2 && g_mouseX < g_links[i].x2 &&
+expect: ui_AboutScreen_credit_link_opens_a_window

@@ -1,0 +1,9 @@
+# UI-only build: reuse the verified game binary and static server unchanged.
+# Full engine rebuilds continue to use Dockerfile.
+FROM tellurium.lan:6715/warblade-web:fork-b3a8acf@sha256:61a3700d595eb9e6fdfbdad574afdc7c7d4747bf646330a11243b1a8f67e677e
+USER root
+COPY web/index.html web/page.js web/page.css /app/web/
+COPY docker/nginx.conf /etc/warblade/nginx.conf
+COPY --chmod=755 docker/entrypoint.sh /usr/local/bin/warblade-entrypoint
+RUN chmod a=r,u+w /app/web/index.html /app/web/page.js /app/web/page.css
+USER 101

@@ -88,6 +88,7 @@ void SoundShutdown();
 
 // ---- savegame.c (0x537c80)
 void SaveProfile(int profile);
+void AutoSaveProfile(int profile);
 void SetupDifficulty();
 
 // (0x5384f0)
@@ -157,6 +158,19 @@ void UpdateMusicPos();
 void DrawFps();
 void DrawRow(int x, int y, int col, int count);
 void PlaySample();
+void ActivateProfile(int slot);
+#ifdef __EMSCRIPTEN__
+void WebNormalizeAccount(void);
+void WebProcessAccountQueue(void);
+void WebOpenLogin(int create);
+int WebQueueCredentials(const char *username, const char *password, int create);
+void WebQueueSignOut(void);
+int WebLoginMode(void);
+int WebAccountStatus(void);
+int WebCanPlay(void);
+int WebIsGuest(void);
+int WebPlayGuest(void);
+#endif
 void ClearAccount();
 void ResetAccount();
 int NextAccountReset();
@@ -480,10 +494,9 @@ void DrawRankPromoBanner();
 
 // (0x59d710)
 unsigned int GetFlagMask(unsigned char joy);
-// defined `void` (main.c); player.c reads the value the inner PTK call leaves in eax, so it declares its own `int` version
-void GetJoyX(unsigned char joy);
-// as GetJoyX
-void GetJoyY(unsigned char joy);
+// Returns the requested legacy joystick axis.
+long GetJoyX(unsigned char joy);
+long GetJoyY(unsigned char joy);
 void OpenCreateProfileWin();
 void OnFocusChange(bool focused);
 
@@ -559,6 +572,7 @@ void NewGame(bool resetLevel);
 // (0x5b3e10)
 void Logout();
 char KeyToChar(int key);
+void WaitForKeyRelease(int key);
 void ResetFlags();
 int CurMonth();
 int CurYear();
@@ -887,3 +901,8 @@ void BeforeOpenLink();
 
 // ---- main.c (not in the original)
 void LogCrashReport(const char *reason);
+
+// ---- cheats.c (not in the original)
+extern bool g_cheatsOn;
+extern bool g_cheatGodMode;
+void CheatHotkeys();

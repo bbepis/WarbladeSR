@@ -272,7 +272,7 @@ void SaveAccount(int profile)
             r = _write(fh, &g_accBuf[profile], SIZEOF_ACCOUNT);
             if (r == -1) {
                 g_fileWriteErrorFlag = 1;
-                SysMessageBox("WarBlade v1.34 SR1, Copyright 1999-2009 Edgar M Vigdal",
+                SysMessageBox("Warblade SR 2.0, Copyright 1999-2009 Edgar M Vigdal",
                               "Could not open/create Profile file");
                 g_fileWriteErrorFlag = 0;
             }
@@ -296,8 +296,12 @@ void PackAccount(int profile)
         bytePtr = (char *)&g_accBuf[profile];
         for (i = 0; i < SIZEOF_ACCOUNT; i++, bytePtr++)
             *bytePtr = RandRange(0, 0xff);
-        res = compress((unsigned char *)&g_accBuf[profile], (unsigned long *)&g_accSizes[profile],
-                       (const unsigned char *)&g_acc, g_accSize);
+        {
+            uLongf packed = (uLongf)g_accSizes[profile];   // zlib's sizes are `unsigned long`
+            res = compress((unsigned char *)&g_accBuf[profile], &packed,
+                           (const unsigned char *)&g_acc, g_accSize);
+            g_accSizes[profile] = (int)packed;
+        }
         memset(&g_acc, 0, SIZEOF_ACCOUNT);
     }
 }
@@ -311,8 +315,12 @@ void UnpackAccount(int profile)
 
         g_accSize = SIZEOF_ACCOUNT;
         g_accSizes[profile] = SIZEOF_ACCOUNT;
-        res = uncompress((unsigned char *)&g_acc, (unsigned long *)&g_accSize,
-                         (const unsigned char *)&g_accBuf[profile], g_accSizes[profile]);
+        {
+            uLongf unpacked = (uLongf)g_accSize;   // zlib's sizes are `unsigned long`
+            res = uncompress((unsigned char *)&g_acc, &unpacked,
+                             (const unsigned char *)&g_accBuf[profile], g_accSizes[profile]);
+            g_accSize = (int)unpacked;
+        }
         if (res != 0) {
             ResetAccount();
             PackAccount(profile);
@@ -377,21 +385,23 @@ int LoadAccount(int profile)
     return r;
 }
 
-// Repoints hiscore-table entry `idx`'s ownerStamp to the account's new ownerStamp, across
-// all 6 hiscore tables, if it currently matches `oldStamp`.
+// Repoints matching entries across all 6 hiscore tables. Stamp zero means unowned and must
+// stay zero; non-zero stamps, including invalid negative legacy stamps, still follow migration.
 #define REPOINT_OWNER_STAMP(idx, oldStamp)                                \
-    if (g_hiscoreMagic.table[0][idx].ownerStamp == (oldStamp))            \
-        g_hiscoreMagic.table[0][idx].ownerStamp = g_acc.ownerStamp;       \
-    if (g_hiscoreMagic.table1[idx].ownerStamp == (oldStamp))              \
-        g_hiscoreMagic.table1[idx].ownerStamp = g_acc.ownerStamp;         \
-    if (g_hiscoreMagic.table2[idx].ownerStamp == (oldStamp))              \
-        g_hiscoreMagic.table2[idx].ownerStamp = g_acc.ownerStamp;         \
-    if (g_hiscoreMagic.table3[idx].ownerStamp == (oldStamp))              \
-        g_hiscoreMagic.table3[idx].ownerStamp = g_acc.ownerStamp;         \
-    if (g_hiscoreMagic.table4[idx].ownerStamp == (oldStamp))              \
-        g_hiscoreMagic.table4[idx].ownerStamp = g_acc.ownerStamp;         \
-    if (g_hiscoreMagic.table5[idx].ownerStamp == (oldStamp))              \
-        g_hiscoreMagic.table5[idx].ownerStamp = g_acc.ownerStamp;
+    if ((oldStamp) != 0) {                                                \
+        if (g_hiscoreMagic.table[0][idx].ownerStamp == (oldStamp))        \
+            g_hiscoreMagic.table[0][idx].ownerStamp = g_acc.ownerStamp;   \
+        if (g_hiscoreMagic.table1[idx].ownerStamp == (oldStamp))          \
+            g_hiscoreMagic.table1[idx].ownerStamp = g_acc.ownerStamp;     \
+        if (g_hiscoreMagic.table2[idx].ownerStamp == (oldStamp))          \
+            g_hiscoreMagic.table2[idx].ownerStamp = g_acc.ownerStamp;     \
+        if (g_hiscoreMagic.table3[idx].ownerStamp == (oldStamp))          \
+            g_hiscoreMagic.table3[idx].ownerStamp = g_acc.ownerStamp;     \
+        if (g_hiscoreMagic.table4[idx].ownerStamp == (oldStamp))          \
+            g_hiscoreMagic.table4[idx].ownerStamp = g_acc.ownerStamp;     \
+        if (g_hiscoreMagic.table5[idx].ownerStamp == (oldStamp))          \
+            g_hiscoreMagic.table5[idx].ownerStamp = g_acc.ownerStamp;     \
+    }
 
 // Copies the 4 "AltN" alternate-binding fields (N = 0..3) for `prefix` from g_accV2 into
 // g_acc (used by the v5->v6 AccountV2 field-by-field copy below).
@@ -427,13 +437,17 @@ bool DecodeAccount(void *buf, int profile, int len)
 
     ok = true;
     g_accSize = SIZEOF_ACCOUNT;
-    res = uncompress((unsigned char *)&g_acc, (unsigned long *)&g_accSize,
-                     (const unsigned char *)buf, g_accSizes[profile]);
+    {
+        uLongf unpacked = (uLongf)g_accSize;   // zlib's sizes are `unsigned long`
+        res = uncompress((unsigned char *)&g_acc, &unpacked,
+                         (const unsigned char *)buf, g_accSizes[profile]);
+        g_accSize = (int)unpacked;
+    }
     if (res == 0) {
 
-        // v0 -> v1: high scores were 32-bit; widen them to __int64.
+        // v0 -> v1: high scores were doubles; convert them to the current integer fields.
         if (g_acc.version == 0) {
-            memcpy(&g_accV0, &g_acc, SIZEOF_ACCOUNT);
+            memcpy(&g_accV0, &g_acc, sizeof g_accV0);
             g_acc.highScore = (__int64)g_accV0.highScore;
             g_acc.meteorstormHighScore = (__int64)g_accV0.meteorstormHighScore;
             g_acc.timeTrialHighScore = (__int64)g_accV0.timeTrialHighScore;
@@ -699,7 +713,17 @@ bool DecodeAccount(void *buf, int profile, int len)
             g_acc.highestMoney = 0;
             g_acc.secretsInOneGame = 0;
             g_acc.version = 6;
+            oldTime = g_acc.ownerStamp;
             g_acc.ownerStamp = MakeRandomId();
+            LoadHiscores();
+            DecompressHiscores();
+
+            for (j = 0; j < 20; j++) {
+                REPOINT_OWNER_STAMP(j, oldTime)
+            }
+            CompressHiscores();
+            WriteHiscoreFile();
+
             g_acc.medals &= 0;
             g_acc.medalStep = -1;
 
@@ -991,9 +1015,13 @@ void ProfileHistPush(int slot, __int64 v)
 void Logout()
 {
     MergeSettings(g_profileIndex);
+#ifndef __EMSCRIPTEN__
     DeleteSetPro();
+#endif
     ClearAccount();
+#ifndef __EMSCRIPTEN__
     g_profileIndex = -1;
+#endif
     PlaySample();
     WinCloseAll();
     g_clickWin = -1;

@@ -5,6 +5,20 @@
 #include <ctype.h>
 #include "globals.h"
 #include "game.h"
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+
+// A browser receives key-up events only after the game yields. Tight polling
+// prevents release events from arriving and freezes splash/menu/game-over exits.
+void WaitForKeyRelease(int key)
+{
+    while (KeyDown(key)) {
+#ifdef __EMSCRIPTEN__
+        emscripten_sleep(1);
+#endif
+    }
+}
 
 // ConfigInputMenu's cursor rows: a device-select row plus 8 binding rows for each player.
 enum { NUM_CONFIG_ROWS = 18, P1_DEVICE_ROW = 0, P2_DEVICE_ROW = 9 };
@@ -1103,7 +1117,7 @@ void ConfigInputMenu()
             PlayClick();
         }
         else {
-            do {} while (KeyDown(K_VK_ESCAPE));
+            WaitForKeyRelease(K_VK_ESCAPE);
             PlayClick();
             g_lastActivityTime = g_time;
             g_attractScreen = ATTRACT_HELP_CONTROLS;

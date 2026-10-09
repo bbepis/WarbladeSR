@@ -268,12 +268,15 @@ void PauseGame()
 // (+Shift to reverse) adjust spark/star counts, F toggles flare particles (+Alt+Shift:
 // FPS display), I cycles bullet-render intensity, Z toggles point/flare stars, W toggles
 // fullscreen, S cycles interpolation, Alt+V toggles vsync, M cycles the music format, U toggles voice on/off, and PageUp/Down, +/-,
-// Home/End adjust the sfx/music/voice volumes.
+// Home/End adjust the sfx/music/voice volumes. The cheat code and its number keys are
+// handled by CheatHotkeys (cheats.c).
 void Hotkeys()
 {
     int voice;
     int tries;
     unsigned char done;
+
+    CheatHotkeys();
 
     // ---- F6: restart music ----
     if (KeyDown(K_VK_F6) == true) {
@@ -1577,6 +1580,13 @@ void GameFrame()
 // update functions for the current game mode before dropping into STATE_RESPAWN (new level).
 void NewGame(bool resetLevel)
 {
+#ifdef __EMSCRIPTEN__
+    if (!WebCanPlay()) {
+        g_state = STATE_TITLE;
+        WebOpenLogin(0);
+        return;
+    }
+#endif
     // ---- reset per-run counters, timers and pause-duration bookkeeping ----
     g_warpMalfunctionCount = 0;
     g_malfunctionTimer = RandRange(-2000, 6000) + 21000;
@@ -1605,22 +1615,22 @@ void NewGame(bool resetLevel)
     if (!g_newGameOnClose) {
         switch (g_gameMode) {
         case MODE_SINGLE:
-            g_save.players[0].ship = RandRange(0, 10);
+            g_save.players[0].ship = RandRange(0, NUM_SHIPS);
             break;
         case MODE_TWO_PLAYER:
-            g_save.players[0].ship = RandRange(0, 10);
-            g_save.players[1].ship = RandRange(0, 10);
+            g_save.players[0].ship = RandRange(0, NUM_SHIPS);
+            g_save.players[1].ship = RandRange(0, NUM_SHIPS);
             break;
         case MODE_DUAL:
-            g_save.players[0].ship = RandRange(0, 10);
-            g_save.players[1].ship = RandRange(0, 10);
+            g_save.players[0].ship = RandRange(0, NUM_SHIPS);
+            g_save.players[1].ship = RandRange(0, NUM_SHIPS);
             break;
         case MODE_TEAM:
             break;
         case MODE_UNUSED_4:
             break;
         case MODE_TIME_TRIAL:
-            g_save.players[0].ship = RandRange(0, 10);
+            g_save.players[0].ship = RandRange(0, NUM_SHIPS);
             break;
         }
     }

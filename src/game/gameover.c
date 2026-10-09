@@ -703,9 +703,9 @@ void EndSequence()
         if ((KeyDown(K_VK_SPACE) == true || KeyDown(K_VK_ESCAPE) == true ||
             KeyDown(K_VK_L_CONTROL) == true)
             && !AnyWindowHasEdit()) {
-            do ; while (KeyDown(K_VK_SPACE) == true);
-            do ; while (KeyDown(K_VK_ESCAPE) == true);
-            do ; while (KeyDown(K_VK_L_CONTROL) == true);
+            WaitForKeyRelease(K_VK_SPACE);
+            WaitForKeyRelease(K_VK_ESCAPE);
+            WaitForKeyRelease(K_VK_L_CONTROL);
             g_menuIdleTimeout = g_time + MENU_IDLE_MS;
             ResetObjectsKeep();
             g_save.players[0].energy = 0;

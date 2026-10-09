@@ -333,24 +333,24 @@ void GemDropUpdate()
                 g_pickupCount--;
 
                 if (g_pickupCount < (int)g_maxFallingGems) {
-                    for (i = 0; i < MAX_FALLING_GEMS; i++) {
-                        if (g_fallingGems[i].active == 0) {
-                            g_fallingGems[i].active = 1;
+                    for (int j = 0; j < MAX_FALLING_GEMS; j++) {
+                        if (g_fallingGems[j].active == 0) {
+                            g_fallingGems[j].active = 1;
                             r = RandRange(0, 100);
-                            g_fallingGems[i].type = 0x50;
+                            g_fallingGems[j].type = 0x50;
                             if (r <= 50)
-                                g_fallingGems[i].type = 0;
+                                g_fallingGems[j].type = 0;
                             if (r > 50 && r < 85)
-                                g_fallingGems[i].type = 0x50;
+                                g_fallingGems[j].type = 0x50;
                             if (r >= 85)
-                                g_fallingGems[i].type = 0xa0;
+                                g_fallingGems[j].type = 0xa0;
 
-                            g_fallingGems[i].frame = RandRange(0, 11);
-                            g_fallingGems[i].animDelay = (float)RandRange(1, 4);
-                            g_fallingGems[i].animTimer = g_fallingGems[i].animDelay;
-                            g_fallingGems[i].y = -60.0f;
-                            g_fallingGems[i].vy = RandFloat(6.0f, 10.0f);
-                            g_fallingGems[i].x = RandFloat(70.0f, (float)(g_screenW - 150));
+                            g_fallingGems[j].frame = RandRange(0, 11);
+                            g_fallingGems[j].animDelay = (float)RandRange(1, 4);
+                            g_fallingGems[j].animTimer = g_fallingGems[j].animDelay;
+                            g_fallingGems[j].y = -60.0f;
+                            g_fallingGems[j].vy = RandFloat(6.0f, 10.0f);
+                            g_fallingGems[j].x = RandFloat(70.0f, (float)(g_screenW - 150));
                             g_pickupCount++;
                             break;
                         }

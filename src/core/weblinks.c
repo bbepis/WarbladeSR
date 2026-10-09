@@ -4,6 +4,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#ifndef _WIN32
+#include <strings.h>
+#define _strnicmp strncasecmp
+#endif
 #include "globals.h"
 #include "game.h"
 

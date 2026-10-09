@@ -1,0 +1,34 @@
+
+== input: gamepad actions disabled
+file: src/game/input.c
+- #define PAD(p, bit) ((SysPadState(p) & (bit)) != 0)
++ #define PAD(p, bit) 0
+expect: Play_Input_each_pad_bit_reads_only_its_own_action_and_player
+expect: Play_Input_touch_and_keyboard_combine_without_controlling_player_two
+
+== input: gamepads share player one controls
+file: src/game/input.c
+- #define PAD(p, bit) ((SysPadState(p) & (bit)) != 0)
++ #define PAD(p, bit) ((SysPadState(0) & (bit)) != 0)
+expect: Play_Input_each_pad_bit_reads_only_its_own_action_and_player
+
+== input: legacy X axis drops its value
+file: src/game/input.c
+-     return JoyX(joy, 0);
++     return 0x7fff;
+expect: Play_Input_legacy_axes_return_values_and_respect_player_and_deadzone
+
+== input: legacy Y axis drops its value
+file: src/game/input.c
+-     return JoyY(joy, 0);
++     return 0x7fff;
+expect: Play_Input_legacy_axes_return_values_and_respect_player_and_deadzone
+
+== input: unknown devices use pad fire
+file: src/game/input.c
+- int InputFire(int p)
+- {
++ int InputFire(int p)
++ {
++     if (PAD(p, PAD_FIRE)) return 1;
+expect: Play_Input_legacy_and_unknown_devices_ignore_pad_bits

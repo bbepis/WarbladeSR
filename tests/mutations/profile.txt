@@ -1,0 +1,1846 @@
+# src/profile/{settings,account,savegame,savefile,hiscore}.c
+# (tests/test_profile_settings.c, test_profile_account.c, test_profile_savefile.c,
+#  test_profile_hiscore.c)
+
+# ================================================================ settings.c: DefaultSettings
+
+== profile: DefaultSettings sfx volume
+file: src/profile/settings.c
+- g_cfg.sfxVol = 0xcc;
++ g_cfg.sfxVol = 0xcd;
+expect: Profile_DefaultSettings_sets_audio_video_defaults
+
+== profile: DefaultSettings keeps MOD music format
+file: src/profile/settings.c
+-     g_cfg.windowedByte = 1;
+-     g_cfg.musicFormat = MUSIC_FMT_MP3;
++     g_cfg.windowedByte = 1;
+expect: Profile_DefaultSettings_sets_audio_video_defaults
+
+== profile: DefaultSettings presets flag off
+file: src/profile/settings.c
+- g_presets = 1;
++ g_presets = 0;
+expect: Profile_DefaultSettings_sets_audio_video_defaults
+
+== profile: DefaultSettings alien buffer 4
+file: src/profile/settings.c
+-     g_cfg.checkVersion = 1;
+-     g_cfg.alienBuffer = ALIEN_BUFFER_MIN;
++     g_cfg.checkVersion = 1;
++     g_cfg.alienBuffer = 4;
+expect: Profile_DefaultSettings_sets_audio_video_defaults
+
+== profile: DefaultSettings selects profile 0
+file: src/profile/settings.c
+- g_cfg.profileSel = -1;
++ g_cfg.profileSel = 0;
+expect: Profile_DefaultSettings_sets_audio_video_defaults
+
+== profile: DefaultSettings skips screen width
+file: src/profile/settings.c
+-     g_screenW = DEFAULT_SCREEN_W;
+-     g_screenH = DEFAULT_SCREEN_H;
+-     g_cfg.fps = 0x3c;
+-     DoNothing();
++     g_screenH = DEFAULT_SCREEN_H;
++     g_cfg.fps = 0x3c;
++     DoNothing();
+expect: Profile_DefaultSettings_sets_audio_video_defaults
+
+== profile: DefaultSettings sparks 24
+file: src/profile/settings.c
+- g_cfg.sparks = 20.0f;
++ g_cfg.sparks = 24.0f;
+expect: Profile_DefaultSettings_sparks_and_max_sparks
+
+== profile: DefaultSettings max sparks quarter
+file: src/profile/settings.c
+-     g_cfg.sparks = 20.0f;
+-     g_maxSparks = ((int)g_cfg.sparks >> 1 < MIN_SPARKS) ? MIN_SPARKS : (int)g_cfg.sparks >> 1;
++     g_cfg.sparks = 20.0f;
++     g_maxSparks = ((int)g_cfg.sparks >> 2 < MIN_SPARKS) ? MIN_SPARKS : (int)g_cfg.sparks >> 2;
+expect: Profile_DefaultSettings_sparks_and_max_sparks
+
+== profile: player 1 right key
+file: src/profile/settings.c
+- g_cfg.right[0] = 3;
++ g_cfg.right[0] = 2;
+expect: Profile_DefaultSettings_player_one_bindings
+
+== profile: player 1 joystick profile button
+file: src/profile/settings.c
+- g_cfg.joyProfile[0] = 4;
++ g_cfg.joyProfile[0] = 5;
+expect: Profile_DefaultSettings_player_one_bindings
+
+== profile: player 2 down key
+file: src/profile/settings.c
+- g_cfg.down[1] = 0x3f;
++ g_cfg.down[1] = 0x3e;
+expect: Profile_DefaultSettings_player_two_bindings
+
+== profile: player 2 key6
+file: src/profile/settings.c
+- g_cfg.key6[1] = 7;
++ g_cfg.key6[1] = 6;
+expect: Profile_DefaultSettings_player_two_bindings
+
+== profile: DefaultSettings skips SetDifficulty
+file: src/profile/settings.c
+-     g_cfg.difficulty = DIFF_NORMAL;
+-     SetDifficulty();
++     g_cfg.difficulty = DIFF_NORMAL;
+expect: Profile_DefaultSettings_picks_normal_difficulty_tuning
+
+# ================================================================ settings.c: SetDifficulty
+
+== profile: SetDifficulty easy hurry-up interval
+file: src/profile/settings.c
+- g_hurryUpInterval = 170;
++ g_hurryUpInterval = 171;
+expect: Profile_SetDifficulty_easy
+
+== profile: SetDifficulty easy shot speed
+file: src/profile/settings.c
+- g_diffShotSpeedMin = 2.4f;
++ g_diffShotSpeedMin = 2.5f;
+expect: Profile_SetDifficulty_easy
+
+== profile: SetDifficulty easy falls through
+file: src/profile/settings.c
+-         g_diffEnemyTimerMul = 3.0f;
+-         break;
++         g_diffEnemyTimerMul = 3.0f;
+expect: Profile_SetDifficulty_easy
+
+== profile: SetDifficulty normal fuse range
+file: src/profile/settings.c
+- g_diffShotFuseRange = 225;
++ g_diffShotFuseRange = 220;
+expect: Profile_SetDifficulty_normal
+
+== profile: SetDifficulty normal elite hp
+file: src/profile/settings.c
+- g_eliteHpBonus = 1750;
++ g_eliteHpBonus = 1700;
+expect: Profile_SetDifficulty_normal
+
+== profile: SetDifficulty hard bonus threshold
+file: src/profile/settings.c
+- g_bonusThresholdBase = 15540;
++ g_bonusThresholdBase = 15000;
+expect: Profile_SetDifficulty_hard
+
+== profile: SetDifficulty hard money sucker hp
+file: src/profile/settings.c
+- g_moneySuckerBaseHp = 450;
++ g_moneySuckerBaseHp = 400;
+expect: Profile_SetDifficulty_hard
+
+== profile: SetDifficulty ace fire chance
+file: src/profile/settings.c
+- g_diffEnemyFireChance = 15;
++ g_diffEnemyFireChance = 16;
+expect: Profile_SetDifficulty_ace
+
+== profile: SetDifficulty ace turret tracking
+file: src/profile/settings.c
+- g_diffTurretTrackChance = 20.0f;
++ g_diffTurretTrackChance = 25.0f;
+expect: Profile_SetDifficulty_ace
+
+== profile: SetDifficulty ace as default
+file: src/profile/settings.c
+-     case DIFF_ACE: // ace (hardest; see g_gfxBorderAce)
++     default: // ace (hardest; see g_gfxBorderAce)
+expect: Profile_SetDifficulty_out_of_range_changes_nothing
+
+# ================================================================ settings.c: SetupDifficulty
+
+== profile: SetupDifficulty easy bullet speed
+file: src/profile/settings.c
+-         g_enemyBulletSpeed = 3.5f;
+-         break;
++         g_enemyBulletSpeed = 3.6f;
++         break;
+expect: Profile_SetupDifficulty_fixed_tuning_for_each_difficulty
+
+== profile: SetupDifficulty hard fire delay
+file: src/profile/settings.c
+-         g_fireDelayMin = 190;
+-         g_enemyFireRateMin = 190;
+-         g_enemyBulletSpeed = 5.0f;
+-         break;
++         g_fireDelayMin = 195;
++         g_enemyFireRateMin = 190;
++         g_enemyBulletSpeed = 5.0f;
++         break;
+expect: Profile_SetupDifficulty_fixed_tuning_for_each_difficulty
+
+== profile: SetupDifficulty keeps hp bonus
+file: src/profile/settings.c
+-     g_diffHpBonusA = 0.0f;
+expect: Profile_SetupDifficulty_fixed_tuning_for_each_difficulty
+
+== profile: SetupDifficulty milestones from level 1
+file: src/profile/settings.c
+- if ((i - 1) % 100 == 0 && i > 5) {
++ if ((i - 1) % 100 == 0 && i > 0) {
+expect: Profile_SetupDifficulty_rising_milestone_boundary
+
+== profile: SetupDifficulty replays through the current level
+file: src/profile/settings.c
+- } while (i < g_save.players[g_curPlayer].level);
++ } while (i <= g_save.players[g_curPlayer].level);
+expect: Profile_SetupDifficulty_rising_milestone_boundary
+
+== profile: SetupDifficulty no floor for bias B
+file: src/profile/settings.c
+-                 if (g_fireDelayBiasB < FIRE_DELAY_BIAS_FLOOR)
+-                     g_fireDelayBiasB = FIRE_DELAY_BIAS_FLOOR;
+expect: Profile_SetupDifficulty_rising_bias_floor_is_minus_500
+
+== profile: SetupDifficulty hp bonus B step
+file: src/profile/settings.c
+- g_diffHpBonusB = g_diffHpBonusB + 5.0;
++ g_diffHpBonusB = g_diffHpBonusB + 4.0;
+expect: Profile_SetupDifficulty_rising_replays_two_milestones_at_level_250
+
+== profile: SetupDifficulty bullet speed step
+file: src/profile/settings.c
+- g_enemyBulletSpeed = g_enemyBulletSpeed * (double)1.025f;
++ g_enemyBulletSpeed = g_enemyBulletSpeed * (double)1.05f;
+expect: Profile_SetupDifficulty_rising_replays_two_milestones_at_level_250
+
+== profile: SetupDifficulty game speed step
+file: src/profile/settings.c
+- g_gameSpeedMul = g_gameSpeedMul + (double)0.12f;
++ g_gameSpeedMul = g_gameSpeedMul + (double)0.1f;
+expect: Profile_SetupDifficulty_rising_replays_two_milestones_at_level_250
+
+== profile: SetupDifficulty bonus weight
+file: src/profile/settings.c
+- g_bonusWeight[36] = 60;
++ g_bonusWeight[36] = 61;
+expect: Profile_SetupDifficulty_rising_replays_two_milestones_at_level_250
+
+== profile: SetupDifficulty keeps milestone flag
+file: src/profile/settings.c
+-         g_save.players[g_curPlayer].levelMilestoneHandled = 0;
+-         do {
++         do {
+expect: Profile_SetupDifficulty_rising_replays_two_milestones_at_level_250
+expect: Profile_SetupDifficulty_rising_milestone_boundary
+
+== profile: SetupDifficulty game speed setting step
+file: src/profile/settings.c
+-                     g_save.players[g_curPlayer].gameSpeedSetting + g_diffScoreBonus;
++                     g_save.players[g_curPlayer].gameSpeedSetting + 2;
+expect: Profile_SetupDifficulty_rising_replays_two_milestones_at_level_250
+
+# ================================================================ settings.c: Write/LoadSettings
+
+== profile: WriteSettings title text
+file: src/profile/settings.c
+- char tit[CFG_TITLE_LEN] = "Warblade v2.0 Information";
++ char tit[CFG_TITLE_LEN] = "WarBlade v1.35 Information";
+expect: Profile_WriteSettings_writes_whole_config_with_title
+
+== profile: WriteSettings copies part of the title
+file: src/profile/settings.c
+- for (i = 0; i < CFG_TITLE_LEN; i++)
++ for (i = 0; i < 20; i++)
+expect: Profile_WriteSettings_writes_whole_config_with_title
+
+== profile: settings file size
+file: src/profile/settings.c
+- CFG_FILE_SIZE         = 0x638,
++ CFG_FILE_SIZE         = 0x630,
+expect: Profile_WriteSettings_writes_whole_config_with_title
+
+== profile: LoadSettings accepts short files
+file: src/profile/settings.c
+-     if (n != CFG_FILE_SIZE)
+-         DefaultSettings();
++     if (n < 16)
++         DefaultSettings();
+expect: Profile_LoadSettings_short_file_gives_defaults
+
+== profile: LoadSettings ignores version
+file: src/profile/settings.c
+- else if (g_cfg.version != g_version)
++ else if (0)
+expect: Profile_LoadSettings_other_version_resets_to_defaults
+
+== profile: LoadSettings old version keeps presets
+file: src/profile/settings.c
+-         DefaultSettings();
+-         g_presets = 0;
++         DefaultSettings();
+expect: Profile_LoadSettings_other_version_resets_to_defaults
+
+== profile: LoadSettings current version keeps presets
+file: src/profile/settings.c
+-         // NOTE: same reclamping as the "old version" branch above, duplicated rather than shared.
+-         g_presets = 0;
++         // NOTE: same reclamping as the "old version" branch above, duplicated rather than shared.
+expect: Profile_WriteSettings_LoadSettings_round_trip
+
+== profile: fps clamp min 51
+file: src/profile/settings.c
+- FPS_CLAMP_MIN         = 50,
++ FPS_CLAMP_MIN         = 51,
+expect: Profile_LoadSettings_clamps_fps_to_50_90
+
+== profile: fps clamp max 89
+file: src/profile/settings.c
+- FPS_CLAMP_MAX         = 90,
++ FPS_CLAMP_MAX         = 89,
+expect: Profile_LoadSettings_clamps_fps_to_50_90
+
+== profile: LoadSettings collision falls back to simple
+file: src/profile/settings.c
+-             g_cfg.collisionDetail = COLLISION_NORMAL;
+-     }
+-
+-     if (g_cfg.alienBuffer
++             g_cfg.collisionDetail = COLLISION_SIMPLE;
++     }
++
++     if (g_cfg.alienBuffer
+expect: Profile_LoadSettings_collision_detail_simple_or_normal
+
+== profile: LoadSettings ignores windowed flag
+file: src/profile/settings.c
+-         g_screenH = DEFAULT_SCREEN_H;
+-         g_windowed = g_cfg.windowedByte;
++         g_screenH = DEFAULT_SCREEN_H;
+expect: Profile_WriteSettings_LoadSettings_round_trip
+
+== profile: LoadSettings keeps screen width
+file: src/profile/settings.c
+-         g_screenW = DEFAULT_SCREEN_W;
+-         g_screenH = DEFAULT_SCREEN_H;
+-         g_windowed
++         g_screenH = DEFAULT_SCREEN_H;
++         g_windowed
+expect: Profile_WriteSettings_LoadSettings_round_trip
+
+== profile: LoadSettings no alien buffer minimum
+file: src/profile/settings.c
+-     if (g_cfg.alienBuffer < ALIEN_BUFFER_MIN)
+-         g_cfg.alienBuffer = ALIEN_BUFFER_MIN;
+expect: Profile_LoadSettings_alien_buffer_at_least_5
+
+== profile: LoadSettings fixed max buffered
+file: src/profile/settings.c
+- g_maxBuffered = g_cfg.alienBuffer;
++ g_maxBuffered = ALIEN_BUFFER_MIN;
+expect: Profile_WriteSettings_LoadSettings_round_trip
+
+== profile: LoadSettings sfx volume from music
+file: src/profile/settings.c
+- SetSfxVolume(g_cfg.sfxVol);
++ SetSfxVolume(g_cfg.musicVol);
+expect: Profile_LoadSettings_applies_volumes
+
+== profile: min sparks 4
+file: src/profile/settings.c
+- MIN_SPARKS            = 5,
++ MIN_SPARKS            = 4,
+expect: Profile_LoadSettings_max_sparks_is_half_at_least_5
+
+== profile: LoadSettings max sparks quarter
+file: src/profile/settings.c
+-     g_maxSparks = ((int)g_cfg.sparks >> 1 < MIN_SPARKS) ? MIN_SPARKS : (int)g_cfg.sparks >> 1;
+- }
++     g_maxSparks = ((int)g_cfg.sparks >> 2 < MIN_SPARKS) ? MIN_SPARKS : (int)g_cfg.sparks >> 2;
++ }
+expect: Profile_LoadSettings_max_sparks_is_half_at_least_5
+
+# ================================================================ account.c: reset/pack/save
+
+== profile: ResetAccount unlocked rank
+file: src/profile/account.c
+-     g_acc.unlockedRank = RANK_GRANDMASTER_3;
+-     g_acc.highestLevel = 0;
++     g_acc.unlockedRank = 19;
++     g_acc.highestLevel = 0;
+expect: Profile_ResetAccount_sets_new_profile_values
+
+== profile: ResetAccount version 6
+file: src/profile/account.c
+- g_acc.version = 7;  // current account struct version
++ g_acc.version = 6;  // current account struct version
+expect: Profile_ResetAccount_sets_new_profile_values
+
+== profile: ResetAccount no best time sentinel
+file: src/profile/account.c
+- g_acc.bestLevelTime = NO_TIME_RECORDED;        // sentinel
++ g_acc.bestLevelTime = 0;        // sentinel
+expect: Profile_ResetAccount_sets_new_profile_values
+
+== profile: ResetAccount skips settings
+file: src/profile/account.c
+-     g_hiscore = g_acc.settings.best;
+-     g_acc.settings = g_cfg;
++     g_hiscore = g_acc.settings.best;
+expect: Profile_ResetAccount_sets_new_profile_values
+
+== profile: SaveAccount writes packed size only
+file: src/profile/account.c
+- r = _write(fh, &g_accBuf[profile], SIZEOF_ACCOUNT);
++ r = _write(fh, &g_accBuf[profile], g_accSizes[profile]);
+expect: Profile_PackAccount_SaveAccount_writes_compressed_account
+
+== profile: SaveAccount accepts slot -1
+file: src/profile/account.c
+- void SaveAccount(int profile)
+- {
+-     if (profile > -1) {
++ void SaveAccount(int profile)
++ {
++     if (profile > -2) {
+expect: Profile_SaveAccount_negative_slot_writes_nothing
+
+== profile: PackAccount keeps g_acc
+file: src/profile/account.c
+-         memset(&g_acc, 0, SIZEOF_ACCOUNT);
+-     }
+- }
+-
+- // Decompresses
++     }
++ }
++
++ // Decompresses
+expect: Profile_PackAccount_SaveAccount_writes_compressed_account
+
+== profile: UnpackAccount corrupt not saved
+file: src/profile/account.c
+-             ResetAccount();
+-             PackAccount(profile);
+-             SaveAccount(profile);
++             ResetAccount();
++             PackAccount(profile);
+expect: Profile_UnpackAccount_corrupt_buffer_resets_and_saves_profile
+
+== profile: NextAccountReset allows 11
+file: src/profile/account.c
+- if (g_profileCount < 10) {
++ if (g_profileCount <= 10) {
+expect: Profile_NextAccountReset_allocates_up_to_ten
+
+== profile: GetAccountTime leaves g_acc
+file: src/profile/account.c
+-         t = g_acc.ownerStamp;
+-         ClearAccount();
++         t = g_acc.ownerStamp;
+expect: Profile_GetAccountTime_returns_owner_stamp
+
+# ================================================================ account.c: backups
+
+== profile: LoadBackupAccount keeps undecodable data
+file: src/profile/account.c
+-         if (!DecodeAccount(b, profile, r))
+-             ResetAccount();
++         DecodeAccount(b, profile, r);
+expect: Profile_LoadBackupAccount_corrupt_backup_gives_fresh_account
+
+== profile: LoadBackupAccount returns save id
+file: src/profile/account.c
+-         t = g_acc.ownerStamp;
+-     }
+-     return t;
++         t = g_acc.lastSaveId;
++     }
++     return t;
+expect: Profile_LoadBackupAccount_decodes_and_returns_owner_stamp
+
+== profile: LoadAccount leaves packed size
+file: src/profile/account.c
+-         g_accSizes[profile] = SIZEOF_ACCOUNT;
+-         _close(fh);
+-     }
+-     return r;
++         _close(fh);
++     }
++     return r;
+expect: Profile_LoadAccount_reads_backup_file_packed
+
+== profile: LoadAccount reads profiles folder
+file: src/profile/account.c
+-     MakeProfilesDir();
+-     sprintf(levelname, "%s\\warblade\\backup\\profile%03d.acc", SysUserFolder(), profile);
++     MakeProfilesDir();
++     sprintf(levelname, "%s\\warblade\\profiles\\profile%03d.acc", SysUserFolder(), profile);
+expect: Profile_LoadAccount_reads_backup_file_packed
+
+# ================================================================ account.c: DecodeAccount
+
+== profile: Decode v6 history short
+file: src/profile/account.c
+- for (k8 = 0; k8 < 50; k8++)
++ for (k8 = 0; k8 < 49; k8++)
+expect: Profile_DecodeAccount_v6_gains_empty_save_history
+
+== profile: Decode v6 keeps last save id
+file: src/profile/account.c
+-             g_acc.lastSaveId = 0;
+-             g_acc.version = 7;
++             g_acc.version = 7;
+expect: Profile_DecodeAccount_v6_gains_empty_save_history
+
+== profile: Decode keeps unknown versions
+file: src/profile/account.c
+-         if (g_acc.version != 7)
+-             ResetAccount();
+expect: Profile_DecodeAccount_unknown_version_resets
+expect: Profile_DecodeAccount_v5_of_current_size_resets
+
+== profile: Decode garbage ok
+file: src/profile/account.c
+-     } else {
+-         ok = false;
+-     }
++     }
+expect: Profile_DecodeAccount_garbage_returns_false
+
+== profile: Decode news bonus level index
+file: src/profile/account.c
+- g_acc.levelDoneBytes[25] = 1;
++ g_acc.levelDoneBytes[24] = 1;
+expect: Profile_DecodeAccount_v5_news_layout_upgrade
+
+== profile: Decode news bonus rescale threshold
+file: src/profile/account.c
+- if (g_acc.bonusLevelsPlayed > 450.0) {
++ if (g_acc.bonusLevelsPlayed > 900.0) {
+expect: Profile_DecodeAccount_v5_news_layout_upgrade
+
+== profile: Decode news perfect not rescaled
+file: src/profile/account.c
+-                 g_acc.perfectBonusLevels = g_acc.perfectBonusLevels / scale;
+expect: Profile_DecodeAccount_v5_news_layout_upgrade
+
+== profile: Decode news negative perfect kept
+file: src/profile/account.c
+-             if (g_acc.perfectBonusLevels < 0)
+-                 g_acc.perfectBonusLevels = 0;
+expect: Profile_DecodeAccount_v5_news_layout_keeps_small_bonus_stats
+
+== profile: Decode news id 2
+file: src/profile/account.c
+- g_acc.settings.newsIds[2] = -1;
++ g_acc.settings.newsIds[2] = 0;
+expect: Profile_DecodeAccount_v5_news_layout_upgrade
+
+== profile: Decode news levels cleared up to 25
+file: src/profile/account.c
+- for (k7 = 0; k7 < g_numLevels; k7++)
++ for (k7 = 0; k7 < 25; k7++)
+expect: Profile_DecodeAccount_v5_news_layout_upgrade
+
+== profile: Decode news keeps check version
+file: src/profile/account.c
+-             g_acc.settings.checkVersion = 0;
+expect: Profile_DecodeAccount_v5_news_layout_upgrade
+
+== profile: Decode news keeps owner stamp
+file: src/profile/account.c
+-             oldTime = g_acc.ownerStamp;
+-             g_acc.ownerStamp = MakeRandomId();
++             oldTime = g_acc.ownerStamp;
+expect: Profile_DecodeAccount_v5_news_layout_upgrade
+
+== profile: Decode news does not repoint owner stamp
+file: src/profile/account.c
+-             g_acc.version = 6;
+-             oldTime = g_acc.ownerStamp;
+-             g_acc.ownerStamp = MakeRandomId();
+-             LoadHiscores();
+-             DecompressHiscores();
+-
+-             for (j = 0; j < 20; j++) {
+-                 REPOINT_OWNER_STAMP(j, oldTime)
+-             }
+-             CompressHiscores();
+-             WriteHiscoreFile();
+-
+-             g_acc.medals &= 0;
++             g_acc.version = 6;
++             g_acc.ownerStamp = MakeRandomId();
++             g_acc.medals &= 0;
+expect: Profile_DecodeAccount_v5_news_layout_repoints_hiscores
+
+== profile: news layout size
+file: src/profile/account.c
+- ACCOUNT_SIZE_V2_NEWS = 0x3c08,
++ ACCOUNT_SIZE_V2_NEWS = 0x3c10,
+expect: Profile_DecodeAccount_v5_news_layout_upgrade
+
+== profile: old layout size
+file: src/profile/account.c
+- ACCOUNT_SIZE_V2      = 0x3c00,
++ ACCOUNT_SIZE_V2      = 0x3c04,
+expect: Profile_DecodeAccount_v5_old_layout_copies_fields
+
+== profile: Decode V2 drops high score
+file: src/profile/account.c
+-             g_acc.highScore = g_accV2.highScore;
+expect: Profile_DecodeAccount_v5_old_layout_copies_fields
+
+== profile: Decode V2 best from best
+file: src/profile/account.c
+- g_acc.settings.best = g_accV2.settings.playTime;
++ g_acc.settings.best = 0;
+expect: Profile_DecodeAccount_v5_old_layout_copies_fields
+
+== profile: Decode V2 drops joystick pause buttons
+file: src/profile/account.c
+-             COPY_ALT4(joyPauseAlt)
+expect: Profile_DecodeAccount_v5_old_layout_copies_fields
+
+== profile: Decode V2 keeps lives
+file: src/profile/account.c
+- g_acc.lives = 0;
++ g_acc.lives = g_accV2.lives;
+expect: Profile_DecodeAccount_v5_old_layout_copies_fields
+
+== profile: Decode V2 name truncated
+file: src/profile/account.c
+- for (k2 = 0; k2 < NAME_LEN; k2++)
++ for (k2 = 0; k2 < 3; k2++)
+expect: Profile_DecodeAccount_v5_old_layout_copies_fields
+
+== profile: Decode V2 drops owner stamp
+file: src/profile/account.c
+-             g_acc.ownerStamp = g_accV2.ownerStamp;
+expect: Profile_DecodeAccount_v5_old_layout_copies_fields
+
+== profile: Decode V2 sfx volume from music volume
+file: src/profile/account.c
+- g_acc.settings.sfxVol = g_accV2.settings.sfxVol;
++ g_acc.settings.sfxVol = g_accV2.settings.musicVolume;
+expect: Profile_DecodeAccount_v5_old_layout_copies_fields
+
+== profile: Decode v3 highest rank unclamped
+file: src/profile/account.c
+-             if (g_acc.highestRank > RANK_GOD)
+-                 g_acc.highestRank = RANK_GOD;
+expect: Profile_DecodeAccount_v3_clamps_ranks_and_levels
+
+== profile: Decode v3 unlocked rank unclamped
+file: src/profile/account.c
+-             if (g_acc.unlockedRank > RANK_GOD)
+-                 g_acc.unlockedRank = RANK_GOD;
+expect: Profile_DecodeAccount_v3_clamps_ranks_and_levels
+
+== profile: Decode v3 levels played cap
+file: src/profile/account.c
+- g_acc.totalLevelsPlayed = 95000;
++ g_acc.totalLevelsPlayed = 90000;
+expect: Profile_DecodeAccount_v3_clamps_ranks_and_levels
+
+== profile: Decode v3 completion rank limit
+file: src/profile/account.c
+- if (g_acc.completionRank > 1)
++ if (g_acc.completionRank > 5)
+expect: Profile_DecodeAccount_v3_clamps_ranks_and_levels
+
+== profile: Decode v2 levels played cap
+file: src/profile/account.c
+- g_acc.totalLevelsPlayed = g_acc.totalLevelsPlayed > 20000 ? 20000 : g_acc.totalLevelsPlayed;
++ g_acc.totalLevelsPlayed = g_acc.totalLevelsPlayed > 30000 ? 30000 : g_acc.totalLevelsPlayed;
+expect: Profile_DecodeAccount_v2_resets_stats_and_caps_levels_played
+
+== profile: Decode v1 step skipped
+file: src/profile/account.c
+- if (g_acc.version == 1) {
++ if (g_acc.version == 99) {
+expect: Profile_DecodeAccount_v1_walks_the_whole_chain
+
+== profile: Decode v0 copies past legacy account
+file: src/profile/account.c
+-             memcpy(&g_accV0, &g_acc, sizeof g_accV0);
++             memcpy(&g_accV0, &g_acc, SIZEOF_ACCOUNT);
+expect: Profile_DecodeAccount_v0_migrates_compressed_legacy_account_without_neighbor_overwrite
+
+== profile: Decode v4 no repoint
+file: src/profile/account.c
+-             for (j2 = 0; j2 < 20; j2++) {
+-                 REPOINT_OWNER_STAMP(j2, oldTime2)
+-             }
+expect: Profile_DecodeAccount_v4_rerolls_stamp_and_repoints_hiscores
+
+== profile: Decode v4 hiscores not written
+file: src/profile/account.c
+-             CompressHiscores();
+-             WriteHiscoreFile();
+-             g_acc.version = 5;
++             CompressHiscores();
++             g_acc.version = 5;
+expect: Profile_DecodeAccount_v4_rerolls_stamp_and_repoints_hiscores
+
+== profile: repoint skips time trial table
+file: src/profile/account.c
+-         g_hiscoreMagic.table5[idx].ownerStamp = g_acc.ownerStamp;
++         g_hiscoreMagic.table5[idx].ownerStamp = g_hiscoreMagic.table5[idx].ownerStamp;
+expect: Profile_DecodeAccount_v4_rerolls_stamp_and_repoints_hiscores
+
+== profile: zero owner stamps are not claimed
+file: src/profile/account.c
+-     if ((oldStamp) != 0) {
++     if (1) {
+expect: Profile_DecodeAccount_zero_stamp_keeps_unowned_hiscores_in_all_migrations
+
+== profile: Decode v4 fixup no repoint
+file: src/profile/account.c
+-                 for (j = 0; j < 20; j++) {
+-                     REPOINT_OWNER_STAMP(j, oldTime)
+-                 }
+expect: Profile_DecodeAccount_v4_out_of_range_stamp_repoints_hiscores
+
+# ================================================================ account.c: ScanProfiles
+
+== profile: Scan selection moves on equal slot
+file: src/profile/account.c
+- if (g_cfg.profileSel > slot)
++ if (g_cfg.profileSel >= slot)
+expect: Profile_ScanProfiles_selection_of_a_missing_slot_keeps_its_number
+
+== profile: Scan renames only the next slot
+file: src/profile/account.c
+- for (j = slot + 1; j < 10; j++) {
++ for (j = slot + 1; j < slot + 2; j++) {
+expect: Profile_ScanProfiles_closes_a_wide_gap
+
+== profile: Scan does not move wpl files
+file: src/profile/account.c
+-                 rename(oldname, newname);
+-             }
+-             if (count
++             }
++             if (count
+expect: Profile_ScanProfiles_renumbers_over_gaps
+
+== profile: Scan stops at nine
+file: src/profile/account.c
+-             if (g_profileCount == 10)
++             if (g_profileCount == 9)
+expect: Profile_ScanProfiles_stops_at_ten
+
+== profile: Scan gives up early
+file: src/profile/account.c
+- if (count >= 10)
++ if (count >= 3)
+expect: Profile_ScanProfiles_closes_a_wide_gap
+
+== profile: Scan keeps selection without profiles
+file: src/profile/account.c
+-     if (g_profileCount == 0)
+-         g_cfg.profileSel = -1;
+expect: Profile_ScanProfiles_no_profiles_clears_selection
+
+== profile: Scan keeps undecodable account
+file: src/profile/account.c
+-             if (!DecodeAccount(&g_accBuf[slot], slot, bytesread))
+-                 ResetAccount();
++             DecodeAccount(&g_accBuf[slot], slot, bytesread);
+expect: Profile_ScanProfiles_corrupt_file_becomes_fresh_profile
+
+== profile: Scan does not resave
+file: src/profile/account.c
+-             PackAccount(slot);
+-             SaveAccount(slot);
+-             g_profileCount++;
++             PackAccount(slot);
++             g_profileCount++;
+expect: Profile_ScanProfiles_upgrades_and_resaves_old_accounts
+
+== profile: Scan does not count
+file: src/profile/account.c
+-             g_profileCount++;
+-             slot++;
++             slot++;
+expect: Profile_ScanProfiles_counts_contiguous_profiles
+
+# ================================================================ account.c: getters/setters
+
+== profile: GetProfileName copies two characters
+file: src/profile/account.c
+-         for (i = 0; i < NAME_LEN; i++)
+-             g_logBuf[i] = g_acc.name[i];
++         for (i = 0; i < 2; i++)
++             g_logBuf[i] = g_acc.name[i];
+expect: Profile_getters_read_the_packed_account
+
+== profile: GetProfileName leaves stale text
+file: src/profile/account.c
+-     g_logBuf[0] = 0;
+-     if (slot != -1) {
++     if (slot != -1) {
+expect: Profile_getters_without_profile_return_defaults
+
+== profile: GetProfileEasyFlag reads wrong byte
+file: src/profile/account.c
+- r = *(bool *)&g_acc.easyByte;
++ r = *(bool *)&g_acc.unused11d;
+expect: Profile_getters_read_the_packed_account
+
+== profile: GetProfileCfgFlag reads shuffle
+file: src/profile/account.c
+- r = *(bool *)&g_acc.settings.windowedByte;
++ r = *(bool *)&g_acc.settings.shuffleByte;
+expect: Profile_getters_read_the_packed_account
+
+== profile: GetProfileVoiceIndex reads lives
+file: src/profile/account.c
+- r = g_acc.voiceIndex;
++ r = g_acc.lives;
+expect: Profile_getters_read_the_packed_account
+
+== profile: GetProfileLastSaveId truncates
+file: src/profile/account.c
+- r = g_acc.lastSaveId;
++ r = (int)g_acc.lastSaveId;
+expect: Profile_getters_read_the_packed_account
+
+== profile: SetProfileVoiceIndex not saved
+file: src/profile/account.c
+-         g_acc.voiceIndex = v;
+-         PackAccount(slot);
+-         SaveAccount(slot);
++         g_acc.voiceIndex = v;
++         PackAccount(slot);
+expect: Profile_setters_save_to_disk
+
+== profile: SetProfileLastSaveId no-op
+file: src/profile/account.c
+-         g_acc.lastSaveId = v;
+expect: Profile_setters_save_to_disk
+
+== profile: MergeSettings drops best score
+file: src/profile/account.c
+-         if (g_hiscore > g_acc.settings.best)
+-             g_acc.settings.best = g_hiscore;
+-         PackAccount(slot);
++         PackAccount(slot);
+expect: Profile_MergeSettings_copies_config_keeping_best_score
+
+== profile: MergeSettings keeps old settings
+file: src/profile/account.c
+-         g_hiscore = g_acc.settings.best;
+-         g_acc.settings = g_cfg;
++         g_hiscore = g_acc.settings.best;
+expect: Profile_MergeSettings_copies_config_keeping_best_score
+
+# ================================================================ account.c: lives
+
+== profile: DecProfileLives by two
+file: src/profile/account.c
+- g_acc.lives--;
++ g_acc.lives -= 2;
+expect: Profile_lives_reset_to_five_and_count_down
+
+== profile: DecProfileLives not saved
+file: src/profile/account.c
+-         g_acc.lives--;
+-         PackAccount(slot);
+-         SaveAccount(slot);
++         g_acc.lives--;
++         PackAccount(slot);
+expect: Profile_lives_reset_to_five_and_count_down
+
+== profile: DecProfileLives floor at zero
+file: src/profile/account.c
+-         g_acc.lives--;
++         if (g_acc.lives > 0)
++             g_acc.lives--;
+expect: Profile_lives_decrease_has_no_floor
+
+== profile: IncProfileLives cap 6
+file: src/profile/account.c
+-         if (g_acc.lives > 5)
+-             g_acc.lives = 5;
++         if (g_acc.lives > 6)
++             g_acc.lives = 6;
+expect: Profile_lives_increase_caps_at_five
+
+== profile: IncProfileLives not saved
+file: src/profile/account.c
+-             g_acc.lives = 5;
+-         PackAccount(slot);
+-         SaveAccount(slot);
++             g_acc.lives = 5;
++         PackAccount(slot);
+expect: Profile_lives_increase_caps_at_five
+
+== profile: ResetProfileLives four
+file: src/profile/account.c
+- dividend = 2308;
++ dividend = 2208;
+expect: Profile_lives_reset_to_five_and_count_down
+
+# ================================================================ account.c: history
+
+== profile: history shift short
+file: src/profile/account.c
+- for (i = 0; i < 49; i++)
++ for (i = 0; i < 48; i++)
+expect: Profile_history_keeps_last_fifty
+
+== profile: history pushes to slot 48
+file: src/profile/account.c
+- g_acc.saveIdHistory[49] = v;
++ g_acc.saveIdHistory[48] = v;
+expect: Profile_history_keeps_last_fifty
+
+== profile: history push keeps last save id
+file: src/profile/account.c
+-         g_acc.saveIdHistory[49] = v;
+-         g_acc.lastSaveId = 0;
++         g_acc.saveIdHistory[49] = v;
+expect: Profile_history_push_then_has
+
+== profile: history push not saved
+file: src/profile/account.c
+-         g_acc.lastSaveId = 0;
+-         PackAccount(slot);
+-         SaveAccount(slot);
++         g_acc.lastSaveId = 0;
++         PackAccount(slot);
+expect: Profile_history_push_then_has
+
+== profile: history lookup skips newest
+file: src/profile/account.c
+-         for (i = 0; i < 50; i++) {
+-             if (v == g_acc.saveIdHistory[i])
++         for (i = 0; i < 49; i++) {
++             if (v == g_acc.saveIdHistory[i])
+expect: Profile_history_push_then_has
+
+# ================================================================ account.c: setpro / logout
+
+== profile: SaveSetPro not in single mode
+file: src/profile/account.c
+-     if (g_profileIndex != -1 && (g_gameMode == MODE_SINGLE || g_gameMode == MODE_TIME_TRIAL) && g_playerUpdateFn != StateDemo)
+-     {
++     if (g_profileIndex != -1 && (g_gameMode == MODE_TIME_TRIAL) && g_playerUpdateFn != StateDemo)
++     {
+expect: Profile_SaveSetPro_writes_the_profile_path
+
+== profile: SaveSetPro in demo
+file: src/profile/account.c
+-     if (g_profileIndex != -1 && (g_gameMode == MODE_SINGLE || g_gameMode == MODE_TIME_TRIAL) && g_playerUpdateFn != StateDemo)
+-     {
++     if (g_profileIndex != -1 && (g_gameMode == MODE_SINGLE || g_gameMode == MODE_TIME_TRIAL))
++     {
+expect: Profile_SaveSetPro_skips_without_profile_or_in_other_modes
+
+== profile: SaveSetPro without profile
+file: src/profile/account.c
+-     if (g_profileIndex != -1 && (g_gameMode == MODE_SINGLE || g_gameMode == MODE_TIME_TRIAL) && g_playerUpdateFn != StateDemo)
+-     {
++     if ((g_gameMode == MODE_SINGLE || g_gameMode == MODE_TIME_TRIAL) && g_playerUpdateFn != StateDemo)
++     {
+expect: Profile_SaveSetPro_skips_without_profile_or_in_other_modes
+
+== profile: SaveSetPro without truncate
+file: src/profile/account.c
+- fd = _open(p, _O_CREAT | _O_TRUNC | _O_RDWR, _S_IREAD | _S_IWRITE);
++ fd = _open(p, _O_CREAT | _O_RDWR, _S_IREAD | _S_IWRITE);
+expect: Profile_SaveSetPro_writes_the_profile_path
+
+== profile: DeleteSetPro keeps the file
+file: src/profile/account.c
+-     remove(p);
+expect: Profile_DeleteSetPro_removes_the_file
+expect: Profile_Logout_saves_settings_and_leaves_the_profile
+
+== profile: Logout keeps profile index
+file: src/profile/account.c
+-     g_profileIndex = -1;
++     ;
+expect: Profile_Logout_saves_settings_and_leaves_the_profile
+
+== profile: Logout skips merge
+file: src/profile/account.c
+-     MergeSettings(g_profileIndex);
++     ;
+expect: Profile_Logout_saves_settings_and_leaves_the_profile
+
+== profile: Logout leaves window flag
+file: src/profile/account.c
+-     g_profileWinOpen = 0;
+-     LoadProfile();
++     LoadProfile();
+expect: Profile_Logout_saves_settings_and_leaves_the_profile
+
+# ================================================================ savefile.c
+
+== profile: savefile drops current level on load
+file: src/profile/savefile.c
+-     FIELD(g_curLevelNum, f->curLevelNum);
+expect: Profile_SaveGameToFile_round_trips_the_game_state
+expect: Profile_SaveGameToFile_load_then_save_gives_the_same_file
+
+== profile: savefile swaps warp levels
+file: src/profile/savefile.c
+-     FIELD(f->warpLevelR, g_warpLevelR);
+-     FIELD(f->warpLevelL, g_warpLevelL);
++     FIELD(f->warpLevelR, g_warpLevelL);
++     FIELD(f->warpLevelL, g_warpLevelR);
+expect: Profile_SaveGameToFile_round_trips_the_game_state
+expect: Profile_SaveGameToFile_uses_the_original_layout
+
+== profile: savefile player score not loaded
+file: src/profile/savefile.c
+-     FIELD(g->extraLetterR, f->extraLetterR);
+-     FIELD(g->score, f->score);
++     FIELD(g->extraLetterR, f->extraLetterR);
+expect: Profile_SaveGameToFile_round_trips_the_game_state
+
+== profile: savefile player level not saved
+file: src/profile/savefile.c
+-     FIELD(f->level, g->level);
+expect: Profile_SaveGameToFile_round_trips_the_game_state
+expect: Profile_SaveGameToFile_uses_the_original_layout
+
+== profile: savefile enemy x not saved
+file: src/profile/savefile.c
+-     FIELD(f->active, g->active);
+-     FIELD(f->x, g->x);
++     FIELD(f->active, g->active);
+expect: Profile_SaveGameToFile_round_trips_the_game_state
+
+== profile: savefile enemy hp not loaded
+file: src/profile/savefile.c
+-     FIELD(g->hp, f->hp);
+expect: Profile_SaveGameToFile_round_trips_the_game_state
+
+== profile: savefile last level record not loaded
+file: src/profile/savefile.c
+-     for (i = 0; i < 4000; i++)
+-         LevelRecFromFile(&g_levelRecs[i], &f->levelRecs[i]);
++     for (i = 0; i < 3999; i++)
++         LevelRecFromFile(&g_levelRecs[i], &f->levelRecs[i]);
+expect: Profile_SaveGameToFile_round_trips_the_game_state
+
+== profile: savefile saves two players
+file: src/profile/savefile.c
+-     for (i = 0; i < 4; i++)
+-         PlayerToFile(&f->players[i], &g->players[i]);
++     for (i = 0; i < 2; i++)
++         PlayerToFile(&f->players[i], &g->players[i]);
+expect: Profile_SaveGameToFile_round_trips_the_game_state
+
+== profile: savefile last enemy not loaded
+file: src/profile/savefile.c
+-         for (j = 0; j < 150; j++)
+-             EnemyFromFile(&g_enemies[i][j], &f->enemies[i][j]);
++         for (j = 0; j < 149; j++)
++             EnemyFromFile(&g_enemies[i][j], &f->enemies[i][j]);
+expect: Profile_SaveGameToFile_round_trips_the_game_state
+
+== profile: savefile resume offset not saved
+file: src/profile/savefile.c
+-     FIELD(f->resumeTimeOffset, g_resumeTimeOffset);
+expect: Profile_SaveGameToFile_round_trips_the_game_state
+
+== profile: savefile kill count not loaded
+file: src/profile/savefile.c
+-     FIELD(g_killCount, f->killCount);
+expect: Profile_SaveGameToFile_round_trips_the_game_state
+
+== profile: savefile game mode not saved
+file: src/profile/savefile.c
+-     FIELD(f->gameMode, g_gameMode);
+expect: Profile_SaveGameToFile_round_trips_the_game_state
+
+== profile: savefile shot speeds swapped on load
+file: src/profile/savefile.c
+-     FIELD(g_diffShotSpeedMax, f->diffShotSpeedMax);
++     FIELD(g_diffShotSpeedMax, f->diffShotSpeedMin);
+expect: Profile_SaveGameToFile_round_trips_the_game_state
+
+== profile: savefile save version not saved
+file: src/profile/savefile.c
+-     FIELD(f->saveVersion, g_saveVersion);
+expect: Profile_SaveGameToFile_round_trips_the_game_state
+
+== profile: savefile third signature byte unchecked
+file: src/profile/savefile.c
+- && f->save.sig[0] == 'S' && f->save.sig[1] == 'D' && f->save.sig[2] == 'Y'
++ && f->save.sig[0] == 'S' && f->save.sig[1] == 'D'
+expect: Profile_SaveFileValid_checks_the_SDY_signature
+expect: Profile_LoadGameFromFile_invalid_file_changes_nothing
+
+== profile: savefile version unchecked
+file: src/profile/savefile.c
+-             && f->saveVersion == g_saveMagic) {
++             ) {
+expect: Profile_SaveFileValid_checks_the_save_version
+
+== profile: savefile size unchecked
+file: src/profile/savefile.c
+- && uncompress((unsigned char *)f, &uSize, buf, n) == 0 && uSize == sizeof(SaveFile)
++ && uncompress((unsigned char *)f, &uSize, buf, n) == 0
+expect: Profile_SaveFileValid_rejects_a_short_image
+
+== profile: SaveGameToFile always ok
+file: src/profile/savefile.c
+-     bool ok = false;
+-
+-     f = (SaveFile *)calloc(1, sizeof(SaveFile));
++     bool ok = true;
++
++     f = (SaveFile *)calloc(1, sizeof(SaveFile));
+expect: Profile_SaveGameToFile_fails_on_unwritable_path
+
+== profile: SaveGameToFile writes half
+file: src/profile/savefile.c
+- ok = _write(fd, buf, cSize) == (int)cSize;
++ ok = _write(fd, buf, cSize / 2) > 0;
+expect: Profile_SaveGameToFile_round_trips_the_game_state
+
+# ================================================================ savegame.c
+
+== profile: SaveProfile signature
+file: src/profile/savegame.c
+- g_save.sig[2] = 'Y';
++ g_save.sig[2] = 'X';
+expect: Profile_SaveProfile_writes_a_valid_save
+
+== profile: SaveProfile resume offset adds pause
+file: src/profile/savegame.c
+- g_resumeTimeOffset = g_timeStampB - g_timeStampA - g_pausedDuration;
++ g_resumeTimeOffset = g_timeStampB - g_timeStampA + g_pausedDuration;
+expect: Profile_SaveProfile_writes_a_valid_save
+
+== profile: SaveProfile difficulty not kept
+file: src/profile/savegame.c
+-         g_savedDifficultySave = g_cfg.difficulty;
+expect: Profile_SaveProfile_writes_a_valid_save
+
+== profile: SaveProfile converts stopped timer
+file: src/profile/savegame.c
+-         if (g_save.players[g_curPlayer].scoreMult5Timer != 0)
+-             g_save.players[g_curPlayer].scoreMult5Timer =
++         g_save.players[g_curPlayer].scoreMult5Timer =
+expect: Profile_SaveProfile_stores_running_timers_as_deltas
+
+== profile: SaveProfile mirror timer absolute
+file: src/profile/savegame.c
+- g_save.players[g_curPlayer].mirrorTime = g_save.players[g_curPlayer].mirrorTime - g_time;
++ g_save.players[g_curPlayer].mirrorTime = g_save.players[g_curPlayer].mirrorTime;
+expect: Profile_SaveProfile_stores_running_timers_as_deltas
+
+== profile: SaveProfile shield timer absolute
+file: src/profile/savegame.c
+- g_save.players[g_curPlayer].shieldTimer = g_save.players[g_curPlayer].shieldTimer - g_time;
++ g_save.players[g_curPlayer].shieldTimer = g_save.players[g_curPlayer].shieldTimer;
+expect: Profile_SaveProfile_stores_running_timers_as_deltas
+
+== profile: SaveProfile fresh start keeps life
+file: src/profile/savegame.c
+- if (g_playerBroke || g_freshStart)
++ if (g_playerBroke)
+expect: Profile_SaveProfile_costs_a_life_after_a_loss
+
+== profile: SaveProfile always costs a life
+file: src/profile/savegame.c
+- if (g_playerBroke || g_freshStart)
++ if (1)
+expect: Profile_SaveProfile_writes_a_valid_save
+
+== profile: SaveProfile save id not recorded
+file: src/profile/savegame.c
+-         SetProfileLastSaveId(profile, g_save.saveId);
+expect: Profile_SaveProfile_writes_a_valid_save
+
+== profile: SaveProfile stale save version
+file: src/profile/savegame.c
+- g_saveVersion = g_saveMagic;
++ g_saveVersion = 120;
+expect: Profile_SaveProfile_writes_a_valid_save
+
+== profile: SaveProfile next slot's file
+file: src/profile/savegame.c
+-         sprintf(savename, "%s\\warblade\\profiles\\profile%03d.svg", SysUserFolder(), profile);
++         sprintf(savename, "%s\\warblade\\profiles\\profile%03d.svg", SysUserFolder(), profile + 1);
+expect: Profile_SaveProfile_writes_a_valid_save
+
+== profile: SaveProfile without profile check
+file: src/profile/savegame.c
+- void SaveProfile(int profile)
+- {
+-     if (profile > -1) {
++ void SaveProfile(int profile)
++ {
++     if (profile > -2) {
+expect: Profile_SaveProfile_without_profile_writes_nothing
+
+== profile: DeleteProfile keeps the file
+file: src/profile/savegame.c
+-         remove(openname);
+expect: Profile_DeleteProfile_removes_the_save
+expect: Profile_LoadSuspended_resumes_in_the_shop
+
+== profile: LoadSuspended history not pushed
+file: src/profile/savegame.c
+-                 ProfileHistPush(profile, g_save.saveId);
+expect: Profile_LoadSuspended_resumes_in_the_shop
+
+== profile: LoadSuspended ship gfx swapped
+file: src/profile/savegame.c
+- g_save.players[0].gfx = g_gfxFighter1;
++ g_save.players[0].gfx = g_gfxFighter2;
+expect: Profile_LoadSuspended_resumes_in_the_shop
+
+== profile: LoadSuspended keeps energy
+file: src/profile/savegame.c
+-                 g_save.players[g_curPlayer].energy = 0;
+expect: Profile_LoadSuspended_resumes_in_the_shop
+
+== profile: LoadSuspended keeps right shield
+file: src/profile/savegame.c
+-                     g_save.players[g_curPlayer].shieldL = 0;
+-                     g_save.players[g_curPlayer].shieldR = 0;
++                     g_save.players[g_curPlayer].shieldL = 0;
+expect: Profile_LoadSuspended_resumes_in_the_shop
+
+== profile: LoadSuspended shield timer stays a delta
+file: src/profile/savegame.c
+-                         g_save.players[g_curPlayer].shieldTimer + g_time;
++                         g_save.players[g_curPlayer].shieldTimer;
+expect: Profile_LoadSuspended_resumes_in_the_shop
+
+== profile: LoadSuspended x2 multiplier 3
+file: src/profile/savegame.c
+- g_scoreMul[g_curPlayer] = 2;
++ g_scoreMul[g_curPlayer] = 3;
+expect: Profile_LoadSuspended_restores_score_multipliers
+
+== profile: LoadSuspended x5 multiplier 4
+file: src/profile/savegame.c
+- g_scoreMul[g_curPlayer] = 5;
++ g_scoreMul[g_curPlayer] = 4;
+expect: Profile_LoadSuspended_restores_score_multipliers
+
+== profile: LoadSuspended easy fps
+file: src/profile/savegame.c
+- g_cfg.fps = 0x32;
++ g_cfg.fps = 0x3c;
+expect: Profile_LoadSuspended_restores_score_multipliers
+
+== profile: LoadSuspended normal fps
+file: src/profile/savegame.c
+-                 if (g_cfg.difficulty == DIFF_NORMAL)
+-                     g_cfg.fps = 0x3c;
++                 if (g_cfg.difficulty == DIFF_NORMAL)
++                     g_cfg.fps = 0x3d;
+expect: Profile_LoadSuspended_normal_difficulty_runs_at_60
+
+== profile: LoadSuspended hard fps
+file: src/profile/savegame.c
+- g_cfg.fps = 0x46;
++ g_cfg.fps = 0x45;
+expect: Profile_LoadSuspended_resumes_in_the_shop
+
+== profile: LoadSuspended ace fps
+file: src/profile/savegame.c
+- g_cfg.fps = 0x50;
++ g_cfg.fps = 0x46;
+expect: Profile_LoadSuspended_restores_score_multipliers
+
+== profile: LoadSuspended speed setting not set
+file: src/profile/savegame.c
+-                 g_save.players[g_curPlayer].gameSpeedSetting = g_cfg.fps;
+expect: Profile_LoadSuspended_resumes_in_the_shop
+
+== profile: LoadSuspended skips SetupDifficulty
+file: src/profile/savegame.c
+-                 SetupDifficulty();
+-                 DoNothing();
++                 DoNothing();
+expect: Profile_LoadSuspended_resumes_in_the_shop
+
+== profile: LoadSuspended keeps current difficulty
+file: src/profile/savegame.c
+-                 g_cfg.difficulty = g_savedDifficultySave;
+expect: Profile_LoadSuspended_resumes_in_the_shop
+
+== profile: LoadSuspended goes to title
+file: src/profile/savegame.c
+-                 g_state = STATE_SHOP;
++                 g_state = STATE_TITLE;
+expect: Profile_LoadSuspended_resumes_in_the_shop
+
+== profile: LoadSuspended shop transition
+file: src/profile/savegame.c
+- g_shopTransition = 500.0f;
++ g_shopTransition = 50.0f;
+expect: Profile_LoadSuspended_resumes_in_the_shop
+
+== profile: LoadSuspended without checks
+file: src/profile/savegame.c
+-         if (ProfileValid(profile)) {
+-             sprintf(openname, "%s\\warblade\\profiles\\profile%03d.svg",
+-                           SysUserFolder(), profile);
+-             if (LoadGameFromFile(openname)) {
++         if (1) {
++             sprintf(openname, "%s\\warblade\\profiles\\profile%03d.svg",
++                           SysUserFolder(), profile);
++             LoadGameFromFile(openname); {
+expect: Profile_LoadSuspended_without_valid_save_does_nothing
+
+# ================================================================ hiscore.c: CheckHiscore
+
+== profile: CheckHiscore ties lose
+file: src/profile/hiscore.c
+-         if (g_save.players[p].score >= (tbl)[i].score) {       \
++         if (g_save.players[p].score > (tbl)[i].score) {        \
+expect: Profile_CheckHiscore_equal_score_takes_the_slot
+
+== profile: CheckHiscore easy uses normal table
+file: src/profile/hiscore.c
+- CHECK_HISCORE_TABLE(g_hiscoreMagic.table[0], HOF_EASY, 0)
++ CHECK_HISCORE_TABLE(g_hiscoreMagic.table[1], HOF_EASY, 0)
+expect: Profile_CheckHiscore_uses_each_difficultys_table
+
+== profile: CheckHiscore hard uses normal table
+file: src/profile/hiscore.c
+- CHECK_HISCORE_TABLE(g_hiscoreMagic.table[2], HOF_HARD, 2)
++ CHECK_HISCORE_TABLE(g_hiscoreMagic.table[1], HOF_HARD, 2)
+expect: Profile_CheckHiscore_uses_each_difficultys_table
+
+== profile: CheckHiscore ace marked hard
+file: src/profile/hiscore.c
+- CHECK_HISCORE_TABLE(g_hiscoreMagic.table[3], HOF_ACE, 3)
++ CHECK_HISCORE_TABLE(g_hiscoreMagic.table[3], HOF_HARD, 3)
+expect: Profile_CheckHiscore_uses_each_difficultys_table
+
+== profile: CheckHiscore normal replay slot 0
+file: src/profile/hiscore.c
+- CHECK_HISCORE_TABLE(g_hiscoreMagic.table[1], HOF_NORMAL, 1)
++ CHECK_HISCORE_TABLE(g_hiscoreMagic.table[1], HOF_NORMAL, 0)
+expect: Profile_CheckHiscore_new_first_place_keeps_the_runs_level_records
+
+== profile: CheckHiscore replay for second place
+file: src/profile/hiscore.c
+-             if (i == 0) {                                         \
++             if (i <= 1) {                                         \
+expect: Profile_CheckHiscore_second_place_keeps_no_records
+
+== profile: CheckHiscore replay not copied
+file: src/profile/hiscore.c
+-                     g_replayRecs[replayIdx][j] = g_levelRecs[j];   \
++                     ;                                              \
+expect: Profile_CheckHiscore_new_first_place_keeps_the_runs_level_records
+
+== profile: CheckHiscore zero score qualifies
+file: src/profile/hiscore.c
+-     if (g_save.players[p].score > 0) {
+-         switch
++     if (g_save.players[p].score >= 0) {
++         switch
+expect: Profile_CheckHiscore_zero_score_never_qualifies
+
+== profile: CheckHiscore time trial uses money table
+file: src/profile/hiscore.c
+- if (g_save.players[p].score >= g_hiscoreMagic.table5[i].score) {
++ if (g_save.players[p].score >= g_hiscoreMagic.table[4][i].score) {
+expect: Profile_CheckHiscore_time_trial_table
+
+== profile: CheckHiscore time trial replay slot
+file: src/profile/hiscore.c
+- g_replayRecs[4][j] = g_levelRecs[j];
++ g_replayRecs[3][j] = g_levelRecs[j];
+expect: Profile_CheckHiscore_time_trial_first_place_keeps_records
+
+== profile: CheckHiscore time trial falls through
+file: src/profile/hiscore.c
+-         return 0;
+-     }
+-
+-     // Otherwise
++     }
++
++     // Otherwise
+expect: Profile_CheckHiscore_time_trial_table
+
+== profile: CheckHiscore meteorstorm uses ace table
+file: src/profile/hiscore.c
+- if (g_save.players[p].bonusHighScore >= g_hiscoreMagic.table[4][i].score) {
++ if (g_save.players[p].bonusHighScore >= g_hiscoreMagic.table[3][i].score) {
+expect: Profile_CheckHiscore_meteorstorm_table_qualifies_on_its_own
+
+== profile: CheckHiscore meteorstorm not reported
+file: src/profile/hiscore.c
+-                 found = 1;
+expect: Profile_CheckHiscore_meteorstorm_table_qualifies_on_its_own
+
+== profile: CheckHiscore zero bonus qualifies
+file: src/profile/hiscore.c
+- if (g_save.players[p].bonusHighScore > 0) {
++ if (g_save.players[p].bonusHighScore >= 0) {
+expect: Profile_CheckHiscore_zero_score_never_qualifies
+
+== profile: CheckHiscore keeps name length
+file: src/profile/hiscore.c
+-     g_nameLen = 0;
+-     DecompressHiscores();
+-     found = 0;
++     DecompressHiscores();
++     found = 0;
+expect: Profile_CheckHiscore_finds_the_slot_in_the_difficulty_table
+
+# ================================================================ hiscore.c: EnterHiscore
+
+== profile: insert does not shift the slot
+file: src/profile/hiscore.c
+-     for (j = MAX_HISCORES - 2; j > (slot) - 1; j--)                                 \
++     for (j = MAX_HISCORES - 2; j > (slot); j--)                                     \
+expect: Profile_EnterHiscore_inserts_and_shifts_the_table
+
+== profile: insert shift misses the end
+file: src/profile/hiscore.c
+-     for (j = MAX_HISCORES - 2; j > (slot) - 1; j--)                                 \
++     for (j = MAX_HISCORES - 3; j > (slot) - 1; j--)                                 \
+expect: Profile_EnterHiscore_inserts_and_shifts_the_table
+
+== profile: insert keeps underscores
+file: src/profile/hiscore.c
+-         if (c == '_')                                                               \
++         if (c == '-')                                                               \
+expect: Profile_EnterHiscore_inserts_and_shifts_the_table
+
+== profile: insert level not display level
+file: src/profile/hiscore.c
+- tbl[slot].level = g_save.players[pl].displayLevel;
++ tbl[slot].level = g_save.players[pl].level;
+expect: Profile_EnterHiscore_inserts_and_shifts_the_table
+
+== profile: insert duration with pause
+file: src/profile/hiscore.c
+- tbl[slot].duration = g_timeStampB - g_timeStampA - g_pausedDuration;
++ tbl[slot].duration = g_timeStampB - g_timeStampA;
+expect: Profile_EnterHiscore_inserts_and_shifts_the_table
+
+== profile: insert not highlighted
+file: src/profile/hiscore.c
+- tbl[slot].highlight = 1;
++ tbl[slot].highlight = 0;
+expect: Profile_EnterHiscore_inserts_and_shifts_the_table
+
+== profile: insert no owner stamp
+file: src/profile/hiscore.c
+- tbl[slot].ownerStamp = g_save.players[pl].sessionPlayTime;
++ tbl[slot].ownerStamp = 0;
+expect: Profile_EnterHiscore_inserts_and_shifts_the_table
+
+== profile: insert power from rank
+file: src/profile/hiscore.c
+- tbl[slot].power = g_save.players[pl].buffDuration;
++ tbl[slot].power = g_save.players[pl].rank;
+expect: Profile_EnterHiscore_inserts_and_shifts_the_table
+
+== profile: insert hits from shots
+file: src/profile/hiscore.c
+- tbl[slot].hits = g_save.players[pl].hits;
++ tbl[slot].hits = g_save.players[pl].shots;
+expect: Profile_EnterHiscore_inserts_and_shifts_the_table
+
+== profile: insert no date
+file: src/profile/hiscore.c
+-     SysUtcDate(&tbl[slot].date);
++     ;
+expect: Profile_EnterHiscore_inserts_and_shifts_the_table
+
+== profile: insert normal into hard table
+file: src/profile/hiscore.c
+- ENTER_HISCORE_TABLE(g_hiscoreMagic.table1, HOF_NORMAL)
++ ENTER_HISCORE_TABLE(g_hiscoreMagic.table2, HOF_NORMAL)
+expect: Profile_EnterHiscore_inserts_and_shifts_the_table
+
+== profile: insert ace into hard table
+file: src/profile/hiscore.c
+- ENTER_HISCORE_TABLE(g_hiscoreMagic.table3, HOF_ACE)
++ ENTER_HISCORE_TABLE(g_hiscoreMagic.table2, HOF_ACE)
+expect: Profile_EnterHiscore_inserts_at_the_last_slot
+
+== profile: insert keeps qualification
+file: src/profile/hiscore.c
+-         g_hsTable[i] = 100;                                       \
++         ;                                                         \
+expect: Profile_EnterHiscore_inserts_and_shifts_the_table
+
+== profile: insert meteorstorm with game score
+file: src/profile/hiscore.c
+- HISCORE_INSERT(g_hiscoreMagic.table4, g_hsRank2[i], g_hsPlayer2[i], bonusHighScore)
++ HISCORE_INSERT(g_hiscoreMagic.table4, g_hsRank2[i], g_hsPlayer2[i], score)
+expect: Profile_EnterHiscore_inserts_meteorstorm_score
+
+== profile: insert meteorstorm keeps qualification
+file: src/profile/hiscore.c
+-                         g_hsRank2[i] = -1;
+expect: Profile_EnterHiscore_inserts_meteorstorm_score
+
+== profile: insert time trial into money table
+file: src/profile/hiscore.c
+- HISCORE_INSERT(g_hiscoreMagic.table5, g_hsRank[i], g_hsPlayer[i], score)
++ HISCORE_INSERT(g_hiscoreMagic.table4, g_hsRank[i], g_hsPlayer[i], score)
+expect: Profile_EnterHiscore_time_trial_inserts_into_its_table
+
+== profile: insert file not written
+file: src/profile/hiscore.c
+-             CompressHiscores();
+-             WriteHiscoreFile();
+-
+-             switch (g_gameMode) {
++             CompressHiscores();
++
++             switch (g_gameMode) {
+expect: Profile_EnterHiscore_writes_the_hiscore_file
+
+== profile: entry index not advanced
+file: src/profile/hiscore.c
+-         g_hsEntryIndex++;
+expect: Profile_EnterHiscore_inserts_and_shifts_the_table
+
+== profile: insert gate inverted
+file: src/profile/hiscore.c
+- if (g_hiscoreInsertGate == 0) {
++ if (g_hiscoreInsertGate != 0) {
+expect: Profile_EnterHiscore_inserts_and_shifts_the_table
+
+== profile: single player asks player two
+file: src/profile/hiscore.c
+-             case MODE_SINGLE:
+-                 g_curPlayer = -1;
++             case MODE_SINGLE:
++                 g_curPlayer = 1;
+expect: Profile_EnterHiscore_inserts_and_shifts_the_table
+
+== profile: after entry stays on screen
+file: src/profile/hiscore.c
+-                 g_state = STATE_TITLE;
+-                 ClearPlayers();
++                 g_state = STATE_ENTER_HISCORE;
++                 ClearPlayers();
+expect: Profile_EnterHiscore_inserts_and_shifts_the_table
+
+# ================================================================ hiscore.c: packing
+
+== profile: Compress drops replay records
+file: src/profile/hiscore.c
+-     memcpy(s_hiscoreFile.replayRecs, g_replayRecs, sizeof(s_hiscoreFile.replayRecs));
+expect: Profile_CompressHiscores_round_trip
+
+== profile: Compress keeps tables
+file: src/profile/hiscore.c
+-     g_hiscorePackedSize = (int)packed;
+-     ClearHiscores();
++     g_hiscorePackedSize = (int)packed;
+expect: Profile_CompressHiscores_round_trip
+
+== profile: Clear keeps replay records
+file: src/profile/hiscore.c
+-     memset(g_replayRecs, 0, sizeof(g_replayRecs));
+-     g_hiscoresCleared = 1;
++     g_hiscoresCleared = 1;
+expect: Profile_ClearHiscores_zeroes_tables_and_records
+
+== profile: Clear flag not set
+file: src/profile/hiscore.c
+- g_hiscoresCleared = 1;
++ g_hiscoresCleared = 0;
+expect: Profile_ClearHiscores_zeroes_tables_and_records
+
+== profile: Decompress garbage keeps tables
+file: src/profile/hiscore.c
+-         if (res2 != 0) {
+-             ClearHiscores();
+-         } else {
++         if (res2 != 0) {
++         } else {
+expect: Profile_DecompressHiscores_garbage_clears_the_tables
+
+== profile: Decompress drops replay records
+file: src/profile/hiscore.c
+-             memcpy(g_replayRecs, s_hiscoreFile.replayRecs, sizeof(g_replayRecs));
+expect: Profile_CompressHiscores_round_trip
+
+== profile: Decompress old drops time trial
+file: src/profile/hiscore.c
+-             g_hiscoreMagic.table5[i] = old->table5[i];
+expect: Profile_DecompressHiscores_prefers_the_old_layout_buffer
+
+== profile: Decompress old drops meteorstorm
+file: src/profile/hiscore.c
+-             g_hiscoreMagic.table[4][i] = old->table[4][i];
+expect: Profile_DecompressHiscores_prefers_the_old_layout_buffer
+
+== profile: Decompress old keeps tag byte 4
+file: src/profile/hiscore.c
+-         g_hiscoreMagic.tag[4] = 0;
+-         g_hiscoreMagic.count = old->count;
++         g_hiscoreMagic.tag[4] = old->tag[4];
++         g_hiscoreMagic.count = old->count;
+expect: Profile_DecompressHiscores_prefers_the_old_layout_buffer
+
+== profile: Decompress old drops count
+file: src/profile/hiscore.c
+- g_hiscoreMagic.count = old->count;
++ g_hiscoreMagic.count = 0;
+expect: Profile_DecompressHiscores_prefers_the_old_layout_buffer
+
+== profile: Decompress old keeps replay records
+file: src/profile/hiscore.c
+-         memset(g_replayRecs, 0, sizeof(g_replayRecs));
+-         for (i = 0; i < MAX_HISCORES; i++)
++         for (i = 0; i < MAX_HISCORES; i++)
+expect: Profile_DecompressHiscores_prefers_the_old_layout_buffer
+
+# ================================================================ hiscore.c: reset / highlight
+
+== profile: Reset skips hard table
+file: src/profile/hiscore.c
+-         RESET_HISCORE_TABLE(g_hiscoreMagic.table[2][i])
+expect: Profile_ResetHiscores_blanks_every_table
+
+== profile: Reset skips time trial table
+file: src/profile/hiscore.c
+-         RESET_HISCORE_TABLE5(g_hiscoreMagic.table5[i])
+expect: Profile_ResetHiscores_blanks_every_table
+
+== profile: Reset keeps hits
+file: src/profile/hiscore.c
+-     (entry).hits = 0;              \
++     (entry).shots = 0;             \
+expect: Profile_ResetHiscores_blanks_every_table
+
+== profile: Reset time trial keeps owner
+file: src/profile/hiscore.c
+-     (entry).year = 0;               \
+-     (entry).ownerStamp = 0;
++     (entry).year = 0;
+expect: Profile_ResetHiscores_blanks_every_table
+
+== profile: Reset empty names
+file: src/profile/hiscore.c
+-     sprintf((entry).name, " ");    \
++     sprintf((entry).name, "");     \
+expect: Profile_ResetHiscores_blanks_every_table
+
+== profile: Reset keeps count
+file: src/profile/hiscore.c
+-     g_hiscoreMagic.count = 0;
+-     CompressHiscores();
+- }
++     CompressHiscores();
++ }
+expect: Profile_ResetHiscores_blanks_every_table
+
+== profile: highlight hard clears normal
+file: src/profile/hiscore.c
+-                 g_hiscoreMagic.table2[i].highlight = 0;
++                 g_hiscoreMagic.table1[i].highlight = 0;
+expect: Profile_ClearHiscoreHighlight_clears_the_right_table
+
+== profile: money highlight unconditional
+file: src/profile/hiscore.c
+-     if (g_hsRank2[p] != -1) {
+-         for (i = 0; i < MAX_HISCORES; i++)
++     if (1) {
++         for (i = 0; i < MAX_HISCORES; i++)
+expect: Profile_ClearHiscoreHighlight_clears_the_right_table
+
+== profile: time trial highlight clears money table
+file: src/profile/hiscore.c
+-             g_hiscoreMagic.table5[i].highlight = 0;
++             g_hiscoreMagic.table4[i].highlight = 0;
+expect: Profile_ClearHiscoreHighlight_clears_the_right_table
+
+# ================================================================ hiscore.c: the file
+
+== profile: WriteHiscoreFile tag
+file: src/profile/hiscore.c
+-     char nnn[5] = "WARX";
+-     char path[512];
+-     DecompressHiscores();
++     char nnn[5] = "WARZ";
++     char path[512];
++     DecompressHiscores();
+expect: Profile_WriteHiscoreFile_LoadHiscores_round_trip
+
+== profile: WriteHiscoreFile keeps count
+file: src/profile/hiscore.c
+-     g_hiscoreMagic.count = 0;
+-     g_hiscoreMagic.tag[0] = nnn[0];
++     g_hiscoreMagic.tag[0] = nnn[0];
+expect: Profile_WriteHiscoreFile_LoadHiscores_round_trip
+
+== profile: WriteHiscoreFile writes half
+file: src/profile/hiscore.c
+- res = _write(fd, g_hiscoreBuf, g_hiscorePackedSize);
++ res = _write(fd, g_hiscoreBuf, g_hiscorePackedSize / 2);
+expect: Profile_WriteHiscoreFile_LoadHiscores_round_trip
+
+== profile: LoadHiscores reads a little
+file: src/profile/hiscore.c
+- n = _read(fd, g_hiscoreBuf, SIZEOF_HISCORES);
++ n = _read(fd, g_hiscoreBuf, 0x100);
+expect: Profile_WriteHiscoreFile_LoadHiscores_round_trip
+
+== profile: LoadHiscores any size
+file: src/profile/hiscore.c
+- } else if (g_hiscoreSize != SIZEOF_HISCORES) {
++ } else if (0) {
+expect: Profile_LoadHiscores_rejects_another_size
+
+== profile: LoadHiscores three tag letters
+file: src/profile/hiscore.c
+-                    g_hiscoreMagic.tag[2] == nnn[2] && g_hiscoreMagic.tag[3] == nnn[3]) {
++                    g_hiscoreMagic.tag[2] == nnn[2]) {
+expect: Profile_LoadHiscores_rejects_another_tag
+
+== profile: LoadHiscores short format size
+file: src/profile/hiscore.c
+- if (g_hiscoreSize == 0x30c8) {
++ if (g_hiscoreSize == 0x30c4) {
+expect: Profile_LoadHiscores_accepts_the_short_0x30c8_format
+
+== profile: LoadHiscores missing file keeps tables
+file: src/profile/hiscore.c
+-         g_hiscoreMagic.count = 0;
+-         ResetHiscores();
+-     }
++         g_hiscoreMagic.count = 0;
++     }
+expect: Profile_LoadHiscores_missing_file_gives_blank_tables
+
+== profile: LoadHiscores wrong tag kept
+file: src/profile/hiscore.c
+-         } else {
+-             ResetHiscores();
+-             g_hiscoreMagic.count = 0;
+-         }
++         } else {
++             g_hiscoreMagic.count = 0;
++         }
+expect: Profile_LoadHiscores_rejects_another_tag
+
+# ================================================================ hiscore.c: best score
+
+== profile: LoadBestScore hard from normal
+file: src/profile/hiscore.c
+- g_bestScore = *(__int64 *)&g_hiscoreMagic.table2[0].score;
++ g_bestScore = *(__int64 *)&g_hiscoreMagic.table1[0].score;
+expect: Profile_LoadBestScore_takes_the_first_place_of_the_difficulty
+
+== profile: LoadBestScore easy second place
+file: src/profile/hiscore.c
+- g_bestScore = *(__int64 *)&g_hiscoreMagic.table[0][0].score;
++ g_bestScore = *(__int64 *)&g_hiscoreMagic.table[0][1].score;
+expect: Profile_LoadBestScore_takes_the_first_place_of_the_difficulty
+
+== profile: LoadBestScore time trial from money
+file: src/profile/hiscore.c
+- g_bestScore = *(__int64 *)&g_hiscoreMagic.table5[0].score;
++ g_bestScore = *(__int64 *)&g_hiscoreMagic.table4[0].score;
+expect: Profile_LoadBestScore_takes_the_first_place_of_the_difficulty
+
+== profile: LoadBestScore leaves tables
+file: src/profile/hiscore.c
+-     ClearHiscores();
+- }
+-
+- // Raises
++ }
++
++ // Raises
+expect: Profile_LoadBestScore_takes_the_first_place_of_the_difficulty
+
+== profile: UpdateBestScore player two ignored
+file: src/profile/hiscore.c
+-         g_bestScore = g_save.players[1].score;
++         g_bestScore = g_save.players[0].score;
+expect: Profile_UpdateBestScore_follows_the_players
+
+== profile: UpdateBestScore player one ignored
+file: src/profile/hiscore.c
+-     if (g_save.players[0].score > g_bestScore)
+-         g_bestScore = g_save.players[0].score;
+expect: Profile_UpdateBestScore_follows_the_players
+
+# ================================================================ more
+
+== profile: CheckHiscore always qualifies
+file: src/profile/hiscore.c
+-     return found;
+- }
+- #undef CHECK_HISCORE_TABLE
++     return 1;
++ }
++ #undef CHECK_HISCORE_TABLE
+expect: Profile_CheckHiscore_too_low_does_not_qualify
+
+== profile: Decode v7 treated as v6
+file: src/profile/account.c
+- if (g_acc.version == 6) {
++ if (g_acc.version >= 6) {
+expect: Profile_DecodeAccount_current_version_is_kept
+
+== profile: LoadHiscores tag letters swapped
+file: src/profile/hiscore.c
+- } else if (g_hiscoreMagic.tag[0] == nnn[0] && g_hiscoreMagic.tag[1] == nnn[1] &&
++ } else if (g_hiscoreMagic.tag[0] == nnn[1] && g_hiscoreMagic.tag[1] == nnn[0] &&
+expect: Profile_LoadHiscores_accepts_a_WARX_file
+
+== profile: LoadHiscores odd size kept
+file: src/profile/hiscore.c
+-         } else if (g_hiscoreSize != SIZEOF_HISCORES) {
+-             ResetHiscores();
++         } else if (g_hiscoreSize != SIZEOF_HISCORES) {
+expect: Profile_LoadHiscores_garbage_file_gives_blank_tables
+
+== profile: LoadSettings assumes a full read
+file: src/profile/settings.c
+-     n = 0;
+-     g_cfg.numStars = 500.0f;
++     n = CFG_FILE_SIZE;
++     g_cfg.numStars = 500.0f;
+expect: Profile_LoadSettings_missing_file_gives_defaults
+
+== profile: SaveFileValid inverted
+file: src/profile/savefile.c
+- bool ok = f != 0;
++ bool ok = f == 0;
+expect: Profile_SaveFileValid_accepts_a_current_save
+
+== profile: SaveFileValid always true
+file: src/profile/savefile.c
+- bool ok = f != 0;
++ bool ok = true;
+expect: Profile_SaveFileValid_rejects_missing_or_garbage_files
+
+== profile: savefile accepts an incomplete stream
+file: src/profile/savefile.c
+- && uncompress((unsigned char *)f, &uSize, buf, n) == 0 && uSize == sizeof(SaveFile)
++ && uncompress((unsigned char *)f, &uSize, buf, n) != Z_DATA_ERROR && uSize == sizeof(SaveFile)
+expect: Profile_SaveFileValid_rejects_a_truncated_file
+
+== profile: Scan selection follows any gap
+file: src/profile/account.c
+- if (g_cfg.profileSel > slot)
++ if (g_cfg.profileSel >= 0)
+expect: Profile_ScanProfiles_selection_before_gap_stays
+
+== profile: UnpackAccount reads slot 0
+file: src/profile/account.c
+- (const unsigned char *)&g_accBuf[profile], g_accSizes[profile]);
++ (const unsigned char *)&g_accBuf[0], g_accSizes[profile]);
+expect: Profile_UnpackAccount_restores_packed_account

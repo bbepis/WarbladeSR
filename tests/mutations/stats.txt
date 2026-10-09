@@ -1,0 +1,2306 @@
+# src/profile/stats.c and src/game/promotion.c (tests/test_stats*.c)
+
+# ---- high scores ----
+
+== stats: UpdateHighScore keeps the lower score
+file: src/profile/stats.c
+- if (v > g_acc.highScore)
++ if (v < g_acc.highScore)
+expect: Stats_UpdateHighScore_keeps_the_best
+
+== stats: UpdateHighScore truncates to 32 bits
+file: src/profile/stats.c
+-             g_acc.highScore = v;
++             g_acc.highScore = (int)v;
+expect: Stats_UpdateHighScore_keeps_the_best
+
+== stats: UpdateHighScore does not save
+file: src/profile/stats.c
+-             g_acc.highScore = v;
+-         PackAccount(profile);
+-         SaveAccount(profile);
++             g_acc.highScore = v;
++         PackAccount(profile);
+expect: Stats_UpdateHighScore_saves_the_profile_file
+
+== stats: ShowHighScore forgets g_shownStat
+file: src/profile/stats.c
+-         g_shownStat = g_acc.highScore;
++         g_shownStat = 0;
+expect: Stats_ShowHighScore_formats_with_dot_groups
+
+== stats: ShowHighScore ignores the -1 guard
+file: src/profile/stats.c
+- void ShowHighScore(int profile)
+- {
+-     if (profile != -1) {
++ void ShowHighScore(int profile)
++ {
++     if (profile != -1 || 1) {
+expect: Stats_ShowHighScore_formats_with_dot_groups
+
+== stats: UpdateMarathonScore keeps the lower score
+file: src/profile/stats.c
+- if (v > g_acc.level100HighScore)
++ if (v < g_acc.level100HighScore)
+expect: Stats_UpdateMarathonScore_keeps_the_best_and_flags_the_milestone
+
+== stats: UpdateMarathonScore milestone off by one
+file: src/profile/stats.c
+- if (g_gameMode != MODE_TIME_TRIAL && v >= MARATHON_MILESTONE_SCORE)
++ if (g_gameMode != MODE_TIME_TRIAL && v > MARATHON_MILESTONE_SCORE)
+expect: Stats_UpdateMarathonScore_keeps_the_best_and_flags_the_milestone
+
+== stats: UpdateMarathonScore milestone flags player 0
+file: src/profile/stats.c
+-         if (g_gameMode != MODE_TIME_TRIAL && v >= MARATHON_MILESTONE_SCORE)
+-             g_save.players[g_curPlayer].highScoreMilestone = 1;
++         if (g_gameMode != MODE_TIME_TRIAL && v >= MARATHON_MILESTONE_SCORE)
++             g_save.players[0].highScoreMilestone = 1;
+expect: Stats_UpdateMarathonScore_keeps_the_best_and_flags_the_milestone
+
+== stats: UpdateMarathonScore milestone in time trial
+file: src/profile/stats.c
+- if (g_gameMode != MODE_TIME_TRIAL && v >= MARATHON_MILESTONE_SCORE)
++ if (v >= MARATHON_MILESTONE_SCORE)
+expect: Stats_marathon_milestone_is_not_flagged_in_time_trial
+
+== stats: ShowMarathonScore milestone off by one
+file: src/profile/stats.c
+-         ClearAccount();
+-         if (g_gameMode != MODE_TIME_TRIAL && g_shownStat >= MARATHON_MILESTONE_SCORE)
++         ClearAccount();
++         if (g_gameMode != MODE_TIME_TRIAL && g_shownStat > MARATHON_MILESTONE_SCORE)
+expect: Stats_ShowMarathonScore_formats_and_flags_the_milestone
+
+== stats: ShowMarathonScore milestone in time trial
+file: src/profile/stats.c
+-         ClearAccount();
+-         if (g_gameMode != MODE_TIME_TRIAL && g_shownStat >= MARATHON_MILESTONE_SCORE)
++         ClearAccount();
++         if (g_shownStat >= MARATHON_MILESTONE_SCORE)
+expect: Stats_marathon_milestone_is_not_flagged_in_time_trial
+
+== stats: ShowMarathonScore milestone constant
+file: include/constants.h
+- MARATHON_MILESTONE_SCORE = 200000000,
++ MARATHON_MILESTONE_SCORE = 199999999,
+expect: Stats_ShowMarathonScore_formats_and_flags_the_milestone
+
+== stats: UpdateMeteorStormScore keeps the lower score
+file: src/profile/stats.c
+- if (v > g_acc.meteorstormHighScore)
++ if (v < g_acc.meteorstormHighScore)
+expect: Stats_MeteorStorm_score_keeps_the_best
+
+== stats: ShowMeteorStormScore shows the time trial score
+file: src/profile/stats.c
+-         Int64ToStrGrouped(g_acc.meteorstormHighScore, g_logBuf);
++         Int64ToStrGrouped(g_acc.timeTrialHighScore, g_logBuf);
+expect: Stats_MeteorStorm_score_keeps_the_best
+
+== stats: UpdateTimeTrialScore keeps the lower score
+file: src/profile/stats.c
+- if (v > g_acc.timeTrialHighScore)
++ if (v < g_acc.timeTrialHighScore)
+expect: Stats_TimeTrial_score_keeps_the_best
+
+== stats: ShowTimeTrialScore forgets g_shownStat
+file: src/profile/stats.c
+-         g_shownStat = g_acc.timeTrialHighScore;
++         g_shownStat = g_acc.meteorstormHighScore;
+expect: Stats_TimeTrial_score_keeps_the_best
+
+# ---- bonus levels ----
+
+== stats: AddStats swaps perfect and played
+file: src/profile/stats.c
+-         g_acc.perfectBonusLevels += a;
+-         g_acc.bonusLevelsPlayed += b;
++         g_acc.perfectBonusLevels += b;
++         g_acc.bonusLevelsPlayed += a;
+expect: Stats_AddStats_accumulates_and_resets_session_counters
+
+== stats: AddStats keeps the session counters
+file: src/profile/stats.c
+-         g_perfectCount = g_killCount = 0;
++         g_perfectCount = 0;
+expect: Stats_AddStats_accumulates_and_resets_session_counters
+
+== stats: ShowPerfectAttempts shows perfect count
+file: src/profile/stats.c
+-         g_shownStat = g_acc.bonusLevelsPlayed;
+-         sprintf(g_logBuf, "%d", g_acc.bonusLevelsPlayed);
++         g_shownStat = g_acc.perfectBonusLevels;
++         sprintf(g_logBuf, "%d", g_acc.perfectBonusLevels);
+expect: Stats_AddStats_accumulates_and_resets_session_counters
+
+== stats: ShowPerfectCount g_shownStat
+file: src/profile/stats.c
+-         g_shownStat = g_acc.perfectBonusLevels;
+-         sprintf(g_logBuf, "%d", g_acc.perfectBonusLevels);
++         g_shownStat = g_acc.bonusLevelsPlayed;
++         sprintf(g_logBuf, "%d", g_acc.perfectBonusLevels);
+expect: Stats_AddStats_accumulates_and_resets_session_counters
+
+== stats: ShowRatio rounds
+file: src/profile/stats.c
+- (int)((double)g_acc.perfectBonusLevels / g_acc.bonusLevelsPlayed * 100.0));
++ (int)((double)g_acc.perfectBonusLevels / g_acc.bonusLevelsPlayed * 100.0 + 0.5));
+expect: Stats_ShowRatio_is_a_truncated_percentage
+
+== stats: ShowRatio keeps the buffer for -1
+file: src/profile/stats.c
+- void ShowRatio(int profile)
+- {
+-     g_logBuf[0] = 0;
++ void ShowRatio(int profile)
++ {
+expect: Stats_ShowRatio_is_a_truncated_percentage
+
+# ---- play time ----
+
+== stats: ShowPlayTime day off by one
+file: src/profile/stats.c
+-         d = sy.day + m - 1;
++         d = sy.day + m;
+expect: Stats_ShowPlayTime_shows_only_the_coarsest_units
+
+== stats: ShowPlayTime 31-day months
+file: src/profile/stats.c
+-         m = (sy.month - 1) * 30;
++         m = (sy.month - 1) * 31;
+expect: Stats_ShowPlayTime_counts_months_as_30_days
+
+== stats: ShowPlayTime hours branch threshold
+file: src/profile/stats.c
+-         else if (h > 0)
++         else if (h > 1)
+expect: Stats_ShowPlayTime_shows_only_the_coarsest_units
+
+== stats: ShowPlayTime minutes branch threshold
+file: src/profile/stats.c
+-         else if (mi > 0)
++         else if (mi >= 0)
+expect: Stats_ShowPlayTime_shows_only_the_coarsest_units
+
+== stats: ShowPlayTime swaps minutes and seconds
+file: src/profile/stats.c
+-             sprintf(g_logBuf, "%2d M, %2d SEC", mi, s);
++             sprintf(g_logBuf, "%2d M, %2d SEC", s, mi);
+expect: Stats_ShowPlayTime_shows_only_the_coarsest_units
+
+== stats: ShowPlayTime keeps the buffer for -1
+file: src/profile/stats.c
+-     g_logBuf[0] = 0;
+-     if (profile != -1) {
+-         UnpackAccount(profile);
+-         SysFileTimeToDate(g_acc.playTime, &sy);
++     if (profile != -1) {
++         UnpackAccount(profile);
++         SysFileTimeToDate(g_acc.playTime, &sy);
+expect: Stats_ShowPlayTime_shows_only_the_coarsest_units
+
+== stats: AddPlayTime adds the pause
+file: src/profile/stats.c
+-         g_acc.playTime += a - b - c;
++         g_acc.playTime += a - b + c;
+expect: Stats_AddPlayTime_adds_the_net_time_clamped_at_zero
+
+== stats: AddPlayTime no clamp
+file: src/profile/stats.c
+-         if (g_acc.playTime < 0)
+-             g_acc.playTime = 0;
++         if (g_acc.playTime < -1000)
++             g_acc.playTime = 0;
+expect: Stats_AddPlayTime_adds_the_net_time_clamped_at_zero
+
+== stats: AddPlayTime does not flag
+file: src/profile/stats.c
+-         g_profilePlayTimeAdded = 1;
++         g_profilePlayTimeAdded = 0;
+expect: Stats_AddPlayTime_adds_the_net_time_clamped_at_zero
+
+# ---- ranks ----
+
+== stats: GetStat default for no profile
+file: src/profile/stats.c
+-     int r = 20;
++     int r = 0;
+expect: Stats_SetStat_and_GetStat_are_the_unlocked_rank
+
+== stats: SetStat writes the completion rank
+file: src/profile/stats.c
+-         g_acc.unlockedRank = v;
++         g_acc.completionRank = v;
+expect: Stats_SetStat_and_GetStat_are_the_unlocked_rank
+
+== stats: IncrementRank cap
+file: src/profile/stats.c
+-         if (g_acc.completionRank > 3)
+-             g_acc.completionRank = 3;
++         if (g_acc.completionRank > 4)
++             g_acc.completionRank = 4;
+expect: Stats_IncrementRank_caps_at_3
+
+== stats: GetRank reads the unlocked rank
+file: src/profile/stats.c
+-         r = g_acc.completionRank;
++         r = g_acc.unlockedRank;
+expect: Stats_IncrementRank_caps_at_3
+
+== stats: FormatHighestRank keeps a stale rank
+file: src/profile/stats.c
+-         if (g_acc.highestRank > n) {
++         if (g_acc.highestRank > n + 10) {
+expect: Stats_FormatHighestRank_drops_a_rank_above_the_unlocked_one
+
+== stats: FormatHighestRank drops the equal rank
+file: src/profile/stats.c
+-         if (g_acc.highestRank > n) {
++         if (g_acc.highestRank >= n) {
+expect: Stats_FormatHighestRank_drops_a_rank_above_the_unlocked_one
+
+== stats: FormatHighestRank does not save the fix
+file: src/profile/stats.c
+-             g_acc.highestRank = 0;
+-             PackAccount(profile);
+-             SaveAccount(profile);
+-         }
++             g_acc.highestRank = 0;
++             ClearAccount();
++             UnpackAccount(profile);
++             g_acc.highestRank = 0;
++         }
+expect: Stats_FormatHighestRank_drops_a_rank_above_the_unlocked_one
+
+== stats: FormatHighestRank masks from champion
+file: src/profile/stats.c
+-         if (g_profileReadOnly && g_shownRank >= RANK_GOD)
++         if (g_profileReadOnly && g_shownRank >= RANK_CHAMPION)
+expect: Stats_FormatHighestRank_masks_god_ranks_on_read_only_profiles
+
+== stats: FormatHighestRank masks every profile
+file: src/profile/stats.c
+-         if (g_profileReadOnly && g_shownRank >= RANK_GOD)
++         if (g_shownRank >= RANK_GOD)
+expect: Stats_FormatHighestRank_masks_god_ranks_on_read_only_profiles
+
+== stats: FormatHighestRank wrong name
+file: src/profile/stats.c
+-             sprintf(g_logBuf, "%s", g_rankNames[g_acc.highestRank]);
++             sprintf(g_logBuf, "%s", g_rankNames[g_acc.highestRank + 1]);
+expect: Stats_FormatHighestRank_shows_the_rank_name
+
+== stats: UpdateHighestRank keeps the lower rank
+file: src/profile/stats.c
+-         if (value > g_acc.highestRank)
++         if (value < g_acc.highestRank)
+expect: Stats_UpdateHighestRank_keeps_the_best
+
+# ---- level times ----
+
+== stats: FormatBestTime minutes threshold
+file: src/profile/stats.c
+-                 if (mn > 0)
+-                     sprintf(g_logBuf, "%d M, %d.%02d SEC", mn, sc, ms);
++                 if (mn > 1)
++                     sprintf(g_logBuf, "%d M, %d.%02d SEC", mn, sc, ms);
+expect: Stats_FormatBestTime_shows_a_new_profiles_sentinel_as_a_time
+
+== stats: FormatBestTime sentinel inclusive
+file: src/profile/stats.c
+-         if (g_acc.bestLevelTime < NO_BEST_TIME) {
++         if (g_acc.bestLevelTime <= NO_BEST_TIME) {
+expect: Stats_FormatBestTime_without_a_time_shows_dashes
+
+== stats: FormatBestTime no sentinel in g_shownStat
+file: src/profile/stats.c
+-         g_shownStat = NO_BEST_TIME;
++         g_shownStat = 0;
+expect: Stats_FormatBestTime_without_a_time_shows_dashes
+
+== stats: FormatBestTime ignores the -1 guard
+file: src/profile/stats.c
+-     int ms;
+-     if (slot != -1) {
+-         g_shownStat = NO_BEST_TIME;
++     int ms;
++     {
++         g_shownStat = NO_BEST_TIME;
+expect: Stats_FormatBestTime_without_a_time_shows_dashes
+
+== stats: FormatBestTime 2 s exclusive
+file: src/profile/stats.c
+-                 if (g_shownStat <= 2000)
++                 if (g_shownStat < 2000)
+expect: Stats_FormatBestTime_raises_max_extra_time_for_fast_clears
+
+== stats: FormatBestTime 1 s exclusive
+file: src/profile/stats.c
+-                 if (g_shownStat <= 1000)
++                 if (g_shownStat < 1000)
+expect: Stats_FormatBestTime_raises_max_extra_time_for_fast_clears
+
+== stats: FormatBestTime 60 s extra time
+file: src/profile/stats.c
+-                     g_timeMax = 60;
++                     g_timeMax = 50;
+expect: Stats_FormatBestTime_raises_max_extra_time_for_fast_clears
+
+== stats: FormatBestTime 90 s extra time
+file: src/profile/stats.c
+-                     g_timeMax = 90;
++                     g_timeMax = 80;
+expect: Stats_FormatBestTime_raises_max_extra_time_for_fast_clears
+
+== stats: FormatBestTime extra time in time trial
+file: src/profile/stats.c
+-             if (g_gameMode != MODE_TIME_TRIAL) {
+-                 if (g_shownStat <= 2000)
++             {
++                 if (g_shownStat <= 2000)
+expect: Stats_FormatBestTime_leaves_max_extra_time_alone_in_time_trial
+
+== stats: FormatBestTime keeps the minutes in g_shownStat
+file: src/profile/stats.c
+-             g_shownStat = sc * 1000 + ms;
++             g_shownStat = (__int64)(mn * 1000 * 60) + sc * 1000 + ms;
+expect: Stats_FormatBestTime_quirks_milliseconds_and_minutes
+
+== stats: FormatBestTime seconds use 3 digits
+file: src/profile/stats.c
+-                 else
+-                     sprintf(g_logBuf, "%d.%02d SEC", sc, ms);
++                 else
++                     sprintf(g_logBuf, "%d.%03d SEC", sc, ms);
+expect: Stats_FormatBestTime_raises_max_extra_time_for_fast_clears
+
+== stats: UpdateBestTime takes zero
+file: src/profile/stats.c
+-         if (t > 0 && t < NO_BEST_TIME && g_acc.bestLevelTime > t) {
++         if (t >= 0 && t < NO_BEST_TIME && g_acc.bestLevelTime > t) {
+expect: Stats_UpdateBestTime_only_takes_faster_valid_times
+
+== stats: UpdateBestTime takes the sentinel
+file: src/profile/stats.c
+-         if (t > 0 && t < NO_BEST_TIME && g_acc.bestLevelTime > t) {
++         if (t > 0 && t <= NO_BEST_TIME && g_acc.bestLevelTime > t) {
+expect: Stats_UpdateBestTime_only_takes_faster_valid_times
+
+== stats: UpdateBestTime takes slower times
+file: src/profile/stats.c
+-         if (t > 0 && t < NO_BEST_TIME && g_acc.bestLevelTime > t) {
++         if (t > 0 && t < NO_BEST_TIME) {
+expect: Stats_UpdateBestTime_only_takes_faster_valid_times
+
+== stats: ShowFastestMeteorstorm dash threshold
+file: src/profile/stats.c
+-         if (m < 15) {
++         if (m < 16) {
+expect: Stats_ShowFastestMeteorstorm_formats_the_time
+
+== stats: ShowFastestMeteorstorm minutes threshold
+file: src/profile/stats.c
+-             if (m > 0)
+-                 sprintf(g_logBuf, "%d M, %d.%02d SEC", m, s, ms);
++             if (m >= 0)
++                 sprintf(g_logBuf, "%d M, %d.%02d SEC", m, s, ms);
+expect: Stats_ShowFastestMeteorstorm_formats_the_time
+
+== stats: ShowFastestMeteorstorm g_shownStat drops minutes
+file: src/profile/stats.c
+-         g_shownStat = (__int64)(m * 1000 * 60) + s * 1000 + ms;
++         g_shownStat = s * 1000 + ms;
+expect: Stats_ShowFastestMeteorstorm_formats_the_time
+
+== stats: UpdateFastestMeteorStorm keeps the slower
+file: src/profile/stats.c
+-         if (g_acc.bestMeteorstormTime > t)
++         if (g_acc.bestMeteorstormTime < t)
+expect: Stats_UpdateFastestMeteorStorm_keeps_the_fastest
+
+# ---- shots, levels, games, money ----
+
+== stats: AddScoreStat counts hits
+file: src/profile/stats.c
+-         g_acc.shotsFired = g_acc.shotsFired + n;
++         g_acc.shotsHit = g_acc.shotsHit + n;
+expect: Stats_shot_counters_and_FormatTotalHitPct
+
+== stats: AddHitsStat overwrites
+file: src/profile/stats.c
+-         g_acc.shotsHit = g_acc.shotsHit + amount;
++         g_acc.shotsHit = amount + 1;
+expect: Stats_shot_counters_and_FormatTotalHitPct
+
+== stats: FormatTotalHitPct inverted
+file: src/profile/stats.c
+- sprintf(g_logBuf, "%d %%", (int)((double)g_acc.shotsHit / g_acc.shotsFired * 100.0));
++ sprintf(g_logBuf, "%d %%", (int)((double)g_acc.shotsHit / g_acc.shotsFired * 100.0 + 1));
+expect: Stats_shot_counters_and_FormatTotalHitPct
+
+== stats: UpdateHitPctAbove25 keeps the lower
+file: src/profile/stats.c
+-         if (value > g_acc.bestHitPctAbove25)
++         if (value != g_acc.bestHitPctAbove25)
+expect: Stats_HitPctAbove25_keeps_the_best
+
+== stats: FormatHitPctAbove25 g_shownStat
+file: src/profile/stats.c
+-         g_shownStat = g_acc.bestHitPctAbove25;
++         g_shownStat = 0;
+expect: Stats_HitPctAbove25_keeps_the_best
+
+== stats: UpdateHighestLevel keeps the lower
+file: src/profile/stats.c
+-         if (value > g_acc.highestLevel)
++         if (value != g_acc.highestLevel)
+expect: Stats_highest_level_keeps_the_best
+
+== stats: ShowHighestLevelReached g_shownStat
+file: src/profile/stats.c
+-         g_shownStat = g_acc.highestLevel;
++         g_shownStat = g_acc.totalLevelsPlayed;
+expect: Stats_highest_level_keeps_the_best
+
+== stats: AddLevelsPlayed overwrites
+file: src/profile/stats.c
+-         g_acc.totalLevelsPlayed = g_acc.totalLevelsPlayed + amount;
++         g_acc.totalLevelsPlayed = amount;
+expect: Stats_AddLevelsPlayed_accumulates
+
+== stats: levels unlock autofire threshold
+file: src/profile/stats.c
+-             if (g_shownStat >= 1000)
+-                 g_save.players[g_curPlayer].autofireUnlocked = 1;
++             if (g_shownStat >= 999)
++                 g_save.players[g_curPlayer].autofireUnlocked = 1;
+expect: Stats_ShowTotalLevelsPlayed_unlocks_by_threshold
+
+== stats: levels unlock turret threshold
+file: src/profile/stats.c
+-             if (g_shownStat >= 2500)
++             if (g_shownStat > 2500)
+expect: Stats_ShowTotalLevelsPlayed_unlocks_by_threshold
+
+== stats: levels unlock turret reduction
+file: src/profile/stats.c
+-                 g_save.players[g_curPlayer].turretTrackingReduction = 25;
++                 g_save.players[g_curPlayer].turretTrackingReduction = 20;
+expect: Stats_ShowTotalLevelsPlayed_unlocks_by_threshold
+
+== stats: levels unlock gem counter threshold
+file: src/profile/stats.c
+-             if (g_shownStat >= 5000)
+-                 g_save.players[g_curPlayer].gemCounterUnlocked = 1;
++             if (g_shownStat >= 5001)
++                 g_save.players[g_curPlayer].gemCounterUnlocked = 1;
+expect: Stats_ShowTotalLevelsPlayed_unlocks_by_threshold
+
+== stats: levels unlock bonus weight 12 threshold
+file: src/profile/stats.c
+-             if (g_shownStat >= 10000)
+-                 g_bonusWeight[12] = 0;
++             if (g_shownStat >= 5000)
++                 g_bonusWeight[12] = 0;
+expect: Stats_ShowTotalLevelsPlayed_unlocks_by_threshold
+
+== stats: levels unlock bonus weight 13 index
+file: src/profile/stats.c
+-                 g_bonusWeight[13] = 0;
++                 g_bonusWeight[14] = 0;
+expect: Stats_ShowTotalLevelsPlayed_unlocks_by_threshold
+
+== stats: levels unlock blue money threshold
+file: src/profile/stats.c
+-             if (g_shownStat >= 20000)
+-                 g_save.players[g_curPlayer].blueMoneyUnlocked = 1;
++             if (g_shownStat >= 15000)
++                 g_save.players[g_curPlayer].blueMoneyUnlocked = 1;
+expect: Stats_ShowTotalLevelsPlayed_unlocks_by_threshold
+
+== stats: levels unlock bonus weight 14 threshold
+file: src/profile/stats.c
+-             if (g_shownStat >= 25000)
+-                 g_bonusWeight[14] = 0;
++             if (g_shownStat >= 20000)
++                 g_bonusWeight[14] = 0;
+expect: Stats_ShowTotalLevelsPlayed_unlocks_by_threshold
+
+== stats: levels unlock multiplier threshold
+file: src/profile/stats.c
+-             if (g_shownStat >= 35000)
+-                 g_save.players[g_curPlayer].multiplierUnlocked = 1;
++             if (g_shownStat >= 25000)
++                 g_save.players[g_curPlayer].multiplierUnlocked = 1;
+expect: Stats_ShowTotalLevelsPlayed_unlocks_by_threshold
+
+== stats: levels unlock for player 0
+file: src/profile/stats.c
+-                 g_save.players[g_curPlayer].autofireUnlocked = 1;
++                 g_save.players[0].autofireUnlocked = 1;
+expect: Stats_ShowTotalLevelsPlayed_unlocks_by_threshold
+
+== stats: levels unlock in time trial
+file: src/profile/stats.c
+-         if (g_gameMode != MODE_TIME_TRIAL) {
+-             if (g_shownStat >= 1000)
++         {
++             if (g_shownStat >= 1000)
+expect: Stats_ShowTotalLevelsPlayed_unlocks_nothing_in_time_trial
+
+== stats: IncrementGamesPlayed keeps the pending game
+file: src/profile/stats.c
+-         g_newGamePending = 0;
++         g_newGamePending = 1;
+expect: Stats_IncrementGamesPlayed_adds_the_pending_game
+
+== stats: IncrementGamesPlayed always adds one
+file: src/profile/stats.c
+-         g_acc.gamesPlayed = g_acc.gamesPlayed + g_newGamePending;
++         g_acc.gamesPlayed = g_acc.gamesPlayed + 1;
+expect: Stats_IncrementGamesPlayed_adds_the_pending_game
+
+== stats: ShowTotalGamesPlayed g_shownStat
+file: src/profile/stats.c
+-         g_shownStat = g_acc.gamesPlayed;
++         g_shownStat = g_acc.gamesPlayed + 1;
+expect: Stats_IncrementGamesPlayed_adds_the_pending_game
+
+== stats: UpdateHighestMoney keeps the lower
+file: src/profile/stats.c
+-         if ((double)value > g_acc.highestMoney)
++         if ((double)value < g_acc.highestMoney)
+expect: Stats_highest_money_keeps_the_best
+
+== stats: FormatHighestMoney mask threshold
+file: src/profile/stats.c
+-         if (g_profileReadOnly && g_shownStat > 99999)
++         if (g_profileReadOnly && g_shownStat >= 99999)
+expect: Stats_FormatHighestMoney_masks_big_amounts_on_read_only_profiles
+
+== stats: FormatHighestMoney never masks
+file: src/profile/stats.c
+-             sprintf(g_logBuf, "???");
+-         else
+-             sprintf(g_logBuf, "%lld", (__int64)g_acc.highestMoney);
++             sprintf(g_logBuf, "%lld", (__int64)g_acc.highestMoney);
++         else
++             sprintf(g_logBuf, "%lld", (__int64)g_acc.highestMoney);
+expect: Stats_FormatHighestMoney_masks_big_amounts_on_read_only_profiles
+
+# ---- secrets and completion ----
+
+== stats: ShowSecretsFound counts one level too few
+file: src/profile/stats.c
+-         for (int i = 0; i < g_numLevels; i++) {
+-             if (g_acc.levelDone[i])
++         for (int i = 0; i < g_numLevels - 1; i++) {
++             if (g_acc.levelDone[i])
+expect: Stats_ShowSecretsFound_counts_found_levels
+
+== stats: ShowSecretsFound fixed total
+file: src/profile/stats.c
+-         sprintf(g_logBuf, "%d OUT OF %d", count, g_numLevels);
++         sprintf(g_logBuf, "%d OUT OF %d", count, 30);
+expect: Stats_ShowSecretsFound_counts_found_levels
+
+== stats: ShowSecretsInOneGame g_shownStat
+file: src/profile/stats.c
+-         g_shownStat = g_acc.secretsInOneGame;
++         g_shownStat = 0;
+expect: Stats_ShowSecretsFound_counts_found_levels
+
+== stats: SetGameCompleted does nothing
+file: src/profile/stats.c
+-         g_acc.gameCompleted = true;
++         g_acc.gameCompleted = false;
+expect: Stats_SetGameCompleted_marks_the_profile
+
+== stats: IsGameCompleted ignores the -1 guard
+file: src/profile/stats.c
+-     bool done = false;
+-     if (id != -1) {
+-         UnpackAccount(id);
+-         if (g_acc.gameCompleted)
++     bool done = id == -1;
++     if (id != -1) {
++         UnpackAccount(id);
++         if (g_acc.gameCompleted)
+expect: Stats_SetGameCompleted_marks_the_profile
+
+== stats: MarkSecretFound marks the next level
+file: src/profile/stats.c
+-             g_acc.levelDone[level - 1] = true;
++             g_acc.levelDone[level] = true;
+expect: Stats_MarkSecretFound_marks_the_level_and_counts_this_game
+
+== stats: IsSecretFound reads the next level
+file: src/profile/stats.c
+-         done = g_acc.levelDone[level - 1];
++         done = g_acc.levelDone[level];
+expect: Stats_MarkSecretFound_marks_the_level_and_counts_this_game
+
+== stats: MarkSecretFound counts one level too few
+file: src/profile/stats.c
+-             if (g_save.players[g_curPlayer].secretFlags[i] != 0)
++             if (i > 0 && g_save.players[g_curPlayer].secretFlags[i] != 0)
+expect: Stats_MarkSecretFound_marks_the_level_and_counts_this_game
+
+== stats: MarkSecretFound does not store the game count
+file: src/profile/stats.c
+-         g_save.players[g_curPlayer].secretCount = count;
++         g_save.players[g_curPlayer].secretCount = 0;
+expect: Stats_MarkSecretFound_marks_the_level_and_counts_this_game
+
+== stats: MarkSecretFound always takes the game count
+file: src/profile/stats.c
+-         if (count > g_acc.secretsInOneGame) {
++         if (count != g_acc.secretsInOneGame) {
+expect: Stats_MarkSecretFound_keeps_the_best_game_count
+
+== stats: MarkSecretFound keeps an impossible count
+file: src/profile/stats.c
+-         if (g_acc.secretsInOneGame > g_numLevels)
+-             g_acc.secretsInOneGame = 0;
++         if (g_acc.secretsInOneGame > g_numLevels + 10)
++             g_acc.secretsInOneGame = 0;
+expect: Stats_MarkSecretFound_resets_an_impossible_game_count
+
+== stats: MarkSecretFound jingle every time
+file: src/profile/stats.c
+-         if (!g_acc.levelDone[level - 1]) {
+-             g_acc.levelDone[level - 1] = true;
+-             SoundQueueAdd(g_sampleSecret, 50, 0);
+-             bFirst = true;
+-         }
++         if (!g_acc.levelDone[level - 1]) {
++             g_acc.levelDone[level - 1] = true;
++             bFirst = true;
++         }
++         SoundQueueAdd(g_sampleSecret, 50, 0);
+expect: Stats_MarkSecretFound_plays_the_jingle_only_the_first_time
+
+== stats: MarkSecretFound reward without a new secret
+file: src/profile/stats.c
+-         if (g_acc.secretsInOneGame == g_numLevels && bFirst && bRecord) {
++         if (g_acc.secretsInOneGame == g_numLevels && bRecord) {
+expect: Stats_MarkSecretFound_no_reward_when_the_last_secret_was_known
+
+== stats: MarkSecretFound reward needs one secret less
+file: src/profile/stats.c
+-         if (g_acc.secretsInOneGame == g_numLevels && bFirst && bRecord) {
++         if (g_acc.secretsInOneGame == g_numLevels - 1 && bFirst && bRecord) {
+expect: Stats_MarkSecretFound_rewards_all_secrets_in_one_game
+
+== stats: MarkSecretFound reward message timer
+file: src/profile/stats.c
+-             g_msgColor = 8;
+-             g_msgTimer = g_time + 7000;
+-         }
+-         PackAccount(id);
++             g_msgColor = 8;
++             g_msgTimer = g_time + 5000;
++         }
++         PackAccount(id);
+expect: Stats_MarkSecretFound_rewards_all_secrets_in_one_game
+
+== stats: MarkSecretFound no all-levels medal check
+file: src/profile/stats.c
+-         SaveAccount(id);
+-         CheckAllLevelsMedal(id);
++         SaveAccount(id);
+expect: Stats_MarkSecretFound_rewards_all_secrets_in_one_game
+
+# ---- medals (tests/test_stats_medals.c) ----
+
+== stats: AwardMedal awards held medals again
+file: src/profile/stats.c
+-         if (medal != 0 && (g_acc.medals & medal) != medal) {
++         if (medal != 0) {
+expect: Stats_AwardMedal_records_the_award_order_once_per_medal
+
+== stats: AwardMedal records medal 0
+file: src/profile/stats.c
+-         if (medal != 0 && (g_acc.medals & medal) != medal) {
++         if ((g_acc.medals & medal) != medal || medal == 0) {
+expect: Stats_AwardMedal_records_the_award_order_once_per_medal
+
+== stats: AwardMedal order slot 1
+file: src/profile/stats.c
+-             if (g_acc.medalOrder[6] == 1)
+-                 g_acc.medalOrder[1] = medal;
++             if (g_acc.medalOrder[6] == 1)
++                 g_acc.medalOrder[2] = medal;
+expect: Stats_AwardMedal_records_the_award_order_once_per_medal
+
+== stats: AwardMedal order slot 5
+file: src/profile/stats.c
+-             if (g_acc.medalOrder[6] == 5)
+-                 g_acc.medalOrder[5] = medal;
++             if (g_acc.medalOrder[6] == 5)
++                 g_acc.medalOrder[4] = medal;
+expect: Stats_AwardMedal_orders_all_six_medals
+
+== stats: AwardMedal order count cap
+file: src/profile/stats.c
+-             if (g_acc.medalOrder[6] < 6)
++             if (g_acc.medalOrder[6] < 5)
+expect: Stats_AwardMedal_orders_all_six_medals
+
+== stats: GetMedalOrder index 3
+file: src/profile/stats.c
+-         if (idx == 3)
+-             r = g_acc.medalOrder[3];
++         if (idx == 3)
++             r = g_acc.medalOrder[4];
+expect: Stats_AwardMedal_orders_all_six_medals
+
+== stats: GetMedalOrder index 5
+file: src/profile/stats.c
+-         if (idx == 5)
+-             r = g_acc.medalOrder[5];
++         if (idx == 5)
++             r = g_acc.medalOrder[6];
+expect: Stats_AwardMedal_orders_all_six_medals
+
+== stats: GetMedalOrder index 0
+file: src/profile/stats.c
+-         if (idx == 0)
+-             r = g_acc.medalOrder[0];
++         if (idx == 0)
++             r = g_acc.medalOrder[1];
+expect: Stats_AwardMedal_records_the_award_order_once_per_medal
+
+== stats: GetMedals ignores the -1 guard
+file: src/profile/stats.c
+- int GetMedals(int slot)
+- {
+-     int r = 0;
++ int GetMedals(int slot)
++ {
++     int r = 1;
+expect: Stats_AwardMedal_records_the_award_order_once_per_medal
+
+== stats: HasAllMedals does not mask
+file: src/profile/stats.c
+-     if ((m = GetMedals(slot) & MEDALS_ALL) == MEDALS_ALL)
++     if ((m = GetMedals(slot)) == MEDALS_ALL)
+expect: Stats_HasAllMedals_needs_the_six_planet_medals
+
+== stats: HasAllMedals needs five medals
+file: src/profile/stats.c
+-     if ((m = GetMedals(slot) & MEDALS_ALL) == MEDALS_ALL)
++     if ((m = GetMedals(slot) & 0x1f) == 0x1f)
+expect: Stats_HasAllMedals_needs_the_six_planet_medals
+
+== stats: ClearMedalOrder does nothing
+file: src/profile/stats.c
+-         UnpackAccount(slot);
+-         CLEAR_MEDAL_ORDER(g_acc)
+-         PackAccount(slot);
++         UnpackAccount(slot);
++         PackAccount(slot);
+expect: Stats_ClearMedalOrder_keeps_the_medals
+
+== stats: ClearMedalsMask clears the others
+file: src/profile/stats.c
+-         inv = mask ^ MEDALS_ALL;
++         inv = mask;
+expect: Stats_ClearMedalsMask_clears_only_those_medals
+
+== stats: ClearMedalsMask keeps the step
+file: src/profile/stats.c
+-         g_acc.medals = g_acc.medals & inv;
+-         g_acc.medalStep = MEDAL_STEP_RESET;
++         g_acc.medals = g_acc.medals & inv;
+expect: Stats_ClearMedalsMask_clears_only_those_medals
+
+== stats: ClearLevelsDone misses the last level
+file: src/profile/stats.c
+-         for (i = 0; i < g_numLevels; i++)
+-             g_acc.levelDone[i] = 0;
+-         PackAccount(slot);
++         for (i = 0; i < g_numLevels - 1; i++)
++             g_acc.levelDone[i] = 0;
++         PackAccount(slot);
+expect: Stats_ClearLevelsDone_clears_the_game_levels
+
+== stats: ClearLevelsDone clears every slot
+file: src/profile/stats.c
+-         for (i = 0; i < g_numLevels; i++)
+-             g_acc.levelDone[i] = 0;
+-         PackAccount(slot);
++         for (i = 0; i < 50; i++)
++             g_acc.levelDone[i] = 0;
++         PackAccount(slot);
+expect: Stats_ClearLevelsDone_clears_the_game_levels
+
+== stats: ClearRecordStat keeps the high half
+file: src/profile/stats.c
+-         g_acc.level100HighScoreHi = 0;
++         g_acc.level100HighScoreHi = g_acc.level100HighScoreHi;
+expect: Stats_ClearRecordStat_zeroes_the_marathon_score
+
+== stats: ClearRecordStat clears the wrong score
+file: src/profile/stats.c
+-         *(int *)&g_acc.level100HighScore = 0;
++         g_acc.highScore = 0;
+expect: Stats_ClearRecordStat_zeroes_the_marathon_score
+
+== stats: RescaleRatioStat base
+file: src/profile/stats.c
+-         f = g_acc.bonusLevelsPlayed / RATIO_RESCALE_BASE;
++         f = g_acc.bonusLevelsPlayed / 300.0;
+expect: Stats_RescaleRatioStat_rescales_to_450_played
+
+== stats: RescaleRatioStat zero ratio
+file: src/profile/stats.c
+-         if (f == 0.0)
+-             f = 1.0;
++         if (f == 0.0)
++             f = 5.0;
+expect: Stats_RescaleRatioStat_with_nothing_played_sets_450
+
+== stats: RescaleRatioStat played count
+file: src/profile/stats.c
+-         g_acc.perfectBonusLevels = g_acc.perfectBonusLevels / f;
+-         g_acc.bonusLevelsPlayed = 450;
++         g_acc.perfectBonusLevels = g_acc.perfectBonusLevels / f;
++         g_acc.bonusLevelsPlayed = 500;
+expect: Stats_RescaleRatioStat_rescales_to_450_played
+
+== stats: CheckRatioMedal played threshold
+file: src/profile/stats.c
+-     MEDAL_RATIO_MIN_PLAYED = 500,
++     MEDAL_RATIO_MIN_PLAYED = 499,
+expect: Stats_CheckRatioMedal_needs_500_played_at_75_percent
+
+== stats: CheckRatioMedal percentage threshold
+file: src/profile/stats.c
+-     MEDAL_RATIO_MIN_PCT    = 75
++     MEDAL_RATIO_MIN_PCT    = 74
+expect: Stats_CheckRatioMedal_needs_500_played_at_75_percent
+
+== stats: CheckRatioMedal strict percentage
+file: src/profile/stats.c
+- if (g_acc.bonusLevelsPlayed >= MEDAL_RATIO_MIN_PLAYED && pct >= MEDAL_RATIO_MIN_PCT) {
++ if (g_acc.bonusLevelsPlayed >= MEDAL_RATIO_MIN_PLAYED && pct > MEDAL_RATIO_MIN_PCT) {
+expect: Stats_CheckRatioMedal_needs_500_played_at_75_percent
+
+== stats: CheckRatioMedal awards the wrong medal
+file: src/profile/stats.c
+-                 AwardMedal(slot, MEDAL_BONUS_RATIO);
++                 AwardMedal(slot, MEDAL_SPEED_STREAK);
+expect: Stats_CheckRatioMedal_needs_500_played_at_75_percent
+
+== stats: CheckAllLevelsMedal one level short
+file: src/profile/stats.c
+-         if (n == g_numLevels) {
++         if (n >= g_numLevels - 1) {
+expect: Stats_CheckAllLevelsMedal_needs_every_level
+
+== stats: CheckAllLevelsMedal fixed level count
+file: src/profile/stats.c
+-         if (n == g_numLevels) {
++         if (n == 30) {
+expect: Stats_CheckAllLevelsMedal_needs_every_level
+
+# ---- the medal sequence at completion rank 2 ----
+
+== stats: medal sequence at completion rank 1
+file: src/profile/stats.c
+-         if (g_acc.completionRank == 2) {
++         if (g_acc.completionRank >= 1) {
+expect: Stats_medal_sequence_only_runs_at_completion_rank_2
+
+== stats: medal sequence first step
+file: src/profile/stats.c
+-                 if (medal == MEDAL_DRUNK_FINISH)
+-                     g_acc.medalStep = MEDAL_DRUNK_FINISH;
++                 if (medal == MEDAL_SPEED_STREAK)
++                     g_acc.medalStep = MEDAL_DRUNK_FINISH;
+expect: Stats_medal_sequence_steps_through_the_six_medals
+
+== stats: medal sequence second step
+file: src/profile/stats.c
+-                 if (medal == MEDAL_SPEED_STREAK)
+-                     g_acc.medalStep = MEDAL_SPEED_STREAK;
+-                 else
+-                     g_acc.medalStep = MEDAL_STEP_RESET;
++                 if (medal == MEDAL_SPEED_STREAK)
++                     g_acc.medalStep = MEDAL_SPEED_STREAK;
+expect: Stats_medal_sequence_each_step_needs_the_right_medal
+
+== stats: medal sequence third step
+file: src/profile/stats.c
+-                 if (medal == MEDAL_BONUS_RATIO)
+-                     g_acc.medalStep = MEDAL_BONUS_RATIO;
+-                 else
+-                     g_acc.medalStep = MEDAL_STEP_RESET;
++                 if (medal == MEDAL_BONUS_RATIO)
++                     g_acc.medalStep = MEDAL_BONUS_RATIO;
+expect: Stats_medal_sequence_each_step_needs_the_right_medal
+
+== stats: medal sequence fourth step
+file: src/profile/stats.c
+-                 if (medal == MEDAL_ALL_LEVELS)
+-                     g_acc.medalStep = MEDAL_ALL_LEVELS;
+-                 else
+-                     g_acc.medalStep = MEDAL_STEP_RESET;
++                 if (medal == MEDAL_ALL_LEVELS)
++                     g_acc.medalStep = MEDAL_ALL_LEVELS;
+expect: Stats_medal_sequence_each_step_needs_the_right_medal
+
+== stats: medal sequence fifth step
+file: src/profile/stats.c
+-                 if (medal == MEDAL_OVERALL)
+-                     g_acc.medalStep = MEDAL_OVERALL;
+-                 else
+-                     g_acc.medalStep = MEDAL_STEP_RESET;
++                 if (medal == MEDAL_OVERALL)
++                     g_acc.medalStep = MEDAL_OVERALL;
+expect: Stats_medal_sequence_each_step_needs_the_right_medal
+
+== stats: medal sequence last step keeps a wrong medal
+file: src/profile/stats.c
+-                 } else
+-                     g_acc.medalStep = MEDAL_STEP_RESET;
+-                 break;
+-             }
++                 }
++                 break;
++             }
+expect: Stats_medal_sequence_each_step_needs_the_right_medal
+
+== stats: medal sequence fourth step wants overall
+file: src/profile/stats.c
+-                 if (medal == MEDAL_ALL_LEVELS)
+-                     g_acc.medalStep = MEDAL_ALL_LEVELS;
++                 if (medal == MEDAL_OVERALL)
++                     g_acc.medalStep = MEDAL_ALL_LEVELS;
+expect: Stats_medal_sequence_steps_through_the_six_medals
+
+== stats: medal sequence does not raise the completion rank
+file: src/profile/stats.c
+-                         g_acc.completionRank++;
+-                         medal = 0;
++                         medal = 0;
+expect: Stats_medal_sequence_unlocks_planet_ranks
+
+== stats: medal sequence keeps the medals
+file: src/profile/stats.c
+-                         g_acc.completionRank++;
+-                         medal = 0;
+-                         g_acc.medals = 0;
+-                         medal = 0;
+-                         g_acc.medals = 0;
++                         g_acc.completionRank++;
++                         medal = 0;
++                         medal = 0;
+expect: Stats_medal_sequence_unlocks_planet_ranks
+
+== stats: medal sequence keeps the levels done
+file: src/profile/stats.c
+-                         for (i = 0; i < g_numLevels; i++)
+-                             g_acc.levelDone[i] = 0;
++                         for (i = 0; i < 1; i++)
++                             g_acc.levelDone[i] = 0;
+expect: Stats_medal_sequence_unlocks_planet_ranks
+
+== stats: medal sequence keeps secrets in one game
+file: src/profile/stats.c
+-                             g_acc.levelDone[i] = 0;
+-                         g_acc.secretsInOneGame = 0;
++                             g_acc.levelDone[i] = 0;
+expect: Stats_medal_sequence_unlocks_planet_ranks
+
+== stats: medal sequence keeps the medal order
+file: src/profile/stats.c
+-                         g_acc.secretsInOneGame = 0;
+-                         CLEAR_MEDAL_ORDER(g_acc)
++                         g_acc.secretsInOneGame = 0;
+expect: Stats_medal_sequence_unlocks_planet_ranks
+
+== stats: medal sequence ratio rescale threshold
+file: src/profile/stats.c
+-                         if (g_acc.bonusLevelsPlayed > RATIO_RESCALE_BASE) {
++                         if (g_acc.bonusLevelsPlayed >= RATIO_RESCALE_BASE - 1) {
+expect: Stats_medal_sequence_keeps_small_ratio_and_money
+
+== stats: medal sequence ratio not rescaled
+file: src/profile/stats.c
+-                             g_acc.perfectBonusLevels = g_acc.perfectBonusLevels / ratio;
++                             g_acc.perfectBonusLevels = g_acc.perfectBonusLevels;
+expect: Stats_medal_sequence_unlocks_planet_ranks
+
+== stats: medal sequence money threshold
+file: src/profile/stats.c
+-                         if (g_save.players[g_curPlayer].money > PLANET_RANK_MONEY_COST)
+-                             g_save.players[g_curPlayer].money -= PLANET_RANK_MONEY_COST;
+-                         sprintf
++                         if (g_save.players[g_curPlayer].money >= PLANET_RANK_MONEY_COST)
++                             g_save.players[g_curPlayer].money -= PLANET_RANK_MONEY_COST;
++                         sprintf
+expect: Stats_medal_sequence_keeps_small_ratio_and_money
+
+== stats: planet rank cost
+file: src/profile/stats.c
+- enum { PLANET_RANK_MONEY_COST = 500000 };
++ enum { PLANET_RANK_MONEY_COST = 400000 };
+expect: Stats_medal_sequence_unlocks_planet_ranks
+expect: Stats_all_medals_at_rank_3_unlock_the_next_planet_rank
+
+== stats: medal sequence sounds order
+file: src/profile/stats.c
+-                         SoundQueueAdd(g_sfxPlanet, 40, 1);
+-                         SoundQueueAdd(g_sfxRank, 40, 1);
++                         SoundQueueAdd(g_sfxRank, 40, 1);
++                         SoundQueueAdd(g_sfxPlanet, 40, 1);
+expect: Stats_medal_sequence_unlocks_planet_ranks
+
+== stats: medal sequence no score bonus
+file: src/profile/stats.c
+-                         ADD_PLAYER_SCORE(g_save.players[g_curPlayer].score, g_curPlayer, MILESTONE_SCORE_BONUS);
+-                         AddScorePopup
++                         AddScorePopup
+expect: Stats_medal_sequence_unlocks_planet_ranks
+
+== stats: milestone bonus amount
+file: src/profile/stats.c
+- static const __int64 MILESTONE_SCORE_BONUS = 250000000;
++ static const __int64 MILESTONE_SCORE_BONUS = 25000000;
+expect: Stats_medal_sequence_unlocks_planet_ranks
+expect: Stats_MarkSecretFound_rewards_all_secrets_in_one_game
+
+== stats: medal sequence message time
+file: src/profile/stats.c
+-                         g_msgColor = 8;
+-                         g_msgTimer = g_time + 7000;
++                         g_msgColor = 8;
++                         g_msgTimer = g_time + 5000;
+expect: Stats_medal_sequence_unlocks_planet_ranks
+
+# ---- all medals at completion rank 3 ----
+
+== stats: planet rank at any completion rank
+file: src/profile/stats.c
+-         if (g_acc.completionRank == 3 && (allMedalsMask
++         if (g_acc.completionRank >= 1 && (allMedalsMask
+expect: Stats_planet_rank_needs_completion_rank_3
+
+== stats: planet rank past the last one
+file: src/profile/stats.c
+-             g_acc.unlockedRank < MAX_RANK) {
++             g_acc.unlockedRank <= MAX_RANK) {
+expect: Stats_planet_ranks_stop_at_the_last_one
+
+== stats: planet rank cap
+file: src/profile/stats.c
+-             if (newRank > MAX_RANK)
+-                 newRank = MAX_RANK;
++             if (newRank > MAX_RANK - 1)
++                 newRank = MAX_RANK - 1;
+expect: Stats_planet_ranks_stop_at_the_last_one
+
+== stats: planet rank not raised
+file: src/profile/stats.c
+-             newRank = g_acc.unlockedRank + 1;
++             newRank = g_acc.unlockedRank;
+expect: Stats_all_medals_at_rank_3_unlock_the_next_planet_rank
+
+== stats: planet rank keeps the medals
+file: src/profile/stats.c
+-             medal = 0;
+-             g_acc.medals = 0;
+-             for (j = 0;
++             medal = 0;
++             for (j = 0;
+expect: Stats_all_medals_at_rank_3_unlock_the_next_planet_rank
+
+== stats: planet rank keeps the levels done
+file: src/profile/stats.c
+-             for (j = 0; j < g_numLevels; j++)
++             for (j = 0; j < 1; j++)
+expect: Stats_all_medals_at_rank_3_unlock_the_next_planet_rank
+
+== stats: planet rank keeps secrets and order
+file: src/profile/stats.c
+-                 g_acc.levelDone[j] = 0;
+-             g_acc.secretsInOneGame = 0;
+-             CLEAR_MEDAL_ORDER(g_acc)
+-             g_acc.medalStep = MEDAL_STEP_RESET;
++                 g_acc.levelDone[j] = 0;
+expect: Stats_all_medals_at_rank_3_unlock_the_next_planet_rank
+
+== stats: planet rank ratio not rescaled
+file: src/profile/stats.c
+-             g_acc.perfectBonusLevels = g_acc.perfectBonusLevels / bonusRatio;
++             g_acc.perfectBonusLevels = g_acc.perfectBonusLevels / 1.0;
+expect: Stats_all_medals_at_rank_3_unlock_the_next_planet_rank
+
+== stats: planet rank no money cost
+file: src/profile/stats.c
+-                 g_save.players[g_curPlayer].money -= PLANET_RANK_MONEY_COST;
+-             ADD_PLAYER_SCORE
++                 g_save.players[g_curPlayer].money -= 0;
++             ADD_PLAYER_SCORE
+expect: Stats_all_medals_at_rank_3_unlock_the_next_planet_rank
+
+== stats: planet rank alert text
+file: src/profile/stats.c
+-             sprintf(g_alertMsg, "NEW PLANET RANK AVAILABLE");
++             sprintf(g_alertMsg, "NEW RANK AVAILABLE");
+expect: Stats_all_medals_at_rank_3_unlock_the_next_planet_rank
+
+== stats: planet rank sound delays
+file: src/profile/stats.c
+-             SoundQueueAdd(g_sfxRank, 200, 1);
++             SoundQueueAdd(g_sfxRank, 40, 1);
+expect: Stats_all_medals_at_rank_3_unlock_the_next_planet_rank
+
+== stats: planet rank skips the new sound
+file: src/profile/stats.c
+-             SoundQueueAdd(g_sfxNew, 40, 1);
++             SoundQueueAdd(0, 40, 1);
+expect: Stats_all_medals_at_rank_3_unlock_the_next_planet_rank
+
+== stats: planet rank dual colour
+file: src/profile/stats.c
+-                 if (g_curPlayer == 0)
+-                     g_msgColor = 1;
+-                 else
+-                     g_msgColor = 4;
++                 if (g_curPlayer == 0)
++                     g_msgColor = 4;
++                 else
++                     g_msgColor = 1;
+expect: Stats_planet_rank_message_uses_the_dual_mode_player_colour
+
+== stats: planet rank message time
+file: src/profile/stats.c
+-             g_msgTimer = g_time + 5000;
++             g_msgTimer = g_time + 7000;
+expect: Stats_all_medals_at_rank_3_unlock_the_next_planet_rank
+
+== stats: planet rank money from player 0
+file: src/profile/stats.c
+-             if (g_save.players[g_curPlayer].money > PLANET_RANK_MONEY_COST)
+-                 g_save.players[g_curPlayer].money -= PLANET_RANK_MONEY_COST;
+-             ADD_PLAYER_SCORE
++             if (g_save.players[0].money > PLANET_RANK_MONEY_COST)
++                 g_save.players[0].money -= PLANET_RANK_MONEY_COST;
++             ADD_PLAYER_SCORE
+expect: Stats_planet_rank_message_uses_the_dual_mode_player_colour
+
+== stats: MedalIconOffsetY overall row
+file: src/profile/stats.c
+-         r = 0x100;
++         r = 0x0c0;
+expect: Stats_MedalIconOffsetY_is_one_row_per_medal
+
+== stats: MedalIconOffsetY exact money row
+file: src/profile/stats.c
+-     if (n == MEDAL_EXACT_MONEY)
+-         r = 0x140;
++     if (n == MEDAL_EXACT_MONEY)
++         r = 0x100;
+expect: Stats_MedalIconOffsetY_is_one_row_per_medal
+
+== stats: MedalIconOffsetY speed streak row
+file: src/profile/stats.c
+-         r = 0x40;
++         r = 0x80;
+expect: Stats_MedalIconOffsetY_is_one_row_per_medal
+
+# ---- ApplyStatUnlocks, ProfileWindow, promotion.c (tests/test_stats_unlocks.c, test_stats_promotion.c) ----
+
+== stats: ApplyStatUnlocks in any mode
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_needs_a_profile_in_single_or_time_trial
+- if (g_profileIndex != -1 && (g_gameMode == MODE_SINGLE || g_gameMode == MODE_TIME_TRIAL) && g_playerUpdateFn != StateDemo)
++ if (g_profileIndex != -1 && g_playerUpdateFn != StateDemo)
+
+== stats: ApplyStatUnlocks in the demo
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_needs_a_profile_in_single_or_time_trial
+- (g_gameMode == MODE_SINGLE || g_gameMode == MODE_TIME_TRIAL) && g_playerUpdateFn != StateDemo)
++ (g_gameMode == MODE_SINGLE || g_gameMode == MODE_TIME_TRIAL))
+
+== stats: ApplyStatUnlocks no money cap
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_completed_game_raises_the_money_cap
+-             g_save.players[g_curPlayer].moneyMax = MAX_MONEY;
++             g_save.players[g_curPlayer].moneyMax = 0;
+
+== stats: max money constant
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_completed_game_raises_the_money_cap
+expect: Stats_ProfileWindow_awards_the_exact_money_medal
+- enum { MAX_MONEY = 999990 };
++ enum { MAX_MONEY = 999999 };
+
+== stats: ApplyStatUnlocks high score in time trial
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_time_trial_ladder
+-         if (g_gameMode != MODE_TIME_TRIAL) {
+-             ShowHighScore(g_profileIndex);
++         {
++             ShowHighScore(g_profileIndex);
+
+== stats: ApplyStatUnlocks bullets threshold
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_high_score_ladder
+-             if (g_shownStat >= 5000000)
+-                 g_save.players[g_curPlayer].bullets = 10;
++             if (g_shownStat > 5000000)
++                 g_save.players[g_curPlayer].bullets = 10;
+
+== stats: ApplyStatUnlocks bullets count
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_high_score_ladder
+-                 g_save.players[g_curPlayer].bullets = 10;
++                 g_save.players[g_curPlayer].bullets = 9;
+
+== stats: ApplyStatUnlocks speed 3
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_high_score_ladder
+-             if (g_shownStat >= 7500000)
+-                 g_save.players[g_curPlayer].speed = g_speedStep * 3.0f + g_speedBase;
++             if (g_shownStat >= 7500000)
++                 g_save.players[g_curPlayer].speed = g_speedStep * 2.0f + g_speedBase;
+
+== stats: ApplyStatUnlocks speed threshold
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_high_score_ladder
+-             if (g_shownStat >= 7500000)
++             if (g_shownStat >= 5000000)
+
+== stats: ApplyStatUnlocks autofire threshold
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_high_score_ladder
+-             if (g_shownStat >= 10000000)
+-                 g_save.players[g_curPlayer].autofire = 1;
++             if (g_shownStat >= 20000000)
++                 g_save.players[g_curPlayer].autofire = 1;
+
+== stats: ApplyStatUnlocks double shot downgrades
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_never_downgrades_the_weapon
+- if (g_shownStat >= 20000000 && g_save.players[g_curPlayer].weapon < WEAPON_DOUBLE)
++ if (g_shownStat >= 20000000)
+
+== stats: ApplyStatUnlocks double shot threshold
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_high_score_ladder
+- if (g_shownStat >= 20000000 && g_save.players[g_curPlayer].weapon < WEAPON_DOUBLE)
++ if (g_shownStat >= 50000000 && g_save.players[g_curPlayer].weapon < WEAPON_DOUBLE)
+
+== stats: ApplyStatUnlocks armour step
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_high_score_ladder
+- g_shipDefs[g_save.players[g_curPlayer].ship]->armourStep;
++ g_shipDefs[g_save.players[g_curPlayer].ship]->armourStep + 1;
+
+== stats: ApplyStatUnlocks armour threshold
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_high_score_ladder
+-             if (g_shownStat >= 50000000) {
++             if (g_shownStat >= 100000000) {
+
+== stats: ApplyStatUnlocks 500 money
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_high_score_ladder
+-                 g_save.players[g_curPlayer].money = MONEY_REWARD_500;
++                 g_save.players[g_curPlayer].money = MONEY_REWARD_1000;
+
+== stats: ApplyStatUnlocks 1000 money threshold
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_high_score_ladder
+-             if (g_shownStat >= 250000000)
++             if (g_shownStat >= 500000000)
+
+== stats: ApplyStatUnlocks max armour threshold
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_high_score_ladder
+-             if (g_shownStat >= 500000000) {
++             if (g_shownStat > 500000000) {
+
+== stats: ApplyStatUnlocks triple shot downgrades
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_never_downgrades_the_weapon
+- if (g_shownStat >= 1000000000 && g_save.players[g_curPlayer].weapon < WEAPON_TRIPLE)
++ if (g_shownStat >= 1000000000 && g_save.players[g_curPlayer].weapon < WEAPON_SUPER_TRIPLE)
+
+== stats: ApplyStatUnlocks triple shot weapon
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_high_score_ladder
+-                 g_save.players[g_curPlayer].weapon = WEAPON_TRIPLE;
++                 g_save.players[g_curPlayer].weapon = WEAPON_QUAD;
+
+== stats: ApplyStatUnlocks time trial ladder in single
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_time_trial_ladder_not_in_single
+-         if (g_gameMode == MODE_TIME_TRIAL) {
+-             ShowTimeTrialScore(g_profileIndex);
++         {
++             ShowTimeTrialScore(g_profileIndex);
+
+== stats: ApplyStatUnlocks multiply 2 timer
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_time_trial_ladder
+-                     g_save.players[g_curPlayer].buffDuration * 1000 + g_time;
+-                 g_save.players[g_curPlayer].scoreMult5Timer = 0;
++                     g_save.players[g_curPlayer].buffDuration * 100 + g_time;
++                 g_save.players[g_curPlayer].scoreMult5Timer = 0;
+
+== stats: ApplyStatUnlocks multiply 2
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_time_trial_ladder
+-                 g_scoreMul[g_curPlayer] = 2;
++                 g_scoreMul[g_curPlayer] = 3;
+
+== stats: ApplyStatUnlocks multiply 2 threshold
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_time_trial_ladder
+-             if (g_shownStat >= 5000000) {
+-                 g_save.players[g_curPlayer].scoreMult2Timer
++             if (g_shownStat >= 6000000) {
++                 g_save.players[g_curPlayer].scoreMult2Timer
+
+== stats: ApplyStatUnlocks scoop threshold
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_time_trial_ladder
+-             if (g_shownStat >= 6000000) {
++             if (g_shownStat >= 7000000) {
+
+== stats: ApplyStatUnlocks scoop spawn delay
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_time_trial_ladder
+-                     g_scoop[i].spawnDelay = i + 5;
++                     g_scoop[i].spawnDelay = i + 4;
+
+== stats: ApplyStatUnlocks scoop range kept
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_time_trial_ladder
+-                 g_scoopRange = 0;
++                 g_scoopRange = g_scoopRange;
+
+== stats: ApplyStatUnlocks scoop trail count
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_time_trial_ladder
+-                 for (int i = 0; i < 15; i++) {
++                 for (int i = 0; i < 14; i++) {
+
+== stats: ApplyStatUnlocks multiply 5 keeps multiply 2
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_time_trial_ladder
+-                 g_save.players[g_curPlayer].scoreMult2Timer = 0;
+-
+
+== stats: ApplyStatUnlocks multiply 5
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_time_trial_ladder
+-                 g_scoreMul[g_curPlayer] = 5;
++                 g_scoreMul[g_curPlayer] = 4;
+
+== stats: ApplyStatUnlocks time trial autofire threshold
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_time_trial_ladder
+-             if (g_shownStat >= 8000000)
++             if (g_shownStat >= 9000000)
+
+== stats: ApplyStatUnlocks time trial buff duration
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_time_trial_ladder
+-                 g_save.players[g_curPlayer].buffDuration = 30;
++                 g_save.players[g_curPlayer].buffDuration = 25;
+
+== stats: ApplyStatUnlocks time trial speed 6
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_time_trial_ladder
+- g_save.players[g_curPlayer].speed = g_speedStep * 6.0f + g_speedBase;
++ g_save.players[g_curPlayer].speed = g_speedStep * 5.0f + g_speedBase;
+
+== stats: ApplyStatUnlocks super autofire threshold
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_time_trial_ladder
+-             if (g_shownStat >= 15000000) {
++             if (g_shownStat >= 17000000) {
+
+== stats: ApplyStatUnlocks max speed
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_time_trial_ladder
+- g_save.players[g_curPlayer].speed = g_speedStep * g_maxSpeedMul + g_speedBase;
++ g_save.players[g_curPlayer].speed = g_speedStep * 6.0f + g_speedBase;
+
+== stats: ApplyStatUnlocks extra minute
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_time_trial_ladder
+-                 g_timeTrialDeadline = g_time + 241000;
++                 g_timeTrialDeadline = g_time + 240000;
+
+== stats: ApplyStatUnlocks extra minute threshold
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_time_trial_ladder
+-             if (g_shownStat >= 20000000)
+-                 g_timeTrialDeadline
++             if (g_shownStat >= 17000000)
++                 g_timeTrialDeadline
+
+== stats: ApplyStatUnlocks secrets in time trial
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_all_secrets_give_armour_and_super_triple
+-         if (g_gameMode != MODE_TIME_TRIAL && g_shownStat == g_numLevels) {
++         if (g_shownStat == g_numLevels) {
+
+== stats: ApplyStatUnlocks secrets one short
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_all_secrets_give_armour_and_super_triple
+-         if (g_gameMode != MODE_TIME_TRIAL && g_shownStat == g_numLevels) {
++         if (g_gameMode != MODE_TIME_TRIAL && g_shownStat >= g_numLevels - 1) {
+
+== stats: ApplyStatUnlocks secrets armour at max
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_all_secrets_give_armour_and_super_triple
+-             if (g_save.players[g_curPlayer].armour <
+-
++             if (g_save.players[g_curPlayer].armour <=
++
+
+== stats: ApplyStatUnlocks secrets money
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_all_secrets_give_armour_and_super_triple
+-                 g_save.players[g_curPlayer].money = MONEY_REWARD_2000;
++                 g_save.players[g_curPlayer].money = MONEY_REWARD_1000;
+
+== stats: ApplyStatUnlocks secrets weapon
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_all_secrets_give_armour_and_super_triple
+-                 g_save.players[g_curPlayer].weapon = WEAPON_SUPER_TRIPLE;
++                 g_save.players[g_curPlayer].weapon = WEAPON_TRIPLE;
+
+== stats: ApplyStatUnlocks hit 70 threshold
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_hit_percentage_adds_shop_items
+-             if (g_shownStat >= 70)
++             if (g_shownStat > 70)
+
+== stats: ApplyStatUnlocks hit 80 item
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_hit_percentage_adds_shop_items
+-                 g_shopItems = 85;
++                 g_shopItems = 84;
+
+== stats: ApplyStatUnlocks hit 90 threshold
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_hit_percentage_adds_shop_items
+-             if (g_shownStat >= 90)
++             if (g_shownStat >= 91)
+
+== stats: ApplyStatUnlocks hit in time trial
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_hit_percentage_adds_shop_items
+-         if (g_gameMode != MODE_TIME_TRIAL) {
+-             if (g_shownStat >= 70)
++         {
++             if (g_shownStat >= 70)
+
+== stats: ApplyStatUnlocks quad threshold
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_levels_played_ladder
+- if (g_shownStat >= 50000 && g_save.players[g_curPlayer].weapon < WEAPON_QUAD)
++ if (g_shownStat >= 49999 && g_save.players[g_curPlayer].weapon < WEAPON_QUAD)
+
+== stats: ApplyStatUnlocks bullet speed overwrites
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_keeps_a_faster_bullet_speed
+- if (g_shownStat >= 75000 && g_save.players[g_curPlayer].bulletSpeedMult < 1.25f)
++ if (g_shownStat >= 75000)
+
+== stats: ApplyStatUnlocks bullet speed
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_levels_played_ladder
+-                 g_save.players[g_curPlayer].bulletSpeedMult = 1.25f;
++                 g_save.players[g_curPlayer].bulletSpeedMult = 1.2f;
+
+== stats: ApplyStatUnlocks 100000 levels speed
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_levels_played_ladder
+- g_maxSpeedMul / 2.0f * g_speedStep + g_speedBase;
++ g_maxSpeedMul / 3.0f * g_speedStep + g_speedBase;
+
+== stats: ApplyStatUnlocks 100000 levels bullets
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_levels_played_ladder
+-                 g_save.players[g_curPlayer].bullets = 25;
++                 g_save.players[g_curPlayer].bullets = 20;
+
+== stats: ApplyStatUnlocks 100000 levels buff
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_levels_played_ladder
+-                 g_save.players[g_curPlayer].buffDuration = g_timeMax / 2;
++                 g_save.players[g_curPlayer].buffDuration = g_timeMax / 4;
+
+== stats: ApplyStatUnlocks 100000 levels money
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_levels_played_ladder
+-                 g_save.players[g_curPlayer].money = MONEY_REWARD_5000;
++                 g_save.players[g_curPlayer].money = MONEY_REWARD_2000;
+
+== stats: ApplyStatUnlocks levels in time trial
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_levels_played_ladder
+-         if (g_gameMode != MODE_TIME_TRIAL) {
+-             if (g_shownStat >= 50000
++         {
++             if (g_shownStat >= 50000
+
+== stats: ApplyStatUnlocks max rank one early
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_max_rank_gives_the_war_plasma
+-             FormatHighestRank(g_profileIndex);
+-             if (g_shownRank == MAX_RANK) {
++             FormatHighestRank(g_profileIndex);
++             if (g_shownRank >= MAX_RANK - 1) {
+
+== stats: ApplyStatUnlocks max rank in time trial
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_max_rank_gives_the_war_plasma
+-         if (g_gameMode != MODE_TIME_TRIAL) {
+-             FormatHighestRank(g_profileIndex);
++         {
++             FormatHighestRank(g_profileIndex);
+
+== stats: ApplyStatUnlocks max rank weapon
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_max_rank_gives_the_war_plasma
+-                 g_save.players[g_curPlayer].weapon = WEAPON_WAR_PLASMA;
++                 g_save.players[g_curPlayer].weapon = WEAPON_PLASMA;
+
+== stats: ApplyStatUnlocks max rank money
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_max_rank_gives_the_war_plasma
+-                 g_save.players[g_curPlayer].money = MONEY_REWARD_25000;
++                 g_save.players[g_curPlayer].money = MONEY_REWARD_5000;
+
+== stats: ApplyStatUnlocks max rank no alien lock
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_max_rank_gives_the_war_plasma
+-                 g_save.players[g_curPlayer].alienLock = 1;
+-
+
+== stats: ApplyStatUnlocks max rank buff
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_max_rank_gives_the_war_plasma
+-                 g_save.players[g_curPlayer].buffDuration = g_timeMax;
++                 g_save.players[g_curPlayer].buffDuration = 30;
+
+== stats: ApplyStatUnlocks max rank bullet speed
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_max_rank_gives_the_war_plasma
+-                 g_save.players[g_curPlayer].bulletSpeedMult = 1.5f;
++                 g_save.players[g_curPlayer].bulletSpeedMult = 1.25f;
+
+== stats: ProfileWindow exact money medal off by one
+file: src/profile/stats.c
+expect: Stats_ProfileWindow_awards_the_exact_money_medal
+-     if (g_save.players[g_curPlayer].money == MAX_MONEY) {
++     if (g_save.players[g_curPlayer].money >= MAX_MONEY - 1) {
+
+== stats: ProfileWindow exact money awards overall
+file: src/profile/stats.c
+expect: Stats_ProfileWindow_awards_the_exact_money_medal
+-             AwardMedal(g_profileIndex, MEDAL_EXACT_MONEY);
++             AwardMedal(g_profileIndex, MEDAL_OVERALL);
+
+== stats: ProfileWindow grows on read-only profiles
+file: src/profile/stats.c
+expect: Stats_ProfileWindow_grows_for_medals_and_ranks
+-     if (!g_profileReadOnly) {
+-         FormatHighestRank(g_profileIndex);
+-         if (g_shownRank == MAX_RANK) {
+-             h += 200;
++     {
++         FormatHighestRank(g_profileIndex);
++         if (g_shownRank == MAX_RANK) {
++             h += 200;
+
+== stats: ProfileWindow max rank height
+file: src/profile/stats.c
+expect: Stats_ProfileWindow_grows_for_medals_and_ranks
+-             h += 200;
++             h += 150;
+
+== stats: ProfileWindow god rank height
+file: src/profile/stats.c
+expect: Stats_ProfileWindow_grows_for_medals_and_ranks
+-                 h += 50;
++                 h += 40;
+
+== stats: ProfileWindow god rank height from god
+file: src/profile/stats.c
+expect: Stats_ProfileWindow_grows_for_medals_and_ranks
+-             if (g_shownRank > RANK_GOD) {
+-                 h += 50;
++             if (g_shownRank >= RANK_GOD) {
++                 h += 50;
+
+== stats: ProfileWindow medal height
+file: src/profile/stats.c
+expect: Stats_ProfileWindow_grows_for_medals_and_ranks
+-                 h += 75;
++                 h += 70;
+
+== stats: ProfileWindow medal row offset
+file: src/profile/stats.c
+expect: Stats_ProfileWindow_draws_the_medals_in_award_order
+-                 medalRowYAdjust += 75;
++                 medalRowYAdjust += 70;
+
+== stats: ProfileWindow planet row offset
+file: src/profile/stats.c
+expect: Stats_ProfileWindow_shows_a_planet_per_god_rank
+-                 rankRowYAdjust += 60;
++                 rankRowYAdjust += 50;
+
+== stats: ProfileWindow toggles selectable when read only
+file: src/profile/stats.c
+expect: Stats_ProfileWindow_toggles_are_not_selectable_when_read_only
+-     y = 47;
+-     flag = !g_profileReadOnly;
++     y = 47;
++     flag = 1;
+
+== stats: ProfileWindow ladder keeps the first missed toggle selectable
+file: src/profile/stats.c
+expect: Stats_ProfileWindow_score_toggles_stop_at_the_first_missed_one
+-         flag = 0;                                                   \
++         flag = flag;                                                \
+
+== stats: ProfileWindow one-off toggles not counted
+file: src/profile/stats.c
+expect: Stats_ProfileWindow_overall_medal_needs_the_hit_percentage
+-         g_toggleOffCount++;                                          \
++         ;                                                            \
+
+== stats: ProfileWindow autofire toggle threshold
+file: src/profile/stats.c
+expect: Stats_ProfileWindow_score_toggles_stop_at_the_first_missed_one
+- UNLOCK_TOGGLE_GE(10000000, g_nextX + 1, y, "10.000.000 : START WITH AUTOFIRE")
++ UNLOCK_TOGGLE_GE(7500000, g_nextX + 1, y, "10.000.000 : START WITH AUTOFIRE")
+
+== stats: ProfileWindow scoop toggle threshold
+file: src/profile/stats.c
+expect: Stats_ProfileWindow_time_and_level_toggles
+- UNLOCK_TOGGLE_GE(6000000, g_nextX + 1, 0x43,
++ UNLOCK_TOGGLE_GE(6500000, g_nextX + 1, 0x43,
+
+== stats: ProfileWindow second ladder from the Meteorstorm score
+file: src/profile/stats.c
+expect: Stats_ProfileWindow_time_and_level_toggles
+-     ShowTimeTrialScore(g_profileIndex);
+-     WinAddText(220, 70, g_curWin, g_logBuf, 12);
+-     flag = !g_profileReadOnly;
++     ShowTimeTrialScore(g_profileIndex);
++     WinAddText(220, 70, g_curWin, g_logBuf, 12);
++     ShowMeteorStormScore(g_profileIndex);
++     g_shownStat = 9000000;
++     flag = !g_profileReadOnly;
+
+== stats: ProfileWindow 2 second toggle threshold
+file: src/profile/stats.c
+expect: Stats_ProfileWindow_time_and_level_toggles
+-     UNLOCK_TOGGLE_LE(2000, x, y,
++     UNLOCK_TOGGLE_LE(1000, x, y,
+
+== stats: ProfileWindow levels toggle threshold
+file: src/profile/stats.c
+expect: Stats_ProfileWindow_time_and_level_toggles
+- UNLOCK_TOGGLE_GE(2500, g_nextX + 1, y,
++ UNLOCK_TOGGLE_GE(3000, g_nextX + 1, y,
+
+== stats: ProfileWindow levels toggle 5000 threshold
+file: src/profile/stats.c
+expect: Stats_ProfileWindow_time_and_level_toggles
+- UNLOCK_TOGGLE_GE(5000, g_nextX + 1, y,
++ UNLOCK_TOGGLE_GE(2500, g_nextX + 1, y,
+
+== stats: ProfileWindow marathon toggle at exactly 200M
+file: src/profile/stats.c
+expect: Stats_ProfileWindow_overall_medal_needs_the_marathon_score
+-     if (g_shownStat > MARATHON_MILESTONE_SCORE) {
++     if (g_shownStat >= MARATHON_MILESTONE_SCORE) {
+
+== stats: ProfileWindow marathon toggle not counted
+file: src/profile/stats.c
+expect: Stats_ProfileWindow_overall_medal_needs_the_marathon_score
+-     } else {
+-         g_toggleOffCount++;
+-     }
+-
+-     // ---- bonus-level stats ----
++     } else {
++     }
++
++     // ---- bonus-level stats ----
+
+== stats: ProfileWindow secrets toggle one short
+file: src/profile/stats.c
+expect: Stats_ProfileWindow_overall_medal_needs_every_secret
+-         if (g_shownStat == g_numLevels) {
++         if (g_shownStat >= g_numLevels - 1) {
+
+== stats: ProfileWindow few secrets not counted
+file: src/profile/stats.c
+expect: Stats_ProfileWindow_overall_medal_needs_every_secret
+-     } else {
+-         g_toggleOffCount++;
+-     }
+-
+-     // ---- levels reached/played ----
++     } else {
++     }
++
++     // ---- levels reached/played ----
+
+== stats: ProfileWindow overall medal with one toggle missing
+file: src/profile/stats.c
+expect: Stats_ProfileWindow_overall_medal_needs_the_hit_percentage
+-             if (g_toggleOffCount == 0) {
++             if (g_toggleOffCount <= 1) {
+
+== stats: ProfileWindow overall medal never awarded
+file: src/profile/stats.c
+expect: Stats_ProfileWindow_awards_the_overall_medal_for_every_unlock
+-                     AwardMedal(g_profileIndex, MEDAL_OVERALL);
++                     AwardMedal(g_profileIndex, MEDAL_DRUNK_FINISH);
+
+== stats: ProfileWindow toggle count
+file: src/profile/stats.c
+expect: Stats_ProfileWindow_counts_every_unlock_toggle
+-     g_toggleOnCount = 0;
+-     g_toggleOffCount = 0;
+-     y = 47;
++     g_toggleOffCount = 0;
++     y = 47;
+
+== stats: ProfileWindow second medal from the third slot
+file: src/profile/stats.c
+expect: Stats_ProfileWindow_draws_the_medals_in_award_order
+-             medal = GetMedalOrder(g_profileIndex, 1);
++             medal = GetMedalOrder(g_profileIndex, 2);
+
+== stats: ProfileWindow sixth medal from the fifth slot
+file: src/profile/stats.c
+expect: Stats_ProfileWindow_draws_later_medals_after_the_first
+-             medal = GetMedalOrder(g_profileIndex, 5);
++             medal = GetMedalOrder(g_profileIndex, 4);
+
+== stats: ProfileWindow medal spacing
+file: src/profile/stats.c
+expect: Stats_ProfileWindow_draws_the_medals_in_award_order
+-             medal = GetMedalOrder(g_profileIndex, 0);
+-             if (GetMedals(g_profileIndex) & medal) {
+-                 WinAddItemB(cx, h - 55 - medalRowYAdjust,
+-                             MedalIconOffsetY(medal), srcY, 0x40, 0x46, "?", g_curWin);
+-                 cx += 80;
++             medal = GetMedalOrder(g_profileIndex, 0);
++             if (GetMedals(g_profileIndex) & medal) {
++                 WinAddItemB(cx, h - 55 - medalRowYAdjust,
++                             MedalIconOffsetY(medal), srcY, 0x40, 0x46, "?", g_curWin);
++                 cx += 75;
+
+== stats: ProfileWindow medal second row at rank 3
+file: src/profile/stats.c
+expect: Stats_ProfileWindow_medals_use_the_second_row_at_completion_rank_2
+-             if (GetRank(g_profileIndex) == 2)
++             if (GetRank(g_profileIndex) == 3)
+
+== stats: ProfileWindow medal second row offset
+file: src/profile/stats.c
+expect: Stats_ProfileWindow_medals_use_the_second_row_at_completion_rank_2
+-                 srcY = 70;
++                 srcY = 64;
+
+== stats: ProfileWindow planet count
+file: src/profile/stats.c
+expect: Stats_ProfileWindow_shows_a_planet_per_god_rank
+-                 n = g_shownRank - RANK_GOD;
++                 n = g_shownRank - RANK_GOD - 1;
+
+== stats: ProfileWindow planet image
+file: src/profile/stats.c
+expect: Stats_ProfileWindow_shows_a_planet_per_god_rank
+- size, size, 0, (9 - k) * 128,
++ size, size, 0, (8 - k) * 128,
+
+== stats: ProfileWindow planet direction
+file: src/profile/stats.c
+expect: Stats_ProfileWindow_shows_a_planet_per_god_rank
+-                     WinAddItemA(mx - k * size, my,
++                     WinAddItemA(mx + k * size, my,
+
+== stats: ProfileWindow planet row height
+file: src/profile/stats.c
+expect: Stats_ProfileWindow_shows_a_planet_per_god_rank
+-                 my = h - 55 - rankRowYAdjust;
++                 my = h - 55;
+
+== stats: ProfileWindow no buttons shows buttons
+file: src/profile/stats.c
+expect: Stats_ProfileWindow_shows_the_statistics
+-     if (noButtons) {
++     if (!noButtons) {
+
+== stats: ProfileWindow default button inverted
+file: src/profile/stats.c
+expect: Stats_ProfileWindow_title_buttons
+-             if (g_profileIndex == g_cfg.profileSel) {
++             if (g_profileIndex != g_cfg.profileSel) {
+
+== stats: ProfileWindow title buttons on read-only profiles
+file: src/profile/stats.c
+expect: Stats_ProfileWindow_only_close_outside_the_title
+-         if (!g_newGameOnClose && g_state == STATE_TITLE && !g_profileReadOnly) {
++         if (!g_newGameOnClose && g_state == STATE_TITLE) {
+
+== stats: ProfileWindow title buttons before a new game
+file: src/profile/stats.c
+expect: Stats_ProfileWindow_only_close_outside_the_title
+-         if (!g_newGameOnClose && g_state == STATE_TITLE && !g_profileReadOnly) {
++         if (g_state == STATE_TITLE && !g_profileReadOnly) {
+
+== stats: ProfileWindow selects another button
+file: src/profile/stats.c
+expect: Stats_ProfileWindow_title_buttons
+-         WinSetSelected(g_curWin, 0xfc);
++         WinSetSelected(g_curWin, 0x106);
+
+== stats: ProfileWindow Meteorstorm line shows the time trial score
+file: src/profile/stats.c
+expect: Stats_ProfileWindow_shows_the_statistics
+-     ShowMeteorStormScore(g_profileIndex);
+-     WinAddText(220, 60,
++     ShowTimeTrialScore(g_profileIndex);
++     WinAddText(220, 60,
+
+== stats: ProfileWindow ratio line shows the perfect count
+file: src/profile/stats.c
+expect: Stats_ProfileWindow_shows_the_statistics
+-     ShowRatio(g_profileIndex);
+-     WinAddText(260, 114,
++     ShowPerfectCount(g_profileIndex);
++     WinAddText(260, 114,
+
+== stats: ProfileWindow games line shows the highest level
+file: src/profile/stats.c
+expect: Stats_ProfileWindow_shows_the_statistics
+-     ShowTotalGamesPlayed(g_profileIndex);
+-     WinAddText(220, 220,
++     ShowHighestLevelReached(g_profileIndex);
++     WinAddText(220, 220,
+
+== stats: promotion playlist format constant
+file: src/game/promotion.c
+expect: Stats_Promotion_keeps_the_playlist_playing
+-     if (g_cfg.musicFormat == MUSIC_FMT_PLAYLIST && g_playlistCount != 0) {
++     if (g_cfg.musicFormat == 1 && g_playlistCount != 0) {
+
+== stats: promotion no music without playlist songs
+file: src/game/promotion.c
+expect: Stats_Promotion_music_without_playlist_songs
+-     if (g_cfg.musicFormat == MUSIC_FMT_PLAYLIST && g_playlistCount != 0) {
++     if (g_cfg.musicFormat == MUSIC_FMT_PLAYLIST) {
+
+== stats: promotion song name
+file: src/game/promotion.c
+expect: Stats_Promotion_starts_the_promoted_music
+-         g_songName = "promoted";
++         g_songName = "promotion";
+
+== stats: promotion music mode
+file: src/game/promotion.c
+expect: Stats_Promotion_starts_the_promoted_music
+-         g_musicMode = MUSIC_PROMOTED;
++         g_musicMode = 1;
+
+== stats: promotion congratulations gap
+file: src/game/promotion.c
+expect: Stats_Promotion_ensign_gets_only_the_congratulations
+-     SoundQueueAdd(g_sfxCongratulations, 100, 1);
++     SoundQueueAdd(g_sfxCongratulations, 50, 1);
+
+== stats: promotion plain rank uses the current player
+file: src/game/promotion.c
+expect: Stats_Promotion_uses_the_promoted_players_rank
+-     if (g_save.players[g_promoPlayer].rank == (rankVal)) {   \
++     if (g_save.players[g_curPlayer].rank == (rankVal)) { \
+
+== stats: promotion plain rank gap
+file: src/game/promotion.c
+expect: Stats_Promotion_plain_ranks_announce_the_rank
+-         SoundQueueAdd(sfx, 50, 1);                           \
++         SoundQueueAdd(sfx, 40, 1);                           \
+
+== stats: promotion captain sound
+file: src/game/promotion.c
+expect: Stats_Promotion_plain_ranks_announce_the_rank
+-     PROMO_SIMPLE(RANK_CAPTAIN, g_sfxRankCaptain)
++     PROMO_SIMPLE(RANK_CAPTAIN, g_sfxRankCommander)
+
+== stats: promotion admiral sound missing
+file: src/game/promotion.c
+expect: Stats_Promotion_plain_ranks_announce_the_rank
+-     PROMO_SIMPLE(RANK_ADMIRAL, g_sfxRankAdmiral)
+-
+
+== stats: promotion admiral tier gap
+file: src/game/promotion.c
+expect: Stats_Promotion_admiral_tiers_count_their_stars
+-         SoundQueueAdd(g_sfxRankAdmiral, 100, 1);                \
++         SoundQueueAdd(g_sfxRankAdmiral, 50, 1);                 \
+
+== stats: promotion admiral 2 silver stars
+file: src/game/promotion.c
+expect: Stats_Promotion_admiral_tiers_count_their_stars
+-     PROMO_ADMIRAL_TIER(RANK_ADMIRAL_2_2, g_sfxVoiceTwo, g_sfxRankSilver, g_sfxStars)
++     PROMO_ADMIRAL_TIER(RANK_ADMIRAL_2_2, g_sfxVoiceTwo, g_sfxRankSilver, g_sfxStar)
+
+== stats: promotion admiral gold medal
+file: src/game/promotion.c
+expect: Stats_Promotion_admiral_tiers_count_their_stars
+-     PROMO_ADMIRAL_TIER(RANK_ADMIRAL_3_1, g_sfxVoiceOne, g_sfxRankGold, g_sfxStar)
++     PROMO_ADMIRAL_TIER(RANK_ADMIRAL_3_1, g_sfxVoiceOne, g_sfxRankSilver, g_sfxStar)
+
+== stats: promotion admiral 1 3 voice
+file: src/game/promotion.c
+expect: Stats_Promotion_admiral_tiers_count_their_stars
+-     PROMO_ADMIRAL_TIER(RANK_ADMIRAL_1_3, g_sfxVoiceThree,
++     PROMO_ADMIRAL_TIER(RANK_ADMIRAL_1_3, g_sfxVoiceTwo,
+
+== stats: promotion lord sting gap
+file: src/game/promotion.c
+expect: Stats_Promotion_warblade_ranks_play_the_sting
+-     PROMO_WARBLADE(RANK_LORD, g_sfxRankLord, 20)
++     PROMO_WARBLADE(RANK_LORD, g_sfxRankLord, 40)
+
+== stats: promotion warblade stinger gap
+file: src/game/promotion.c
+expect: Stats_Promotion_warblade_ranks_play_the_sting
+-         SoundQueueAdd(sfx, 50, 1);                              \
++         SoundQueueAdd(sfx, 20, 1);                              \
+
+== stats: promotion grandmaster sound
+file: src/game/promotion.c
+expect: Stats_Promotion_warblade_ranks_play_the_sting
+-     PROMO_WARBLADE(RANK_GRANDMASTER, g_sfxRankGrandmaster, 20)
++     PROMO_WARBLADE(RANK_GRANDMASTER, g_sfxRankOverlord, 20)
+
+== stats: promotion grandmaster 3 voice
+file: src/game/promotion.c
+expect: Stats_Promotion_grandmaster_tiers_count_their_gold_stars
+-     PROMO_GM_TIER(RANK_GRANDMASTER_3, g_sfxVoiceThree, g_sfxStars)
++     PROMO_GM_TIER(RANK_GRANDMASTER_3, g_sfxVoiceTwo, g_sfxStars)
+
+== stats: promotion grandmaster tier gap
+file: src/game/promotion.c
+expect: Stats_Promotion_grandmaster_tiers_count_their_gold_stars
+-         SoundQueueAdd(g_sfxRankGrandmaster, 20, 1);
++         SoundQueueAdd(g_sfxRankGrandmaster, 50, 1);
+
+== stats: promotion grandmaster tier medal
+file: src/game/promotion.c
+expect: Stats_Promotion_grandmaster_tiers_count_their_gold_stars
+-         SoundQueueAdd(g_sfxRankGold, 5, 1);
++         SoundQueueAdd(g_sfxRankSilver, 5, 1);
+
+== stats: promotion god sting gap
+file: src/game/promotion.c
+expect: Stats_Promotion_champion_and_god
+-     PROMO_WARBLADE(RANK_GOD, g_sfxRankGod, 40)
++     PROMO_WARBLADE(RANK_GOD, g_sfxRankGod, 20)
+
+== stats: promotion champion sound
+file: src/game/promotion.c
+expect: Stats_Promotion_champion_and_god
+-     PROMO_WARBLADE(RANK_CHAMPION, g_sfxRankChampion, 40)
++     PROMO_WARBLADE(RANK_CHAMPION, g_sfxRankGod, 40)
+
+== stats: promotion planet god gap
+file: src/game/promotion.c
+expect: Stats_Promotion_god_planet_ranks_name_the_planet
+-         SoundQueueAdd(g_sfxRankGod, 300, 1);
++         SoundQueueAdd(g_sfxRankGod, 200, 1);
+
+== stats: promotion mars planet
+file: src/game/promotion.c
+expect: Stats_Promotion_god_planet_ranks_name_the_planet
+-     PROMO_PLANET(RANK_GOD_MARS, g_sfxPlanetMars)
++     PROMO_PLANET(RANK_GOD_MARS, g_sfxPlanetJupiter)
+
+== stats: promotion no mercury
+file: src/game/promotion.c
+expect: Stats_Promotion_god_planet_ranks_name_the_planet
+-     PROMO_PLANET(RANK_GOD_MERCURY, g_sfxPlanetMercury)
+-
+
+== stats: promotion sol ultimate gap
+file: src/game/promotion.c
+expect: Stats_Promotion_sol_is_the_ultimate_rank
+-         SoundQueueAdd(g_sfxUltimateRank, 150, 1);
++         SoundQueueAdd(g_sfxUltimateRank, 100, 1);
+
+== stats: promotion sol without its name
+file: src/game/promotion.c
+expect: Stats_Promotion_sol_is_the_ultimate_rank
+-         SoundQueueAdd(g_sfxPlanetSol, 40, 1);
+-
+
+== stats: promotion sol as a planet
+file: src/game/promotion.c
+expect: Stats_Promotion_sol_is_the_ultimate_rank
+-     if (g_save.players[g_promoPlayer].rank == RANK_GOD_SOL) {
++     if (g_save.players[g_promoPlayer].rank == RANK_GOD_MERCURY) {
+
+== stats: promo hud ignores the gate
+file: src/game/promotion.c
+expect: Stats_PromoHud_draws_nothing_before_the_screen_shows
+-     if (g_hiscoreSkipGateActive != 0) {
++     if (1) {
+
+== stats: promo hud keeps the special flag
+file: src/game/promotion.c
+expect: Stats_PromoHud_draws_nothing_before_the_screen_shows
+-     g_promoSpecialRank = 0;
+-     g_promoRingActive = 0;
++     g_promoRingActive = 0;
+
+== stats: promo hud special from grandmaster 3
+file: src/game/promotion.c
+expect: Stats_PromoHud_plain_rank_shows_name_and_badge
+-     if (g_save.players[g_promoPlayer].rank > RANK_GRANDMASTER_3) {
++     if (g_save.players[g_promoPlayer].rank >= RANK_GRANDMASTER_3) {
+
+== stats: promo hud ring from god
+file: src/game/promotion.c
+expect: Stats_PromoHud_flare_angles_wrap_at_360
+-         if (g_save.players[g_promoPlayer].rank > RANK_GOD) {
++         if (g_save.players[g_promoPlayer].rank >= RANK_GOD) {
+
+== stats: promo hud ring index
+file: src/game/promotion.c
+expect: Stats_PromoHud_planet_ranks_spin_the_ring
+-             g_promoRingIndex = 9 - (g_save.players[g_promoPlayer].rank - RANK_GOD_PLUTO);
++             g_promoRingIndex = 8 - (g_save.players[g_promoPlayer].rank - RANK_GOD_PLUTO);
+
+== stats: promo hud ring angle 0
+file: src/game/promotion.c
+expect: Stats_PromoHud_planet_ranks_spin_the_ring
+-             g_angle0 += 0.15f;
++             g_angle0 += 0.1f;
+
+== stats: promo hud ring angle 1
+file: src/game/promotion.c
+expect: Stats_PromoHud_planet_ranks_spin_the_ring
+-             g_angle1 += 0.3f;
++             g_angle1 -= 0.3f;
+
+== stats: promo hud ring angle 2
+file: src/game/promotion.c
+expect: Stats_PromoHud_planet_ranks_spin_the_ring
+-             g_angle2 += 0.6f;
++             g_angle2 += 0.8f;
+
+== stats: promo hud ring angle 1 wrap
+file: src/game/promotion.c
+expect: Stats_PromoHud_planet_ranks_spin_the_ring
+-             g_angle1 += 0.3f;
+-             if (g_angle1 > 360.0)
+-                 g_angle1 -= 360.0;
++             g_angle1 += 0.3f;
+
+== stats: promo hud ring not active
+file: src/game/promotion.c
+expect: Stats_PromoHud_planet_ranks_spin_the_ring
+-             g_promoRingActive = 1;
++             g_promoRingActive = 0;
+
+== stats: promo hud flare angle 0
+file: src/game/promotion.c
+expect: Stats_PromoHud_champion_spins_the_flares
+-             g_angle0 += 0.1f;
++             g_angle0 += 0.15f;
+
+== stats: promo hud flare angle 1
+file: src/game/promotion.c
+expect: Stats_PromoHud_champion_spins_the_flares
+-             g_angle1 -= 0.3f;
++             g_angle1 += 0.3f;
+
+== stats: promo hud flare angle 1 wrap
+file: src/game/promotion.c
+expect: Stats_PromoHud_champion_spins_the_flares
+-             if (g_angle1 < 0.0)
+-                 g_angle1 += 360.0;
+-
+
+== stats: promo hud flare angle 2
+file: src/game/promotion.c
+expect: Stats_PromoHud_champion_spins_the_flares
+-             g_angle2 += 0.8f;
++             g_angle2 += 0.6f;
+
+== stats: promo hud flare angle 0 wrap
+file: src/game/promotion.c
+expect: Stats_PromoHud_flare_angles_wrap_at_360
+-             g_angle0 += 0.1f;
+-             if (g_angle0 > 360.0)
+-                 g_angle0 -= 360.0;
+-
++             g_angle0 += 0.1f;
++
+
+== stats: promo hud flare angle 2 wrap
+file: src/game/promotion.c
+expect: Stats_PromoHud_flare_angles_wrap_at_360
+-             g_angle2 += 0.8f;
+-             if (g_angle2 > 360.0)
+-                 g_angle2 -= 360.0;
+-
++             g_angle2 += 0.8f;
++
+
+== stats: promo hud flares with the ring
+file: src/game/promotion.c
+expect: Stats_PromoHud_planet_ranks_spin_the_ring
+-         if (!g_promoRingActive) {
++         if (1) {
+
+== stats: promo hud scanline count
+file: src/game/promotion.c
+expect: Stats_PromoHud_plain_rank_shows_name_and_badge
+-             for (int i = 0; i < n; i++) {
++             for (int i = 0; i < n - 1; i++) {
+
+== stats: promo hud scanlines with particles
+file: src/game/promotion.c
+expect: Stats_PromoHud_plain_rank_shows_name_and_badge
+-         if (g_cfg.particlesOn == 0) {
++         if (g_cfg.particlesOn != 0) {
+
+== stats: promo hud spark interval
+file: src/game/promotion.c
+expect: Stats_PromoHud_sparks_with_particles_on
+-             g_nextSpark = g_time + 8;
++             g_nextSpark = g_time + 16;
+
+== stats: promo hud spark every frame
+file: src/game/promotion.c
+expect: Stats_PromoHud_sparks_with_particles_on
+-         } else if (g_time > g_nextSpark) {
++         } else if (g_time >= g_nextSpark) {
+
+== stats: promo hud rank name
+file: src/game/promotion.c
+expect: Stats_PromoHud_plain_rank_shows_name_and_badge
+-         sprintf(g_logBuf, "%s", g_rankNames[g_save.players[g_promoPlayer].rank]);
++         sprintf(g_logBuf, "%s", g_rankNames[g_save.players[g_curPlayer].rank]);
+
+== stats: promo hud rank badge
+file: src/game/promotion.c
+expect: Stats_PromoHud_plain_rank_shows_name_and_badge
+-                           g_rankSprY[g_save.players[g_promoPlayer].rank], 64, 13);
++                           g_rankSprY[g_save.players[g_promoPlayer].rank + 1], 64, 13);
+
+== stats: promo hud pips x
+file: src/game/promotion.c
+expect: Stats_PromoHud_star_pips_per_rank
+-         DrawRow((g_screenW >> 1) + 40, cy + 38, col, count);
++         DrawRow((g_screenW >> 1) + 30, cy + 38, col, count);
+
+== stats: promo hud silver pip column
+file: src/game/promotion.c
+expect: Stats_PromoHud_star_pips_per_rank
+-         PROMO_RANK_ROW(RANK_ADMIRAL_2_1, 1, 1)
++         PROMO_RANK_ROW(RANK_ADMIRAL_2_1, 0, 1)
+
+== stats: promo hud bronze pip count
+file: src/game/promotion.c
+expect: Stats_PromoHud_star_pips_per_rank
+-         PROMO_RANK_ROW(RANK_ADMIRAL_1_3, 0, 3)
++         PROMO_RANK_ROW(RANK_ADMIRAL_1_3, 0, 2)
+
+== stats: promo hud grandmaster pip column
+file: src/game/promotion.c
+expect: Stats_PromoHud_star_pips_per_rank
+-         PROMO_RANK_ROW(RANK_GRANDMASTER_1, 2, 1)
++         PROMO_RANK_ROW(RANK_GRANDMASTER_1, 1, 1)
+
+== stats: promo hud no grandmaster 3 pips
+file: src/game/promotion.c
+expect: Stats_PromoHud_star_pips_per_rank
+-         PROMO_RANK_ROW(RANK_GRANDMASTER_3, 2, 3)
+-
+
+== stats: promo hud blink period
+file: src/game/promotion.c
+expect: Stats_PromoHud_blinks_press_fire
+-             g_promoBlinkTimer = g_time + 400;
++             g_promoBlinkTimer = g_time + 500;
+
+== stats: promo hud blink stuck on
+file: src/game/promotion.c
+expect: Stats_PromoHud_blinks_press_fire
+-             g_promoContinueBlink = !g_promoContinueBlink;
++             g_promoContinueBlink = 1;
+
+== stats: promo hud blink without the message
+file: src/game/promotion.c
+expect: Stats_PromoHud_blinks_press_fire
+-     if (g_rankMsgActive != 0) {
++     if (1) {
+
+== stats: promo banner player 0
+file: src/game/promotion.c
+expect: Stats_PromoBanner_names_the_current_players_rank
+-     sprintf(g_logBuf, "%s", g_rankNames[g_save.players[g_curPlayer].rank]);
++     sprintf(g_logBuf, "%s", g_rankNames[g_save.players[0].rank]);
+
+== stats: promo banner badge height
+file: src/game/promotion.c
+expect: Stats_PromoBanner_names_the_current_players_rank
+-     Blit((g_screenW >> 1) - 32, y + 30, 0, g_gfxRanks, 0,
++     Blit((g_screenW >> 1) - 32, y + 20, 0, g_gfxRanks, 0,
+
+== stats: ApplyStatUnlocks skips the marathon score
+file: src/profile/stats.c
+expect: Stats_ApplyStatUnlocks_marathon_milestone
+-         ShowMarathonScore(g_profileIndex);
+-         if (g_gameMode != MODE_TIME_TRIAL && g_shownStat >= MARATHON_MILESTONE_SCORE)
++         if (g_gameMode != MODE_TIME_TRIAL && g_shownStat >= MARATHON_MILESTONE_SCORE)
+
+== stats: FormatBestTime dashes from 16 minutes
+file: src/profile/stats.c
+expect: Stats_FormatBestTime_formats_seconds_and_minutes
+-             if (mn < 44) {
++             if (mn < 16) {
+
+== stats: medal sequence waits on a wrong third medal
+file: src/profile/stats.c
+expect: Stats_medal_sequence_restarts_on_a_wrong_medal
+-                 if (medal == MEDAL_BONUS_RATIO)
+-                     g_acc.medalStep = MEDAL_BONUS_RATIO;
+-                 else
+-                     g_acc.medalStep = MEDAL_STEP_RESET;
++                 if (medal == MEDAL_BONUS_RATIO)
++                     g_acc.medalStep = MEDAL_BONUS_RATIO;
++                 else
++                     g_acc.medalStep = MEDAL_SPEED_STREAK;
+
+== stats: highest money text truncates to 32 bits
+file: src/profile/stats.c
+-             sprintf(g_logBuf, "%lld", (__int64)g_acc.highestMoney);
++             sprintf(g_logBuf, "%d", (int)(__int64)g_acc.highestMoney);
+expect: Stats_FormatHighestMoney_preserves_64_bit_amounts

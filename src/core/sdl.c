@@ -16,8 +16,15 @@
 // - Key codes stay PTK's (they are stored in WarBlade.inf); letters, digits and punctuation
 //   follow the keyboard layout, as Windows virtual keys did.
 #include <string.h>
+#ifndef _WIN32
+#include <dirent.h>
+#include <unistd.h>
+#endif
 #include <SDL3/SDL.h>
 #include <SDL3_image/SDL_image.h>
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
 #include "sdlhelp.h"
 
 // Audio slides that need the game thread (sdl_audio.c).
@@ -26,6 +33,7 @@ void AudioTick(void);
 static SDL_Window   *s_window;
 static SDL_Renderer *s_renderer;
 static SDL_Texture  *s_canvas;       // the back buffer; always the render target between flips
+static SDL_ScaleMode s_canvasScaleMode = SDL_SCALEMODE_PIXELART;
 static int           s_width, s_height;
 static bool          s_fullscreen;
 static bool          s_quit;
@@ -54,8 +62,8 @@ static void RecordFill(SDL_FRect rect, SDL_BlendMode blend, float r, float g, fl
 
 void SysInit(void)
 {
-    SDL_SetAppMetadata("Warblade", "1.34 SR1", "as.warblade.warblade");
-    if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK))
+    SDL_SetAppMetadata("Warblade", "2.0", "as.warblade.warblade");
+    if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_GAMEPAD))
         SDL_Log("SDL_Init failed: %s", SDL_GetError());
 }
 
@@ -104,8 +112,21 @@ static void CanvasToWindow(float cx, float cy, float *wx, float *wy)
 
 bool SysCreateWindow(int w, int h, bool windowed, const char *title, const char *renderDriver)
 {
-    SDL_WindowFlags flags = windowed ? SDL_WINDOW_RESIZABLE : SDL_WINDOW_RESIZABLE | SDL_WINDOW_FULLSCREEN;
+    SDL_WindowFlags flags;
     bool ok;
+
+#ifdef __EMSCRIPTEN__
+    // A page can only go fullscreen from a click or key press: start in the page (W and the
+    // settings page still switch).
+    windowed = true;
+#endif
+    flags = windowed ? SDL_WINDOW_RESIZABLE : SDL_WINDOW_RESIZABLE | SDL_WINDOW_FULLSCREEN;
+#ifdef __EMSCRIPTEN__
+    // Keep CSS/input coordinates in logical pixels while presenting at the
+    // display density. Otherwise thin bitmap strokes are lost in a low-resolution
+    // canvas before a phone's browser enlarges it again.
+    flags |= SDL_WINDOW_HIGH_PIXEL_DENSITY;
+#endif
 
     SysDestroyWindow();
     SDL_SetHint(SDL_HINT_RENDER_DRIVER, renderDriver);     // NULL clears it
@@ -130,7 +151,8 @@ bool SysCreateWindow(int w, int h, bool windowed, const char *title, const char 
     SDL_SetTextureBlendMode(s_canvas, SDL_BLENDMODE_NONE);
     SDL_SetTextureBlendMode(s_base, SDL_BLENDMODE_NONE);
     // Pixel-art scaling keeps the 800x600 picture (and its bitmap fonts) sharp in large windows.
-    SDL_SetTextureScaleMode(s_canvas, SDL_SCALEMODE_PIXELART);
+    s_canvasScaleMode = SDL_SCALEMODE_PIXELART;
+    SDL_SetTextureScaleMode(s_canvas, s_canvasScaleMode);
     SDL_SetTextureScaleMode(s_base, SDL_SCALEMODE_PIXELART);
     s_recording = false;
     s_width = w;
@@ -197,9 +219,18 @@ void SysSetFullscreen(const bool fullscreen)
     s_fullscreen = fullscreen;
 }
 
+static void PadAdded(SDL_JoystickID id);
+static void PadRemoved(SDL_JoystickID id);
+
 static void HandleEvent(const SDL_Event *e)
 {
     switch (e->type) {
+    case SDL_EVENT_GAMEPAD_ADDED:
+        PadAdded(e->gdevice.which);
+        break;
+    case SDL_EVENT_GAMEPAD_REMOVED:
+        PadRemoved(e->gdevice.which);
+        break;
     case SDL_EVENT_QUIT:
     case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
         s_quit = true;
@@ -249,6 +280,10 @@ static bool WantInterpolation(void)
 {
     float hz;
 
+#ifdef __EMSCRIPTEN__
+    return false;   // the browser paces the page; frames are shown as they are made
+#endif
+
     if (s_frameMs == 0 || s_base == NULL || s_interpMode == SYS_INTERP_OFF)
         return false;
     if (s_interpMode == SYS_INTERP_ON)
@@ -272,6 +307,20 @@ static void FlipPlain(void)
     SDL_SetRenderDrawColor(s_renderer, 0, 0, 0, 255);
     SDL_RenderClear(s_renderer);
     dst = OutputRect();
+    // Average neighbouring pixels when shrinking, preserving coverage of thin
+    // text strokes. Pixel-art magnification still keeps the original look.
+    SDL_ScaleMode scaleMode = SDL_SCALEMODE_PIXELART;
+#ifdef __EMSCRIPTEN__
+    // WebGL supports filtered render-target minification. Keep the standalone
+    // software renderer's presentation path unchanged; its linear target copy
+    // can produce a black surface with the pinned SDL version.
+    if (dst.w < s_width || dst.h < s_height)
+        scaleMode = SDL_SCALEMODE_LINEAR;
+#endif
+    if (scaleMode != s_canvasScaleMode) {
+        SDL_SetTextureScaleMode(s_canvas, scaleMode);
+        s_canvasScaleMode = scaleMode;
+    }
     SDL_RenderTexture(s_renderer, s_canvas, NULL, &dst);
     SDL_RenderPresent(s_renderer);
     SDL_SetRenderTarget(s_renderer, s_canvas);
@@ -283,6 +332,10 @@ static void FlipPlain(void)
     now = SDL_GetTicksNS();
     if (frameNs && now - s_lastFlipNs < frameNs)
         SDL_DelayPrecise(frameNs - (now - s_lastFlipNs));
+#ifdef __EMSCRIPTEN__
+    else
+        emscripten_sleep(0);   // the browser shows the frame (and runs events) only once we yield
+#endif
 
     WaitForFocus();
     s_lastFlipNs = SDL_GetTicksNS();
@@ -352,7 +405,7 @@ void SysSetWorldView(float x, float y, float rotation, float zoom, bool clear)
 
 void SysSetIcon(const char *icoFile)
 {
-    SDL_Surface *icon = IMG_Load(icoFile);
+    SDL_Surface *icon = IMG_Load(SysPath(icoFile));
     if (icon) {
         SDL_SetWindowIcon(s_window, icon);
         SDL_DestroySurface(icon);
@@ -373,7 +426,7 @@ bool SysScreenshot(const char *file, int w, int h)
         if (shot == NULL)
             return false;
     }
-    ok = IMG_SaveJPG(shot, file, 90);
+    ok = IMG_SaveJPG(shot, SysPath(file), 90);
     SDL_DestroySurface(shot);
     return ok;
 }
@@ -500,6 +553,14 @@ const char *SysUserFolder(void)
     static char folder[1024];
     if (folder[0] == 0) {
         const char *docs = SDL_GetUserFolder(SDL_FOLDER_DOCUMENTS);
+#ifdef __EMSCRIPTEN__
+        // The page keeps this folder in memory; durable saves belong to the server account.
+        docs = "/save";
+#elif !defined(_WIN32)
+        // Not every Linux home has a Documents folder.
+        if (docs == NULL || !SDL_GetPathInfo(docs, NULL))
+            docs = SDL_GetUserFolder(SDL_FOLDER_HOME);
+#endif
         CopyPath(folder, sizeof(folder), docs ? docs : SDL_GetBasePath());
     }
     return folder;
@@ -513,14 +574,85 @@ const char *SysAppPath(const char *rel)
     return path;
 }
 
+#ifdef _WIN32
+const char *SysPath(const char *path)
+{
+    return path;
+}
+#else
+// Finds the entry of folder `dir` named `name` ignoring case, into `out`; false if none.
+static bool FindNoCase(const char *dir, const char *name, char *out, size_t size)
+{
+    DIR *d = opendir(dir[0] ? dir : ".");
+    struct dirent *e;
+    bool found = false;
+
+    if (d == NULL)
+        return false;
+    while ((e = readdir(d)) != NULL) {
+        if (SDL_strcasecmp(e->d_name, name) == 0) {
+            SDL_strlcpy(out, e->d_name, size);
+            found = true;
+            break;
+        }
+    }
+    closedir(d);
+    return found;
+}
+
+const char *SysPath(const char *path)
+{
+    static char bufs[4][1024];
+    static int next;
+    char *out = bufs[next];
+    const size_t size = sizeof(bufs[0]);
+    char name[256];
+    char real[256];
+    size_t len;
+    const char *p = path;
+
+    next = (next + 1) % 4;
+    out[0] = 0;
+    if (*p == '/' || *p == '\\')
+        SDL_strlcpy(out, "/", size);
+    while (*p) {
+        size_t n;
+        while (*p == '/' || *p == '\\')
+            p++;
+        for (n = 0; p[n] && p[n] != '/' && p[n] != '\\'; n++)
+            ;
+        if (n == 0)
+            break;
+        SDL_strlcpy(name, p, n + 1 < sizeof(name) ? n + 1 : sizeof(name));
+        p += n;
+
+        // `out` is the folder so far ("" for the current one); add this component to it,
+        // spelled as on disk if only a different case exists.
+        len = strlen(out);
+        if (len > 0 && out[len - 1] != '/' && len + 1 < size)
+            out[len++] = '/';
+        out[len] = 0;
+        SDL_strlcat(out, name, size);
+        if (access(out, F_OK) != 0) {
+            out[len] = 0;
+            if (FindNoCase(out, name, real, sizeof(real)))
+                SDL_strlcat(out, real, size);
+            else
+                SDL_strlcat(out, name, size);
+        }
+    }
+    return out;
+}
+#endif
+
 bool SysFileExists(const char *path)
 {
-    return SDL_GetPathInfo(path, NULL);
+    return SDL_GetPathInfo(SysPath(path), NULL);
 }
 
 bool SysMakeDir(const char *path)
 {
-    return SDL_CreateDirectory(path);
+    return SDL_CreateDirectory(SysPath(path));
 }
 
 void SysOpenUrl(const char *url)
@@ -573,7 +705,7 @@ void PacAddArchive(const char *path)
     Sint64 pos = 0;
     int cap = 0;
 
-    s_pac = SDL_IOFromFile(path, "rb");
+    s_pac = SDL_IOFromFile(SysPath(path), "rb");
     if (s_pac == NULL) {
         SDL_Log("Could not open %s: %s", path, SDL_GetError());
         return;
@@ -618,7 +750,7 @@ static void *PacLoad(const char *name, size_t *size)
     void *data;
 
     if (e == NULL)
-        return SDL_LoadFile(name, size);
+        return SDL_LoadFile(SysPath(name), size);
     data = SDL_malloc((size_t)e->size + 1);
     if (data == NULL)
         return NULL;
@@ -634,7 +766,7 @@ static void *PacLoad(const char *name, size_t *size)
 
 bool PacExists(const char *name)
 {
-    return PacFind(name) != NULL || SDL_GetPathInfo(name, NULL);
+    return PacFind(name) != NULL || SDL_GetPathInfo(SysPath(name), NULL);
 }
 
 // A file shorter than `size` fills only its own length of `buf`.
@@ -1108,7 +1240,7 @@ static void StartRecording(bool fresh)
     SDL_SetRenderTarget(s_renderer, s_base);
     SDL_SetTextureScaleMode(s_canvas, SDL_SCALEMODE_NEAREST);
     SDL_RenderTexture(s_renderer, s_canvas, NULL, NULL);
-    SDL_SetTextureScaleMode(s_canvas, SDL_SCALEMODE_PIXELART);
+    SDL_SetTextureScaleMode(s_canvas, s_canvasScaleMode);
     SDL_SetRenderTarget(s_renderer, s_canvas);
     if (fresh)
         s_lists[s_curList].count = 0;
@@ -1583,4 +1715,91 @@ bool JoyButton(char joy, long mask)
             buttons |= 1ul << i;
     }
     return (buttons & (unsigned long)mask) != 0;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Gamepads (sdlhelp.h): opened as they connect (SDL reports the ones present at start too).
+// ---------------------------------------------------------------------------------------------
+
+#define MAX_PADS 4
+#define PAD_STICK_DEAD 12000        // of 32767: how far the stick has to go to count as a direction
+#define PAD_TRIGGER_DOWN 16000      // of 32767: how far a trigger has to go to count as pressed
+
+static SDL_Gamepad *s_pads[MAX_PADS];
+static unsigned s_virtualPad;
+
+static void PadAdded(SDL_JoystickID id)
+{
+    int i;
+    for (i = 0; i < MAX_PADS; i++) {
+        if (s_pads[i] && SDL_GetGamepadID(s_pads[i]) == id)
+            return;
+    }
+    for (i = 0; i < MAX_PADS; i++) {
+        if (s_pads[i] == NULL) {
+            s_pads[i] = SDL_OpenGamepad(id);
+            if (s_pads[i] == NULL)
+                SDL_Log("SDL_OpenGamepad failed: %s", SDL_GetError());
+            else
+                SDL_Log("Gamepad %d: %s", i, SDL_GetGamepadName(s_pads[i]));
+            return;
+        }
+    }
+}
+
+static void PadRemoved(SDL_JoystickID id)
+{
+    int i;
+    for (i = 0; i < MAX_PADS; i++) {
+        if (s_pads[i] && SDL_GetGamepadID(s_pads[i]) == id) {
+            SDL_CloseGamepad(s_pads[i]);
+            s_pads[i] = NULL;
+        }
+    }
+}
+
+unsigned SysPadState(int pad)
+{
+    SDL_Gamepad *g;
+    unsigned bits;
+    int x, y;
+
+    if (pad < 0 || pad >= MAX_PADS)
+        return 0;
+    RefreshInput();
+    bits = pad == 0 ? s_virtualPad : 0;
+    g = s_pads[pad];
+    if (g == NULL)
+        return bits;
+
+    x = SDL_GetGamepadAxis(g, SDL_GAMEPAD_AXIS_LEFTX);
+    y = SDL_GetGamepadAxis(g, SDL_GAMEPAD_AXIS_LEFTY);
+    if (x < -PAD_STICK_DEAD || SDL_GetGamepadButton(g, SDL_GAMEPAD_BUTTON_DPAD_LEFT))
+        bits |= PAD_LEFT;
+    if (x > PAD_STICK_DEAD || SDL_GetGamepadButton(g, SDL_GAMEPAD_BUTTON_DPAD_RIGHT))
+        bits |= PAD_RIGHT;
+    if (y < -PAD_STICK_DEAD || SDL_GetGamepadButton(g, SDL_GAMEPAD_BUTTON_DPAD_UP))
+        bits |= PAD_UP;
+    if (y > PAD_STICK_DEAD || SDL_GetGamepadButton(g, SDL_GAMEPAD_BUTTON_DPAD_DOWN))
+        bits |= PAD_DOWN;
+    if (SDL_GetGamepadButton(g, SDL_GAMEPAD_BUTTON_SOUTH) ||
+        SDL_GetGamepadAxis(g, SDL_GAMEPAD_AXIS_RIGHT_TRIGGER) > PAD_TRIGGER_DOWN)
+        bits |= PAD_FIRE;
+    if (SDL_GetGamepadButton(g, SDL_GAMEPAD_BUTTON_EAST) || SDL_GetGamepadButton(g, SDL_GAMEPAD_BUTTON_WEST) ||
+        SDL_GetGamepadAxis(g, SDL_GAMEPAD_AXIS_LEFT_TRIGGER) > PAD_TRIGGER_DOWN)
+        bits |= PAD_ROCKET;
+    if (SDL_GetGamepadButton(g, SDL_GAMEPAD_BUTTON_START))
+        bits |= PAD_PAUSE;
+    if (SDL_GetGamepadButton(g, SDL_GAMEPAD_BUTTON_BACK))
+        bits |= PAD_PROFILE;
+    return bits;
+}
+
+// Called by the browser page's touch controls (web/index.html).
+#ifdef __EMSCRIPTEN__
+EMSCRIPTEN_KEEPALIVE
+#endif
+void SysSetVirtualPad(unsigned bits)
+{
+    s_virtualPad = bits;
 }

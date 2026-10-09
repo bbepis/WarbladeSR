@@ -251,7 +251,7 @@ void WriteSettings()
     int res;
 
     fd = 0;
-    char tit[CFG_TITLE_LEN] = "WarBlade v1.34 Information";
+    char tit[CFG_TITLE_LEN] = "Warblade v2.0 Information";
     unsigned int i;
     char path[512];
     _set_fmode(_O_BINARY);

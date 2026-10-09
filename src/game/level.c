@@ -983,7 +983,11 @@ int PackLevelData(int slot, int level, short mode)
     buf = calloc(LEVEL_RAW_SIZE, 1);
     usize = LEVEL_RAW_SIZE;
     csize = LEVEL_RAW_SIZE;
-    res = compress((unsigned char *)buf,(unsigned long *)&csize,(const unsigned char *)&g_levelRaw, usize);
+    {
+        uLongf packed = (uLongf)csize;   // zlib's sizes are `unsigned long`
+        res = compress((unsigned char *)buf, &packed, (const unsigned char *)&g_levelRaw, usize);
+        csize = (int)packed;
+    }
     buf2 = calloc(csize, 1);
     memcpy(buf2, buf, csize);
     g_alienGfxSlots[slot].src = buf2;
@@ -1051,7 +1055,7 @@ int PackLevelData(int slot, int level, short mode)
 void LoadingScreen(int n)
 {
     DrawRect(0, 0, (float)g_screenW, (float)g_screenH, 0, 0, 0, 1.0f);
-    DrawMenuText("WARBLADE VERSION 1.34 SR1", POS_CENTERED, 0x10e, 2);
+    DrawMenuText("WARBLADE SR VERSION 2.0", POS_CENTERED, 0x10e, 2);
     DrawMenuText("L O A D I N G   D A T A", POS_CENTERED, 0x136, 2);
     sprintf(g_logBuf, "FILLING LEVEL BUFFER : %d", n);
     DrawMenuText(g_logBuf, POS_CENTERED, 0x168, 2);

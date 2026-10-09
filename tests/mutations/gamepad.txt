@@ -1,0 +1,31 @@
+# src/core/sdl.c gamepad adapter, covered by tests/engine_gamepad.c
+
+== engine: Gamepad stick dead zone includes boundary
+file: src/core/sdl.c
+-     if (x < -PAD_STICK_DEAD || SDL_GetGamepadButton(g, SDL_GAMEPAD_BUTTON_DPAD_LEFT))
++     if (x <= -PAD_STICK_DEAD || SDL_GetGamepadButton(g, SDL_GAMEPAD_BUTTON_DPAD_LEFT))
+expect: engine_SysPadState_applies_stick_dead_zones_to_each_axis
+
+== engine: Gamepad south button maps to rocket
+file: src/core/sdl.c
+-     if (SDL_GetGamepadButton(g, SDL_GAMEPAD_BUTTON_SOUTH) ||
++     if (SDL_GetGamepadButton(g, SDL_GAMEPAD_BUTTON_NORTH) ||
+expect: engine_SysPadState_maps_dpad_actions_triggers_start_and_back
+
+== engine: Gamepad added pads are not assigned
+file: src/core/sdl.c
+-         if (s_pads[i] == NULL) {
++         if (s_pads[i] != NULL) {
+expect: engine_SysPadState_routes_players_and_clears_disconnected_pads
+
+== engine: Gamepad removed pad clears player one
+file: src/core/sdl.c
+-             s_pads[i] = NULL;
++             s_pads[0] = NULL;
+expect: engine_SysPadState_routes_players_and_clears_disconnected_pads
+
+== engine: Touch controls do not reach player one
+file: src/core/sdl.c
+-     bits = pad == 0 ? s_virtualPad : 0;
++     bits = 0;
+expect: engine_SysPadState_ORs_touch_controls_with_player_one_gamepad

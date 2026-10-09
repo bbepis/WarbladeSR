@@ -74,7 +74,7 @@ bool InitWindow(bool windowed)
 
     g_cfg.windowed = windowed;
     if (renderer != RENDERER_AUTO &&
-        !SysCreateWindow(g_screenW, g_screenH, windowed, "Warblade 1.34 SR1", s_rendererHints[renderer])) {
+        !SysCreateWindow(g_screenW, g_screenH, windowed, "Warblade SR 2.0", s_rendererHints[renderer])) {
         sprintf(g_logBuf, "ERROR :  Could not create the %s renderer, using auto\n",
                 s_rendererHints[renderer]);
         LogPrint(g_logBuf);
@@ -83,7 +83,7 @@ bool InitWindow(bool windowed)
         WriteSettings();
     }
     if (renderer == RENDERER_AUTO &&
-        !SysCreateWindow(g_screenW, g_screenH, windowed, "Warblade 1.34 SR1", 0)) {
+        !SysCreateWindow(g_screenW, g_screenH, windowed, "Warblade SR 2.0", 0)) {
         LogPrint("ERROR :  Could not open window\n");
         return false;
     }
@@ -140,7 +140,7 @@ int LoadGameData()
     SysFlip();
     SysSetClearColor(0, 0, 0, 1.0f);
     SysSetWorldView(g_worldViewX, g_worldViewY, g_worldViewRotation, g_worldZoom, true);
-    DrawMenuText("WARBLADE VERSION 1.34 SR1", POS_CENTERED, 0x10e, 2);
+    DrawMenuText("WARBLADE SR VERSION 2.0", POS_CENTERED, 0x10e, 2);
     DrawMenuText("L O A D I N G   D A T A", POS_CENTERED, 0x136, 2);
     FlushBlit(0);
     FlushQuads(0);
@@ -665,19 +665,19 @@ int InitFail(const char *msg)
     return 0;
 }
 
-// Points each ship-stats table pointer at its backing data array.
+// Points each ship type's definition at its stats array.
 void InitTablePtrs()
 {
-    g_shipStatsPtr2 = g_shipStats2;
-    g_shipStatsPtr9 = g_shipStats9;
     g_shipDefs[0] = (ShipDef *)g_shipStats0;
-    g_shipStatsPtr7 = g_shipStats7;
-    g_shipStatsPtr1 = g_shipStats1;
-    g_shipStatsPtr5 = g_shipStats5;
-    g_shipStatsPtr6 = g_shipStats6;
-    g_shipStatsPtr3 = g_shipStats3;
-    g_shipStatsPtr8 = g_shipStats8;
-    g_shipStatsPtr4 = g_shipStats4;
+    g_shipDefs[1] = (ShipDef *)g_shipStats1;
+    g_shipDefs[2] = (ShipDef *)g_shipStats2;
+    g_shipDefs[3] = (ShipDef *)g_shipStats3;
+    g_shipDefs[4] = (ShipDef *)g_shipStats4;
+    g_shipDefs[5] = (ShipDef *)g_shipStats5;
+    g_shipDefs[6] = (ShipDef *)g_shipStats6;
+    g_shipDefs[7] = (ShipDef *)g_shipStats7;
+    g_shipDefs[8] = (ShipDef *)g_shipStats8;
+    g_shipDefs[9] = (ShipDef *)g_shipStats9;
 }
 
 #define FREE_NULL(p) if (p) { free(p); p = 0; }

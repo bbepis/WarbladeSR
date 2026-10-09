@@ -338,7 +338,7 @@ struct Account {   // 0x40d0 bytes; at 0xa913c0, 0xd2d620
     char pad_40c0[0x10]; // +0x40c0
 };
 
-struct AccountV0 {   // 0x1b48 bytes; at 0xd5a410 (DecodeAccount copies 0x40d0 into it)
+struct AccountV0 {   // 0x1b48-byte legacy score layout; at 0xd5a410 during DecodeAccount
     char pad_0[0x58]; // +0x0
     double highScore; // +0x58
     double meteorstormHighScore; // +0x60

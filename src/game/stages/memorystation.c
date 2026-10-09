@@ -165,7 +165,7 @@ void MemoryStationText()
 
         DrawMenuText("C O N G R A T U L A T I O N S", POS_CENTERED, half - 40, 0);
         DrawMenuText("YOU FOUND ALL THE PAIRS", POS_CENTERED, half - 10, 1);
-        sprintf(g_logBuf, "%d POINTS BONUS", g_save.players[g_curPlayer].memoryBonus);
+        sprintf(g_logBuf, "%lld POINTS BONUS", g_save.players[g_curPlayer].memoryBonus);
         DrawMenuText(g_logBuf, POS_CENTERED, half + 10, 1);
     }
 }

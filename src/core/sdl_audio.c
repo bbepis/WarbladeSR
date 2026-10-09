@@ -11,6 +11,9 @@
 #include <string.h>
 #include <SDL3/SDL.h>
 #include <SDL3_mixer/SDL_mixer.h>
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
 #include "sdlhelp.h"
 
 void AudioTick(void);
@@ -259,7 +262,15 @@ void AudioShutdown(void)
 }
 
 int  AudioError(void)  { return s_error; }
-void AudioUpdate(void) { AudioTick(); }
+// Only called from the game's busy-waits (e.g. while a jingle plays out); in a browser those
+// must also let the page run.
+void AudioUpdate(void)
+{
+    AudioTick();
+#ifdef __EMSCRIPTEN__
+    emscripten_sleep(1);
+#endif
+}
 
 void AudioStart(void)
 {
@@ -304,7 +315,7 @@ AudioHandle SampleLoad(const char *file, int maxVoices, int flags)
         s_error = ERR_MEM;
         return 0;
     }
-    audio = MIX_LoadAudio(s_mixer, file, true);
+    audio = MIX_LoadAudio(s_mixer, SysPath(file), true);
     if (audio == NULL) {
         s_error = ERR_FILEOPEN;
         return 0;
@@ -390,7 +401,7 @@ static AudioHandle LoadMusic(const char *file)
         s_error = ERR_MEM;
         return 0;
     }
-    audio = MIX_LoadAudio(s_mixer, file, false);
+    audio = MIX_LoadAudio(s_mixer, SysPath(file), false);
     if (audio == NULL) {
         s_error = ERR_FILEOPEN;
         return 0;

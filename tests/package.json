@@ -1,0 +1,11 @@
+{
+  "name": "warblade-sr-tests",
+  "private": true,
+  "description": "Browser tests for the Docker image (tests/README.md)",
+  "scripts": {
+    "test": "./run.sh"
+  },
+  "devDependencies": {
+    "playwright": "1.56.1"
+  }
+}

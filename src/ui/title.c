@@ -76,9 +76,9 @@ void ShowLogoSplash()
              KeyDown(K_VK_L_CONTROL) || g_mouseDown != 0) &&
             g_time > g_splashMinEnd) {
             // drain the key(s) so the same press doesn't also skip the next screen
-            do {} while (KeyDown(K_VK_SPACE));
-            do {} while (KeyDown(K_VK_ESCAPE));
-            do {} while (KeyDown(K_VK_L_CONTROL));
+            WaitForKeyRelease(K_VK_SPACE);
+            WaitForKeyRelease(K_VK_ESCAPE);
+            WaitForKeyRelease(K_VK_L_CONTROL);
             return;
         }
 
@@ -123,9 +123,9 @@ void ShowTitleSplash()
         if ((KeyDown(K_VK_SPACE) || KeyDown(K_VK_ESCAPE) ||
              KeyDown(K_VK_L_CONTROL) || g_mouseDown != 0) &&
             g_time > g_splashMinEnd) {
-            do {} while (KeyDown(K_VK_SPACE));
-            do {} while (KeyDown(K_VK_ESCAPE));
-            do {} while (KeyDown(K_VK_L_CONTROL));
+            WaitForKeyRelease(K_VK_SPACE);
+            WaitForKeyRelease(K_VK_ESCAPE);
+            WaitForKeyRelease(K_VK_L_CONTROL);
             return;
         }
 

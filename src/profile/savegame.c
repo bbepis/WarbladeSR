@@ -1,5 +1,6 @@
 // savegame.c: Suspended games (profileNNN.svg; the format is in savefile.c), profile directories.
 #include <stdio.h>
+#include <string.h>
 #include <io.h>
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -49,6 +50,30 @@ void SaveProfile(int profile)
             DecProfileLives(profile);
         SaveGameToFile(savename);
     }
+}
+
+// The browser build's save (not in the original, which saves only with F1/F2 in the shop,
+// ending the game): saves profile's suspended game at each shop visit while play goes on. It
+// doesn't use up one of the profile's saves, and the game state SaveProfile changes for the file
+// (timers made relative) is put back afterwards.
+void AutoSaveProfile(int profile)
+{
+    static SaveData keep;
+    unsigned char freshStart = g_freshStart;
+    unsigned char broke = g_playerBroke;
+    __int64 saveId;
+
+    if (profile < 0)
+        return;
+    memcpy(&keep, &g_save, sizeof(keep));
+    g_freshStart = 0;   // what makes SaveProfile charge a save
+    g_playerBroke = 0;
+    SaveProfile(profile);
+    saveId = g_save.saveId;
+    memcpy(&g_save, &keep, sizeof(keep));
+    g_save.saveId = saveId;   // the id the profile now records for this save
+    g_freshStart = freshStart;
+    g_playerBroke = broke;
 }
 
 // Loads the suspended-game save for profile (LoadGameFromFile), discards the save file,
